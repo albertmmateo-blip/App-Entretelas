@@ -51,9 +51,7 @@ describe('Database Migration Runner', () => {
 
     // Verify tables were created
     const tables = db
-      .prepare(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
-      )
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
       .all();
 
     const tableNames = tables.map((t) => t.name);
@@ -76,9 +74,7 @@ describe('Database Migration Runner', () => {
 
     // Verify FTS5 tables were created
     const tables = db
-      .prepare(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '%_fts'"
-      )
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '%_fts'")
       .all();
 
     const tableNames = tables.map((t) => t.name);
@@ -97,9 +93,7 @@ describe('Database Migration Runner', () => {
     db.exec(migrationSQL);
 
     // Verify indexes were created
-    const indexes = db
-      .prepare("SELECT name FROM sqlite_master WHERE type='index'")
-      .all();
+    const indexes = db.prepare("SELECT name FROM sqlite_master WHERE type='index'").all();
 
     const indexNames = indexes.map((i) => i.name);
 
@@ -119,9 +113,7 @@ describe('Database Migration Runner', () => {
     db.exec(migrationSQL);
 
     // Verify triggers were created
-    const triggers = db
-      .prepare("SELECT name FROM sqlite_master WHERE type='trigger'")
-      .all();
+    const triggers = db.prepare("SELECT name FROM sqlite_master WHERE type='trigger'").all();
 
     const triggerNames = triggers.map((t) => t.name);
 

@@ -101,7 +101,7 @@ This file contains an ordered sequence of AI agent prompts for incrementally bui
 > - Write unit tests for the migration runner (use an in-memory SQLite database): test that migrations apply in order, user_version increments correctly, running twice doesn't re-apply migrations.
 > - `npm test` must pass.
 
-### P1-03a — Test utilities and fixtures `[ ]`
+### P1-03a — Test utilities and fixtures `[x]`
 
 > Create shared test utilities for consistent testing across modules.
 >
