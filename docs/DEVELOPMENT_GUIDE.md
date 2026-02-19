@@ -127,7 +127,15 @@ Tests live in `tests/`:
 ```
 tests/
 ├── unit/           # Pure function tests (db helpers, path sanitisers, etc.)
-└── component/      # React Testing Library tests for UI components
+├── component/      # React Testing Library tests for UI components
+├── e2e/            # End-to-end tests using Playwright (future)
+├── helpers/        # Shared test utilities
+│   ├── db.js       # Database helpers for testing
+│   ├── ipc-mock.js # IPC mocking utilities
+│   └── e2e.js      # E2E test helpers
+└── fixtures/       # Test data and files
+    ├── sample-data.js    # Factory functions for test entities
+    └── test-invoice.pdf  # Sample PDF for testing
 ```
 
 Run all tests:
@@ -146,6 +154,203 @@ Generate a coverage report:
 
 ```powershell
 npm run test:coverage
+```
+
+### Test Utilities
+
+The project provides several helper utilities for consistent testing across modules.
+
+#### Database Helpers (`tests/helpers/db.js`)
+
+For unit and integration tests that need database access:
+
+```javascript
+const { createTestDb, seedTestData, clearTable } = require('../helpers/db');
+
+describe('Database Tests', () => {
+  let db;
+
+  beforeEach(() => {
+    // Create in-memory database with migrations applied
+    db = createTestDb();
+  });
+
+  afterEach(() => {
+    db.close();
+  });
+
+  it('should insert and retrieve data', () => {
+    // Insert test data
+    seedTestData(db, 'notas', [{ nombre: 'Test', descripcion: 'Description', urgente: 0 }]);
+
+    // Query and verify
+    const rows = db.prepare('SELECT * FROM notas').all();
+    expect(rows).toHaveLength(1);
+  });
+
+  it('should clear table data', () => {
+    seedTestData(db, 'notas', [{ nombre: 'Test', urgente: 0 }]);
+    clearTable(db, 'notas');
+
+    const rows = db.prepare('SELECT * FROM notas').all();
+    expect(rows).toHaveLength(0);
+  });
+});
+```
+
+**Available functions:**
+
+- `createTestDb()` - Returns an in-memory SQLite connection with all migrations applied
+- `seedTestData(db, tableName, rows)` - Inserts array of objects into specified table
+- `clearTable(db, tableName)` - Truncates table and resets autoincrement counter
+
+#### IPC Mocking (`tests/helpers/ipc-mock.js`)
+
+For component tests that call `window.electronAPI`:
+
+```javascript
+import { setupIPCMock, teardownIPCMock, mockIPCResponse } from '../helpers/ipc-mock';
+import { createNota } from '../fixtures/sample-data';
+
+describe('Notas Component', () => {
+  beforeEach(() => {
+    setupIPCMock();
+  });
+
+  afterEach(() => {
+    teardownIPCMock();
+  });
+
+  it('should fetch and display notas', async () => {
+    // Set up mock response
+    mockIPCResponse('notas:getAll', {
+      success: true,
+      data: [createNota({ nombre: 'Test Nota' })],
+    });
+
+    // Render component and verify
+    render(<NotasList />);
+    await waitFor(() => {
+      expect(screen.getByText('Test Nota')).toBeInTheDocument();
+    });
+  });
+
+  it('should handle dynamic responses', async () => {
+    // Mock with a function for dynamic responses
+    mockIPCResponse('notas:create', (data) => ({
+      success: true,
+      data: { id: 1, ...data },
+    }));
+
+    // Test component behavior...
+  });
+});
+```
+
+**Available functions:**
+
+- `setupIPCMock()` - Initializes `window.electronAPI` mock, call in `beforeEach`
+- `teardownIPCMock()` - Cleans up mock, call in `afterEach`
+- `mockIPCResponse(channel, response)` - Sets mock response for IPC channel
+- `clearIPCMocks()` - Clears all mock responses
+- `createMockElectronAPI()` - Creates mock API object (used internally by `setupIPCMock`)
+
+#### Test Data Factories (`tests/fixtures/sample-data.js`)
+
+Factory functions for creating test entities with sensible defaults:
+
+```javascript
+import {
+  createNota,
+  createLlamar,
+  createEncargar,
+  createProveedor,
+  createCliente,
+  createMany,
+  createFullTestData,
+} from '../fixtures/sample-data';
+
+// Create single entity with defaults
+const nota = createNota();
+// { nombre: 'Test Nota', descripcion: '...', contacto: '...', urgente: 0 }
+
+// Override specific fields
+const urgentNota = createNota({ nombre: 'Urgent Note', urgente: 1 });
+
+// Create multiple entities
+const notas = createMany(createNota, 5, (index) => ({
+  nombre: `Nota ${index + 1}`,
+}));
+
+// Create full dataset for all modules
+const testData = createFullTestData();
+// Returns: { notas: [...], llamar: [...], encargar: [...], proveedores: [...], clientes: [...] }
+```
+
+**Available factories:**
+
+- `createNota(overrides)` - Creates nota with default values
+- `createLlamar(overrides)` - Creates llamar entry with default values
+- `createEncargar(overrides)` - Creates encargar entry with default values
+- `createProveedor(overrides)` - Creates proveedor with default values
+- `createCliente(overrides)` - Creates cliente with default values
+- `createMany(factoryFn, count, overridesFn)` - Creates multiple entities
+- `createFullTestData()` - Returns complete dataset for all modules
+
+#### E2E Test Helpers (`tests/helpers/e2e.js`)
+
+For end-to-end tests with Playwright (once E2E tests are implemented):
+
+```javascript
+const { launchApp, cleanDatabase, closeApp } = require('../helpers/e2e');
+
+describe('E2E: Notas Flow', () => {
+  let app;
+
+  beforeEach(async () => {
+    app = await launchApp();
+    await cleanDatabase(app);
+  });
+
+  afterEach(async () => {
+    await closeApp(app);
+  });
+
+  it('should create and display a nota', async () => {
+    const window = app.testWindow;
+
+    // Navigate and interact with app
+    await window.click('text=Notas');
+    await window.click('text=Nueva');
+    await window.fill('[name="nombre"]', 'Test Nota');
+    await window.click('button:has-text("Guardar")');
+
+    // Verify
+    await window.waitForSelector('text=Test Nota');
+  });
+});
+```
+
+**Available functions:**
+
+- `launchApp()` - Starts Electron app in test mode with temporary user data directory
+- `cleanDatabase(electronApp)` - Deletes test database for fresh state
+- `closeApp(electronApp)` - Closes app and cleans up temporary files
+
+#### Test Fixtures
+
+**Sample PDF** (`tests/fixtures/test-invoice.pdf`)
+
+A minimal valid PDF (< 1 KB) for testing PDF upload and thumbnail generation:
+
+```javascript
+const fs = require('fs');
+const path = require('path');
+
+const testPdfPath = path.join(__dirname, '../fixtures/test-invoice.pdf');
+const pdfBuffer = fs.readFileSync(testPdfPath);
+
+// Use in tests...
 ```
 
 ---
