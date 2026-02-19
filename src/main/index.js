@@ -1,6 +1,7 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const windowStateKeeper = require('electron-window-state');
+const { getDatabase } = require('./db/connection');
 
 let mainWindow;
 
@@ -75,5 +76,14 @@ if (!gotTheLock) {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
+  }
+});
+
+// Close database connection cleanly before quitting
+app.on('before-quit', () => {
+  const db = getDatabase();
+  if (db) {
+    db.close();
+    console.log('Database connection closed');
   }
 });
