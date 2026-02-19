@@ -158,6 +158,51 @@ Zustand store updates state
 React re-renders
 ```
 
+### IPC Data Serialization Rules
+
+All data passed over IPC is serialized via Structured Clone Algorithm:
+
+- **Dates:** Convert to ISO-8601 strings in main process before returning (SQLite stores as TEXT in this format already)
+- **Buffers:** Convert to `ArrayBuffer` or `Uint8Array` for IPC transfer
+- **Errors:** Return plain objects: `{ success: false, error: { code: 'ERROR_CODE', message: 'Description' } }`
+- **Success responses:** Return: `{ success: true, data: {...} }`
+
+Example IPC handler pattern:
+
+```javascript
+ipcMain.handle('notas:getAll', async () => {
+  try {
+    const rows = db.prepare('SELECT * FROM notas ORDER BY fecha_creacion DESC').all();
+    return {
+      success: true,
+      data: rows.map(r => ({
+        ...r,
+        urgente: Boolean(r.urgente), // Convert SQLite 0/1 to boolean
+        fecha_creacion: r.fecha_creacion, // Already ISO string from DB
+        fecha_mod: r.fecha_mod
+      }))
+    };
+  } catch (err) {
+    console.error('Database error in notas:getAll:', err);
+    return {
+      success: false,
+      error: { code: 'DB_ERROR', message: err.message }
+    };
+  }
+});
+```
+
+Renderer-side consumption:
+
+```javascript
+const response = await window.electronAPI.notas.getAll();
+if (response.success) {
+  setNotas(response.data);
+} else {
+  showToast(errorMessages[response.error.code], 'error');
+}
+```
+
 ---
 
 ## 5. Database Strategy
@@ -186,3 +231,80 @@ React re-renders
 | External navigation in Gmail webview | `will-navigate` and `new-window` events redirect to `shell.openExternal` |
 | Path traversal in PDF upload | Main process sanitises all file paths before writing to disk |
 | SQLite injection | All queries use parameterised statements (no string concatenation) |
+
+---
+
+## 8. Adding a New Module
+
+To add a new module (e.g., "Proveedores"):
+
+### 1. Database
+
+- Create migration: `src/main/db/migrations/00X_add_proveedores.sql`
+- Define table with: `id`, required fields, `urgente` flag (if applicable), `fecha_creacion`, `fecha_mod`
+- Add trigger for `fecha_mod` auto-update (see existing triggers in `001_init.sql`)
+- Add FTS5 virtual table for full-text search (if module needs search)
+- Add index on `urgente` column (if module supports urgent flag)
+
+### 2. Main Process
+
+- Create `src/main/ipc/proveedores.js`
+- Register handlers: `getAll`, `create`, `update`, `delete`
+- All handlers return structured responses: `{ success: true, data }` or `{ success: false, error: { code, message } }`
+- Use parameterised SQL queries (never string concatenation)
+- Validate inputs: check required fields, max lengths, sanitize strings
+
+### 3. Preload
+
+- Update `src/preload/index.js`
+- Add to `contextBridge.exposeInMainWorld`:
+  ```javascript
+  proveedores: {
+    getAll: () => ipcRenderer.invoke('proveedores:getAll'),
+    create: (data) => ipcRenderer.invoke('proveedores:create', data),
+    update: (id, data) => ipcRenderer.invoke('proveedores:update', id, data),
+    delete: (id) => ipcRenderer.invoke('proveedores:delete', id)
+  }
+  ```
+
+### 4. Renderer
+
+- **Store:** Create `src/renderer/store/proveedores.js` (Zustand)
+  - OR: Use `useCRUD('proveedores')` hook if module follows standard CRUD pattern
+- **List View:** Create `src/renderer/pages/Proveedores/index.jsx`
+  - Reuse `<DataTable />` component (from P2-01a)
+  - Implement search, sort, pagination
+- **Form:** Create `src/renderer/pages/Proveedores/Form.jsx`
+  - Reuse `<EntryForm />` component (from P2-01a)
+  - OR: Create custom form if fields are complex
+- **Routes:** Add to `src/renderer/App.jsx`:
+  - `/proveedores` → List view
+  - `/proveedores/nueva` → Create form
+  - `/proveedores/:id` → Edit form
+
+### 5. Navigation
+
+- **Sidebar:** Add icon and link in `src/renderer/App.jsx` sidebar
+- **Home Page:** Add to module quick-nav panel (`src/renderer/pages/Home/index.jsx`)
+- **URGENTE! Page:** Add to grouping logic (`src/renderer/pages/Urgente/index.jsx`) if module supports urgent flag
+
+### 6. Testing
+
+- **Integration Tests:** Test IPC handlers with in-memory DB (`tests/integration/proveedores.test.js`)
+  - Test CRUD operations
+  - Test validation (required fields, max lengths)
+  - Test error cases
+- **Component Tests:** Test list view and form (`tests/component/Proveedores.test.jsx`)
+  - Mock IPC responses using `mockIPCResponse` helper
+  - Test search, filter, sort
+  - Test form validation
+- **E2E Test:** Create `tests/e2e/proveedores.spec.js`
+  - Full CRUD flow: create → verify in list → edit → delete
+
+### 7. Documentation
+
+- Add module description to `README.md` table
+- Add requirements to `docs/REQUIREMENTS.md` (create new §3.X)
+- Add UI routes to `docs/UI_DESIGN.md §12`
+- Update `docs/DATA_MODEL.md` with new table schema
+- Mark completion in `PROMPTS.md` under "Discovered / Follow-on Prompts"

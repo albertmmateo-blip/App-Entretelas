@@ -157,3 +157,27 @@ App-Entretelas is a desktop application used as an internal business manager. It
 - Email composition, sending, or reply from within the app (Gmail webview provides this natively).
 - Automated invoice parsing or OCR.
 - Exporting data to CSV/Excel.
+
+---
+
+## 6. Performance and Scale Targets
+
+App-Entretelas is designed for single-user desktop use with local data storage. These targets ensure good performance for typical business use over 5+ years.
+
+| Metric | Target | Notes |
+|--------|--------|-------|
+| **Total entries** (Notas + Llamar + Encargar) | Up to 10,000 | Reasonable for 5 years of daily business use (~5-6 entries per business day) |
+| **PDF files** | Up to 1,000 | Storage: ~50 MB avg/file = 50 GB max |
+| **Database size** | Up to 500 MB | SQLite performs well at this scale on modern hardware |
+| **List rendering** | < 100 ms | For up to 1,000 visible entries (measured with React DevTools Profiler) |
+| **Search query** | < 50 ms | Using FTS5 indexes for full-text search |
+| **Cold start time** | < 3 seconds | From app launch to UI ready (on mid-range laptop with SSD) |
+| **Database query** | < 200 ms | For any single query (SELECT, INSERT, UPDATE, DELETE) |
+
+### Scalability Strategy
+
+- **Pagination:** Lists show 100 entries per page by default (configurable in UI)
+- **Virtual scrolling:** If list exceeds 500 entries, use `react-window` for virtualization
+- **Lazy loading:** Only load data for active module (not all data on startup)
+- **Query optimization:** Use `EXPLAIN QUERY PLAN` to verify indexes are used
+- **Database maintenance:** Run `VACUUM` periodically to reclaim space and optimize storage

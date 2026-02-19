@@ -266,3 +266,74 @@ Clicking a Proveedor folder opens:
 | `/facturas/venta` | Facturas Venta – Cliente list |
 | `/facturas/venta/:clienteId` | PDF list for a Cliente |
 | `/email` | Gmail webview |
+
+---
+
+## 13. UX Patterns and Edge Cases
+
+### Loading States
+
+All data-fetching operations must show loading indicator:
+
+- **Lists:** Show skeleton rows (3 rows of animated gray bars with `animate-pulse` from Tailwind)
+- **Forms:** Disable submit button and show spinner (use loading state from button component)
+- **PDFs:** Show "Cargando..." text in thumbnail placeholder with `animate-pulse` background
+- **Minimum display time:** 300ms (don't flash loading state for very fast operations - use delay)
+
+### Empty States
+
+All lists must show empty state when no data (per §11 pattern):
+
+- Use icon (📭), clear message, and call-to-action button
+- Empty state should be visually centered in content area
+- Messages should be helpful and specific:
+  - Notas: "No hay ninguna nota todavía. Haz clic en '+ Nueva nota' para añadir la primera."
+  - URGENTE!: "No hay entradas urgentes" (no CTA needed)
+  - Filtered list with no results: "No se encontraron resultados. Prueba con otros filtros."
+
+### Optimistic Updates
+
+- **Delete operations:** Immediately remove entry from list (optimistic). If IPC delete fails, re-add entry and show error toast.
+- **Create/update operations:** Wait for IPC response before showing in list (to get server-generated ID and timestamps).
+- **Toggle urgent:** Optimistically update badge. If IPC fails, revert UI state and show error toast.
+
+### Input Validation and Limits
+
+- **All text inputs:** `maxLength={255}` (single-line fields)
+- **Multi-line textareas (descripción):** `maxLength={5000}`
+- **Character counters:** Show when input is > 80% of limit: "240 / 255 caracteres"
+- **Trim whitespace:** Always trim on form submit (use `value.trim()`)
+- **Required field validation:** Prevent submit if required fields are empty. Show red border and message below field: "Este campo es obligatorio"
+- **Real-time validation:** Validate on blur, not on every keystroke (better UX)
+
+### Stale Data
+
+- **List refresh:** Reload data when page regains focus (use `useEffect` with focus event listener)
+- **No real-time sync needed:** Single-user, single-instance app (data doesn't change externally)
+- **Manual refresh:** Provide "Actualizar" button in list toolbar (optional, nice-to-have)
+
+### Error Recovery
+
+- **Network-like errors (DB locked, file not found):** Show retry button in toast notification
+- **Validation errors:** Keep form data, highlight fields with errors, allow user to correct and resubmit
+- **Fatal errors (caught by ErrorBoundary):** Show reload button that calls `window.location.reload()`
+
+### Keyboard Navigation
+
+- **Tab order:** Logical left-to-right, top-to-bottom through interactive elements
+- **Escape key:** Always closes topmost modal/dialog
+- **Enter key:** Submits forms (use `<form onSubmit>`, not manual Enter handler)
+- **Arrow keys:** Navigate dropdown options (native `<select>` behavior)
+
+### Accessibility
+
+- **Color contrast:** All text meets WCAG AA standard (4.5:1 for normal text, 3:1 for large text)
+- **Focus indicators:** Visible 2px outline on all interactive elements
+- **Alt text:** All images and icons have descriptive alt text or aria-label
+- **Screen reader testing:** Not required for v1, but semantic HTML helps (use `<button>`, `<nav>`, `<main>`, `<header>`)
+
+### Mobile/Responsive (Future)
+
+- **Not in v1 scope:** App is desktop-only (Windows 10+)
+- **Minimum supported resolution:** 1280 × 720 px
+- **UI should not break** at smaller sizes, but functionality may be limited
