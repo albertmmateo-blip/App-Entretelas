@@ -251,19 +251,30 @@ function registerLlamarHandlers() {
       }
 
       // Trim whitespace from string fields
-      const asunto =
-        data.asunto !== undefined ? (data.asunto ? data.asunto.trim() : null) : undefined;
-      const contacto =
-        data.contacto !== undefined ? (data.contacto ? data.contacto.trim() : null) : undefined;
-      const nombre =
-        data.nombre !== undefined ? (data.nombre ? data.nombre.trim() : null) : undefined;
-      const descripcion =
-        data.descripcion !== undefined
-          ? data.descripcion
-            ? data.descripcion.trim()
-            : null
-          : undefined;
-      const urgente = data.urgente !== undefined ? (data.urgente ? 1 : 0) : undefined;
+      let asunto;
+      if (data.asunto !== undefined) {
+        asunto = data.asunto ? data.asunto.trim() : null;
+      }
+
+      let contacto;
+      if (data.contacto !== undefined) {
+        contacto = data.contacto ? data.contacto.trim() : null;
+      }
+
+      let nombre;
+      if (data.nombre !== undefined) {
+        nombre = data.nombre ? data.nombre.trim() : null;
+      }
+
+      let descripcion;
+      if (data.descripcion !== undefined) {
+        descripcion = data.descripcion ? data.descripcion.trim() : null;
+      }
+
+      let urgente;
+      if (data.urgente !== undefined) {
+        urgente = data.urgente ? 1 : 0;
+      }
 
       // Build update query dynamically based on provided fields
       const updates = [];
