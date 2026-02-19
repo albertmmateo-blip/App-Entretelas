@@ -26,6 +26,13 @@ As of 2026-02-19, running `npm audit --production` reports:
   - Standard Windows file permissions and user account controls provide adequate protection against unauthorized resource modification
   - Future updates will evaluate upgrading to Electron 35+ after thorough compatibility testing
 
+**Active Mitigations in Place:**
+- Application installed in protected directories (Program Files) with restricted write permissions
+- Deployment uses code signing to ensure authenticity and detect tampering
+- Windows UAC prevents unauthorized modification without administrator privileges
+- Regular file integrity monitoring can be implemented via scheduled tasks
+- See [VULNERABILITY_TROUBLESHOOTING.md](./VULNERABILITY_TROUBLESHOOTING.md) for detailed detection and mitigation guidance
+
 ### Development Dependencies
 
 Development dependencies are not included in production builds and therefore pose no risk to end users. As of 2026-02-19, running `npm audit` (including dev dependencies) reports 36 vulnerabilities:
@@ -107,6 +114,27 @@ We will respond within 48 hours and work with you to address the issue promptly.
 ## Security Updates
 
 Run `npm run audit:security` regularly (recommended monthly) to check for new vulnerabilities in production dependencies.
+
+### Troubleshooting npm audit Warnings
+
+When you run `npm audit --omit=dev` or `npm run audit:security`, you will see:
+
+```
+electron  <35.7.5
+Severity: moderate
+Electron has ASAR Integrity Bypass via resource modification
+fix available via `npm audit fix --force`
+Will install electron@40.6.0, which is a breaking change
+```
+
+**This is expected and documented.** Do NOT run `npm audit fix --force` as it will:
+- Upgrade Electron to 40.x, breaking compatibility with better-sqlite3
+- Require extensive testing and potentially rewriting native module bindings
+- Introduce breaking changes in Electron APIs
+
+For detailed troubleshooting guidance, see [VULNERABILITY_TROUBLESHOOTING.md](./VULNERABILITY_TROUBLESHOOTING.md).
+
+### For Critical Security Updates
 
 For critical security updates:
 
