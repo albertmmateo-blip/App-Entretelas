@@ -182,19 +182,20 @@ CREATE INDEX IF NOT EXISTS idx_facturas_entidad ON facturas_pdf(entidad_id, enti
 
 ## 5. Field Validation Rules
 
-| Table | Field | Rule |
-|---|---|---|
-| `llamar` | `asunto` | Non-empty string after trimming |
-| `llamar` | `contacto` | Non-empty string after trimming |
-| `encargar` | `articulo` | Non-empty string after trimming |
-| `proveedores` | `razon_social` | Non-empty string after trimming |
-| `clientes` | `razon_social` | Non-empty string after trimming |
-| `clientes` | `numero_cliente` | Non-empty string after trimming |
-| `facturas_pdf` | `tipo` | One of `'compra'`, `'venta'` |
-| `facturas_pdf` | `entidad_tipo` | One of `'proveedor'`, `'cliente'` |
-| All tables | `urgente` | Boolean integer: 0 or 1 |
+| Table          | Field            | Rule                              |
+| -------------- | ---------------- | --------------------------------- |
+| `llamar`       | `asunto`         | Non-empty string after trimming   |
+| `llamar`       | `contacto`       | Non-empty string after trimming   |
+| `encargar`     | `articulo`       | Non-empty string after trimming   |
+| `proveedores`  | `razon_social`   | Non-empty string after trimming   |
+| `clientes`     | `razon_social`   | Non-empty string after trimming   |
+| `clientes`     | `numero_cliente` | Non-empty string after trimming   |
+| `facturas_pdf` | `tipo`           | One of `'compra'`, `'venta'`      |
+| `facturas_pdf` | `entidad_tipo`   | One of `'proveedor'`, `'cliente'` |
+| All tables     | `urgente`        | Boolean integer: 0 or 1           |
 
 Validation is enforced at two levels:
+
 1. **Database** – `CHECK` constraints in the schema (see §2 above).
 2. **UI** – React form validation before the IPC call is made.
 

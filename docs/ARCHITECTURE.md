@@ -2,17 +2,17 @@
 
 ## 1. Technology Stack
 
-| Layer | Technology | Rationale |
-|---|---|---|
-| Desktop shell | **Electron 30+** | Windows desktop app, access to native OS APIs |
-| UI framework | **React 18** | Component model, hooks, well-known ecosystem |
-| Build tool | **Vite** | Fast HMR, native ESM, minimal config for Electron + React |
-| Styling | **Tailwind CSS** | Utility-first, consistent design system, small bundle |
-| State management | **Zustand** | Lightweight, minimal boilerplate, no context-provider nesting |
-| Local database | **better-sqlite3** | Synchronous SQLite bindings, zero-config, fast |
-| PDF rendering | **PDF.js** (`pdfjs-dist`) | Browser-native PDF parsing and thumbnail canvas rendering |
-| Testing | **Vitest** + **React Testing Library** | Same config as Vite, fast, component + unit coverage |
-| Linting | **ESLint** (eslint-config-airbnb) + **Prettier** | Consistent code style |
+| Layer            | Technology                                       | Rationale                                                     |
+| ---------------- | ------------------------------------------------ | ------------------------------------------------------------- |
+| Desktop shell    | **Electron 30+**                                 | Windows desktop app, access to native OS APIs                 |
+| UI framework     | **React 18**                                     | Component model, hooks, well-known ecosystem                  |
+| Build tool       | **Vite**                                         | Fast HMR, native ESM, minimal config for Electron + React     |
+| Styling          | **Tailwind CSS**                                 | Utility-first, consistent design system, small bundle         |
+| State management | **Zustand**                                      | Lightweight, minimal boilerplate, no context-provider nesting |
+| Local database   | **better-sqlite3**                               | Synchronous SQLite bindings, zero-config, fast                |
+| PDF rendering    | **PDF.js** (`pdfjs-dist`)                        | Browser-native PDF parsing and thumbnail canvas rendering     |
+| Testing          | **Vitest** + **React Testing Library**           | Same config as Vite, fast, component + unit coverage          |
+| Linting          | **ESLint** (eslint-config-airbnb) + **Prettier** | Consistent code style                                         |
 
 ---
 
@@ -48,19 +48,19 @@
 
 Examples:
 
-| Channel | Direction | Description |
-|---|---|---|
-| `notas:getAll` | renderer → main | Fetch all notes |
-| `notas:create` | renderer → main | Insert a new note |
-| `notas:update` | renderer → main | Update an existing note |
-| `notas:delete` | renderer → main | Delete a note |
-| `llamar:getAll` | renderer → main | Fetch all llamar entries |
-| `encargar:getAll` | renderer → main | Fetch all encargar entries |
-| `facturas:getPDF` | renderer → main | Read PDF bytes for thumbnail generation |
-| `facturas:uploadPDF` | renderer → main | Copy a PDF into the managed folder |
-| `facturas:deletePDF` | renderer → main | Delete a PDF file |
-| `proveedores:getAll` | renderer → main | Fetch all proveedor records |
-| `clientes:getAll` | renderer → main | Fetch all cliente records |
+| Channel              | Direction       | Description                             |
+| -------------------- | --------------- | --------------------------------------- |
+| `notas:getAll`       | renderer → main | Fetch all notes                         |
+| `notas:create`       | renderer → main | Insert a new note                       |
+| `notas:update`       | renderer → main | Update an existing note                 |
+| `notas:delete`       | renderer → main | Delete a note                           |
+| `llamar:getAll`      | renderer → main | Fetch all llamar entries                |
+| `encargar:getAll`    | renderer → main | Fetch all encargar entries              |
+| `facturas:getPDF`    | renderer → main | Read PDF bytes for thumbnail generation |
+| `facturas:uploadPDF` | renderer → main | Copy a PDF into the managed folder      |
+| `facturas:deletePDF` | renderer → main | Delete a PDF file                       |
+| `proveedores:getAll` | renderer → main | Fetch all proveedor records             |
+| `clientes:getAll`    | renderer → main | Fetch all cliente records               |
 
 ---
 
@@ -175,18 +175,18 @@ ipcMain.handle('notas:getAll', async () => {
     const rows = db.prepare('SELECT * FROM notas ORDER BY fecha_creacion DESC').all();
     return {
       success: true,
-      data: rows.map(r => ({
+      data: rows.map((r) => ({
         ...r,
         urgente: Boolean(r.urgente), // Convert SQLite 0/1 to boolean
         fecha_creacion: r.fecha_creacion, // Already ISO string from DB
-        fecha_mod: r.fecha_mod
-      }))
+        fecha_mod: r.fecha_mod,
+      })),
     };
   } catch (err) {
     console.error('Database error in notas:getAll:', err);
     return {
       success: false,
-      error: { code: 'DB_ERROR', message: err.message }
+      error: { code: 'DB_ERROR', message: err.message },
     };
   }
 });
@@ -225,12 +225,12 @@ if (response.success) {
 
 ## 7. Security Considerations
 
-| Concern | Mitigation |
-|---|---|
-| Arbitrary code execution via renderer | `contextIsolation: true`, `nodeIntegration: false`, no eval |
-| External navigation in Gmail webview | `will-navigate` and `new-window` events redirect to `shell.openExternal` |
-| Path traversal in PDF upload | Main process sanitises all file paths before writing to disk |
-| SQLite injection | All queries use parameterised statements (no string concatenation) |
+| Concern                               | Mitigation                                                               |
+| ------------------------------------- | ------------------------------------------------------------------------ |
+| Arbitrary code execution via renderer | `contextIsolation: true`, `nodeIntegration: false`, no eval              |
+| External navigation in Gmail webview  | `will-navigate` and `new-window` events redirect to `shell.openExternal` |
+| Path traversal in PDF upload          | Main process sanitises all file paths before writing to disk             |
+| SQLite injection                      | All queries use parameterised statements (no string concatenation)       |
 
 ---
 

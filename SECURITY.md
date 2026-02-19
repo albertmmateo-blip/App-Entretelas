@@ -27,6 +27,7 @@ As of 2026-02-19, running `npm audit --production` reports:
   - Future updates will evaluate upgrading to Electron 35+ after thorough compatibility testing
 
 **Active Mitigations in Place:**
+
 - Application installed in protected directories (Program Files) with restricted write permissions
 - Deployment uses code signing to ensure authenticity and detect tampering
 - Windows UAC prevents unauthorized modification without administrator privileges
@@ -128,6 +129,7 @@ Will install electron@40.6.0, which is a breaking change
 ```
 
 **This is expected and documented.** Do NOT run `npm audit fix --force` as it will:
+
 - Upgrade Electron to 40.x, breaking compatibility with better-sqlite3
 - Require extensive testing and potentially rewriting native module bindings
 - Introduce breaking changes in Electron APIs
