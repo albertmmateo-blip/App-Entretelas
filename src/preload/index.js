@@ -8,11 +8,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     listBackups: () => ipcRenderer.invoke('db:listBackups'),
     restoreBackup: (backupFilename) => ipcRenderer.invoke('db:restoreBackup', backupFilename),
   },
-  // Placeholder for future IPC handlers
-  // Example: notas: {
-  //   getAll: () => ipcRenderer.invoke('notas:getAll'),
-  //   create: (data) => ipcRenderer.invoke('notas:create', data),
-  //   update: (id, data) => ipcRenderer.invoke('notas:update', id, data),
-  //   delete: (id) => ipcRenderer.invoke('notas:delete', id),
-  // }
+  // Notas module
+  notas: {
+    getAll: () => ipcRenderer.invoke('notas:getAll'),
+    create: (data) => ipcRenderer.invoke('notas:create', data),
+    update: (id, data) => ipcRenderer.invoke('notas:update', id, data),
+    delete: (id) => ipcRenderer.invoke('notas:delete', id),
+  },
 });

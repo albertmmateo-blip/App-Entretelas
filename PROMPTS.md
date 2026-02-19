@@ -138,7 +138,7 @@ This file contains an ordered sequence of AI agent prompts for incrementally bui
 
 ## Phase 2 – Core Modules
 
-### P2-01 — Notas module (CRUD + URGENTE! toggle) `[ ]`
+### P2-01 — Notas module (CRUD + URGENTE! toggle) `[x]`
 
 > Implement the Notas module as specified in `docs/REQUIREMENTS.md §3.3`.
 >
