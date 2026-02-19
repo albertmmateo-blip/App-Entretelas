@@ -76,8 +76,7 @@ This file contains an ordered sequence of AI agent prompts for incrementally bui
 > - Add a component test verifying the sidebar renders all six navigation links and correct routes are registered.
 > - Update `docs/UI_DESIGN.md` if any layout decision differs from the spec.
 
-
-### P1-02a — Error handling infrastructure `[ ]`
+### P1-02a — Error handling infrastructure `[x]`
 
 > Implement global error boundary and error notification system.
 >

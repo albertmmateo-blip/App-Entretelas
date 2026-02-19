@@ -11,6 +11,7 @@
 This document provides a detailed analysis of the prompts in PROMPTS.md, evaluating them against security best practices, architectural consistency, testing strategy, verifiability, and AI execution requirements.
 
 **Key Findings:**
+
 - ✅ Strong foundation with clear security boundaries and consistent patterns
 - ⚠️ Several prompts need more specific success criteria
 - ⚠️ Testing strategy needs refinement for integration coverage
@@ -26,11 +27,13 @@ This document provides a detailed analysis of the prompts in PROMPTS.md, evaluat
 **Status:** ✅ **GOOD** - Consistently enforced
 
 **Analysis:**
+
 - P1-01 explicitly requires `contextIsolation: true` and `nodeIntegration: false` (line 36)
 - ARCHITECTURE.md §2 reinforces these requirements (line 40-41)
 - All IPC patterns route through preload script with contextBridge
 
 **Recommendations:**
+
 - None required - this is well-specified
 
 ### 1.2 IPC Channel Security
@@ -53,6 +56,7 @@ This document provides a detailed analysis of the prompts in PROMPTS.md, evaluat
 **Recommendations:**
 
 **Action Required:** Add to Agent Rules in PROMPTS.md:
+
 ```
 9. **IPC input validation.** All IPC handlers must validate input payloads:
    - Check required fields are present and of correct type
@@ -62,6 +66,7 @@ This document provides a detailed analysis of the prompts in PROMPTS.md, evaluat
 ```
 
 **Action Required:** Update P3-02 to specify:
+
 ```
 - Validate PDF file extension matches MIME type
 - Enforce maximum file size limit (e.g., 50 MB)
@@ -89,6 +94,7 @@ This document provides a detailed analysis of the prompts in PROMPTS.md, evaluat
 **Recommendations:**
 
 **Action Required:** Update P4-01 to specify:
+
 ```
 - Set webview attributes: `allowpopups="false"`, `disablewebsecurity="false"`, `nodeintegration="false"`
 - Implement allow-list for will-navigate: only allow URLs matching `https://*.google.com/*` and `https://mail.google.com/*`
@@ -104,11 +110,13 @@ This document provides a detailed analysis of the prompts in PROMPTS.md, evaluat
 **Status:** ✅ **GOOD** - Clearly specified
 
 **Analysis:**
+
 - Agent Rules line 16: "Parameterised SQL only"
 - ARCHITECTURE.md §7 explicitly states all queries use parameterised statements
 - DATA_MODEL.md shows proper SQL structure
 
 **Recommendations:**
+
 - None required
 
 ### 1.5 Version-Specific Security Risks
@@ -147,6 +155,7 @@ This document provides a detailed analysis of the prompts in PROMPTS.md, evaluat
 **Recommendations:**
 
 **Action Required:** Add new prompt P1-01a (after P1-01):
+
 ```
 ### P1-01a — Verify dependency versions and security configuration `[ ]`
 
@@ -166,6 +175,7 @@ This document provides a detailed analysis of the prompts in PROMPTS.md, evaluat
 ```
 
 **Action Required:** Update P3-03 to specify:
+
 ```
 - Use PDF.js Web Worker for rendering (never parse PDFs on main thread)
 - Configure worker: `pdfjsLib.GlobalWorkerOptions.workerSrc = 'path/to/pdf.worker.js'`
@@ -183,9 +193,10 @@ This document provides a detailed analysis of the prompts in PROMPTS.md, evaluat
 **Status:** ✅ **GOOD** - Generally well-defined
 
 **Analysis:**
+
 - ARCHITECTURE.md §2 clearly defines process model
 - All module prompts (P2-01, P2-02, P2-03) follow consistent pattern:
-  1. Register IPC handlers in main (src/main/ipc/*)
+  1. Register IPC handlers in main (src/main/ipc/\*)
   2. Expose via preload (src/preload/index.js)
   3. Call via window.electronAPI in renderer
 
@@ -203,6 +214,7 @@ This document provides a detailed analysis of the prompts in PROMPTS.md, evaluat
 **Recommendations:**
 
 **Action Required:** Update P3-03 to clarify:
+
 ```
 - Add IPC handler `facturas:getPDFBytes` in main process that:
   * Accepts PDF path (validate it's within userData/facturas/)
@@ -214,6 +226,7 @@ This document provides a detailed analysis of the prompts in PROMPTS.md, evaluat
 ```
 
 **Action Required:** Add to Agent Rules:
+
 ```
 10. **Process boundary enforcement.**
     - Main process ONLY: SQLite queries, file I/O, native OS APIs
@@ -228,6 +241,7 @@ This document provides a detailed analysis of the prompts in PROMPTS.md, evaluat
 **Status:** ⚠️ **MISSING SPECIFICATION**
 
 **Issues:**
+
 - No prompt specifies serialization format for IPC
 - Complex objects (Dates, Buffers) may not serialize correctly
 - No error handling for serialization failures
@@ -235,7 +249,8 @@ This document provides a detailed analysis of the prompts in PROMPTS.md, evaluat
 **Recommendations:**
 
 **Action Required:** Add to ARCHITECTURE.md §4 (Data Flow):
-```
+
+````
 ### IPC Data Serialization Rules
 
 All data passed over IPC is serialized via Structured Clone Algorithm:
@@ -266,15 +281,18 @@ ipcMain.handle('notas:getAll', async () => {
     };
   }
 });
-```
+````
+
 ```
 
 **Action Required:** Update P2-01 (and note to follow pattern for P2-02, P2-03):
 ```
+
 - All IPC handlers return structured responses: { success: boolean, data?: any, error?: { code, message } }
 - Handle errors gracefully and return error objects (never throw across IPC)
 - Zustand stores check response.success before updating state
 - Display user-friendly error messages in UI (translate error codes to Spanish)
+
 ```
 
 ---
@@ -325,47 +343,55 @@ ipcMain.handle('notas:getAll', async () => {
 
 **Add to Agent Rules:**
 ```
+
 11. **Testing requirements for each module:**
     - Unit tests: Pure functions (path sanitizers, date formatters, validators)
     - Integration tests: IPC handler → DB query → response (test in main process context)
     - Component tests: UI rendering and user interactions (mock IPC responses)
     - E2E tests: Critical user journeys (one per major module)
+
 ```
 
 **Action Required:** Update P2-01 (and replicate pattern for P2-02, P2-03):
 ```
+
 - Write integration tests for IPC handlers:
-  * Test in Node.js environment (not renderer)
-  * Use in-memory SQLite database
-  * Call IPC handler functions directly (not over IPC channel)
-  * Verify: notas:create inserts row, notas:getAll returns all rows, notas:update modifies, notas:delete removes
-  * Test error cases: missing required fields, invalid IDs, SQL errors
-- Component tests should mock window.electronAPI.* calls
+  - Test in Node.js environment (not renderer)
+  - Use in-memory SQLite database
+  - Call IPC handler functions directly (not over IPC channel)
+  - Verify: notas:create inserts row, notas:getAll returns all rows, notas:update modifies, notas:delete removes
+  - Test error cases: missing required fields, invalid IDs, SQL errors
+- Component tests should mock window.electronAPI.\* calls
 - Add one E2E test for Notas module: open app → create nota → verify it appears in list → edit it → delete it
+
 ```
 
 **Action Required:** Update P5-03:
 ```
+
 - Break E2E test into separate test files per module:
-  * tests/e2e/notas.spec.js - Create, edit, mark urgent, delete nota
-  * tests/e2e/llamar.spec.js - Create, edit, mark urgent, delete llamar
-  * tests/e2e/encargar.spec.js - Create, edit, mark urgent, delete encargar
-  * tests/e2e/urgente.spec.js - Verify urgent aggregation across modules
-  * tests/e2e/facturas.spec.js - Upload PDF, verify thumbnail, open in viewer, delete
+  - tests/e2e/notas.spec.js - Create, edit, mark urgent, delete nota
+  - tests/e2e/llamar.spec.js - Create, edit, mark urgent, delete llamar
+  - tests/e2e/encargar.spec.js - Create, edit, mark urgent, delete encargar
+  - tests/e2e/urgente.spec.js - Verify urgent aggregation across modules
+  - tests/e2e/facturas.spec.js - Upload PDF, verify thumbnail, open in viewer, delete
 - Each test file should be independently runnable
 - Tests should clean up data after themselves (delete created entries)
 - Total E2E runtime target: < 2 minutes for full suite
+
 ```
 
 **Action Required:** Update P3-03:
 ```
+
 - Add integration test for thumbnail generation:
-  * Use a real (small, safe) test PDF file in tests/fixtures/test-invoice.pdf
-  * Call thumbnail generation function
-  * Verify canvas output is non-empty
-  * Verify cache stores the result
-  * Second call retrieves from cache (faster)
+  - Use a real (small, safe) test PDF file in tests/fixtures/test-invoice.pdf
+  - Call thumbnail generation function
+  - Verify canvas output is non-empty
+  - Verify cache stores the result
+  - Second call retrieves from cache (faster)
 - Handle flakiness: wrap canvas operations in retry logic (max 3 attempts)
+
 ```
 
 ### 3.2 Test Maintainability
@@ -386,25 +412,28 @@ ipcMain.handle('notas:getAll', async () => {
 
 **Action Required:** Add new prompt P1-03a (after P1-03):
 ```
+
 ### P1-03a — Test utilities and fixtures `[ ]`
 
 > Create shared test utilities for consistent testing across modules.
 >
 > Requirements:
+>
 > - Create `tests/helpers/db.js`:
->   * `createTestDb()`: Returns in-memory SQLite connection with migrations applied
->   * `seedTestData(db, tableName, rows)`: Inserts test data
->   * `clearTable(db, tableName)`: Truncates table
+>   - `createTestDb()`: Returns in-memory SQLite connection with migrations applied
+>   - `seedTestData(db, tableName, rows)`: Inserts test data
+>   - `clearTable(db, tableName)`: Truncates table
 > - Create `tests/helpers/ipc-mock.js`:
->   * Mock implementation of window.electronAPI for component tests
->   * `mockIPCResponse(channel, response)`: Sets up mock response
+>   - Mock implementation of window.electronAPI for component tests
+>   - `mockIPCResponse(channel, response)`: Sets up mock response
 > - Create `tests/fixtures/`:
->   * `test-invoice.pdf`: Small valid PDF (< 100 KB)
->   * `sample-data.js`: Factory functions for creating test entities (notas, llamar, encargar, proveedores, clientes)
+>   - `test-invoice.pdf`: Small valid PDF (< 100 KB)
+>   - `sample-data.js`: Factory functions for creating test entities (notas, llamar, encargar, proveedores, clientes)
 > - Create `tests/helpers/e2e.js`:
->   * `launchApp()`: Starts Electron app for E2E tests
->   * `cleanDatabase()`: Resets test database between E2E tests
+>   - `launchApp()`: Starts Electron app for E2E tests
+>   - `cleanDatabase()`: Resets test database between E2E tests
 > - Document usage of helpers in docs/DEVELOPMENT_GUIDE.md §8
+
 ```
 
 ---
@@ -421,13 +450,15 @@ ipcMain.handle('notas:getAll', async () => {
 **Recommendation:**
 Update P1-02 to be explicit:
 ```
+
 - Create placeholder components in src/renderer/pages/:
-  * Home/index.jsx → exports `<div>Home</div>`
-  * Urgente/index.jsx → exports `<div>URGENTE!</div>`
-  * Notas/index.jsx → exports `<div>Notas</div>`
-  * (etc. for all modules)
+  - Home/index.jsx → exports `<div>Home</div>`
+  - Urgente/index.jsx → exports `<div>URGENTE!</div>`
+  - Notas/index.jsx → exports `<div>Notas</div>`
+  - (etc. for all modules)
 - Do NOT implement any business logic in placeholders
 - Placeholders should only render the module name as h1 heading
+
 ```
 
 **P2-04** (Home page) - **⚠️ HIGH RISK**
@@ -439,20 +470,22 @@ Update P1-02 to be explicit:
 **Recommendation:**
 Update P2-04 to specify:
 ```
+
 - Data fetching strategy:
-  * Call window.electronAPI.notas.getAll(), llamar.getAll(), encargar.getAll() in parallel
-  * Merge results client-side (acceptable since data is local)
-  * Transform each entry to unified format: { id, type: 'nota'|'llamar'|'encargar', title, contacto, urgente, fecha_creacion, fecha_mod }
-  * Where title = nombre for notas, asunto for llamar, articulo for encargar
+  - Call window.electronAPI.notas.getAll(), llamar.getAll(), encargar.getAll() in parallel
+  - Merge results client-side (acceptable since data is local)
+  - Transform each entry to unified format: { id, type: 'nota'|'llamar'|'encargar', title, contacto, urgente, fecha_creacion, fecha_mod }
+  - Where title = nombre for notas, asunto for llamar, articulo for encargar
 - Sorting:
-  * Primary sort: urgente DESC (urgent entries first)
-  * Secondary sort: user-selected column (default: fecha_creacion DESC)
-  * Use lodash orderBy or native Array.sort with multiple comparators
+  - Primary sort: urgente DESC (urgent entries first)
+  - Secondary sort: user-selected column (default: fecha_creacion DESC)
+  - Use lodash orderBy or native Array.sort with multiple comparators
 - Search:
-  * Search fields: title, contacto, descripcion (if present)
-  * Use simple string includes (case-insensitive)
-  * Filter merged list client-side
+  - Search fields: title, contacto, descripcion (if present)
+  - Use simple string includes (case-insensitive)
+  - Filter merged list client-side
 - Performance target: < 100ms for list of 1000 entries
+
 ```
 
 **P3-03** (PDF thumbnail generation) - **⚠️ MODERATE RISK**
@@ -463,12 +496,14 @@ Update P2-04 to specify:
 **Recommendation:**
 Update P3-03 to specify:
 ```
+
 - Use IntersectionObserver with:
-  * rootMargin: '200px' (pre-load thumbnails 200px before they enter viewport)
-  * threshold: 0.01 (trigger as soon as 1% is visible)
+  - rootMargin: '200px' (pre-load thumbnails 200px before they enter viewport)
+  - threshold: 0.01 (trigger as soon as 1% is visible)
 - Render at most 3 thumbnails concurrently (queue others)
 - Use requestIdleCallback for non-critical thumbnail generation
 - If user scrolls quickly, cancel pending thumbnail renders and prioritize visible ones
+
 ```
 
 ### 4.2 Prompts with Implicit Dependencies
@@ -481,12 +516,14 @@ Update P3-03 to specify:
 **Recommendation:**
 Update P4-01:
 ```
+
 - Component test should verify:
-  * Email page component renders
-  * <webview> element is present in DOM (check tag name)
-  * Src attribute is set to https://mail.google.com
-  * Use @testing-library/react with custom render that doesn't crash on unknown <webview> tag
+  - Email page component renders
+  - <webview> element is present in DOM (check tag name)
+  - Src attribute is set to https://mail.google.com
+  - Use @testing-library/react with custom render that doesn't crash on unknown <webview> tag
 - For E2E test (add to P5-03): verify Gmail login page loads in webview
+
 ```
 
 **P5-02** (Windows installer) - **⚠️ UNVERIFIABLE**
@@ -497,13 +534,15 @@ Update P4-01:
 **Recommendation:**
 Update P5-02:
 ```
+
 - Remove: "Verify the installer runs on a clean Windows 10 VM"
 - Replace with:
-  * Run `npm run dist` successfully with exit code 0
-  * Verify `dist/App-Entretelas Setup x.y.z.exe` exists and is > 50 MB
-  * Verify electron-builder log shows no errors
-  * Document manual testing steps in docs/DEVELOPMENT_GUIDE.md §7.2:
+  - Run `npm run dist` successfully with exit code 0
+  - Verify `dist/App-Entretelas Setup x.y.z.exe` exists and is > 50 MB
+  - Verify electron-builder log shows no errors
+  - Document manual testing steps in docs/DEVELOPMENT_GUIDE.md §7.2:
     "To verify installer: (1) Copy .exe to clean Windows machine, (2) Run installer, (3) Launch app from Start Menu, (4) Verify app opens and database initializes"
+
 ```
 
 ### 4.3 Success Criteria That Are Not Objectively Verifiable
@@ -525,31 +564,41 @@ Update P5-02:
 
 **P1-01:**
 ```
+
 - Replace: "app window must open to blank white page"
 - With: "app window must open with document.title === 'App-Entretelas' and document.body contains no errors in console"
+
 ```
 
 **P1-02:**
 ```
+
 - Add: "Run a visual regression test (Percy or Chromatic) to verify colors match design tokens in tailwind.config.js"
 - OR: "Create a script that parses CSS and checks for Tailwind class usage: grep for 'bg-neutral-50', 'text-primary', etc."
+
 ```
 
 **P2-01:**
 ```
+
 - Add: "Write a component test that verifies urgent entries have className containing 'bg-danger' or 'text-danger'"
+
 ```
 
 **P3-03:**
 ```
+
 - Replace: "Show loading skeleton"
 - With: "Display a placeholder div with data-testid='thumbnail-loading' and CSS animation while loading"
+
 ```
 
 **P5-01:**
 ```
+
 - Replace: "visible focus rings"
 - With: "All interactive elements have focus styles with CSS outline-width >= 2px and contrast ratio >= 3:1 (verify with automated accessibility audit via axe-core)"
+
 ```
 
 **P5-02:** (Already addressed above - remove VM verification)
@@ -579,38 +628,45 @@ Update P5-02:
 
 **Action Required:** Add new prompt P2-01a (after P2-01):
 ```
+
 ### P2-01a — Shared CRUD components and hooks `[ ]`
 
 > Refactor common patterns from P2-01 into reusable abstractions.
 >
 > Requirements:
+>
 > - Create `src/renderer/components/DataTable.jsx`:
->   * Generic table component accepting columns, data, actions
->   * Built-in sort, search, context menu support
->   * Reusable for Notas, Llamar, Encargar
+>   - Generic table component accepting columns, data, actions
+>   - Built-in sort, search, context menu support
+>   - Reusable for Notas, Llamar, Encargar
 > - Create `src/renderer/components/EntryForm.jsx`:
->   * Generic form component accepting fields config
->   * Built-in validation, submit, cancel, urgente toggle
+>   - Generic form component accepting fields config
+>   - Built-in validation, submit, cancel, urgente toggle
 > - Create `src/renderer/hooks/useCRUD.js`:
->   * Custom hook abstracting Zustand store operations
->   * Accepts module name, returns { entries, create, update, delete, fetchAll, toggleUrgente }
+>   - Custom hook abstracting Zustand store operations
+>   - Accepts module name, returns { entries, create, update, delete, fetchAll, toggleUrgente }
 > - Update Notas module to use these shared components
 > - Write unit tests for DataTable, EntryForm, useCRUD
+
 ```
 
 **Action Required:** Update P2-02 and P2-03:
 ```
+
 - Use shared DataTable component from P2-01a for list views
 - Use shared EntryForm component from P2-01a for forms
 - Use useCRUD hook for Zustand store operations
 - Only implement module-specific field configurations (pass to EntryForm as props)
+
 ```
 
 **Action Required:** Update P3-01:
 ```
+
 - Create shared ProveedorCliente form component that accepts `type: 'proveedor' | 'cliente'` prop
 - Conditionally render "Número de Cliente" field only when type === 'cliente'
 - Share IPC handler logic: create src/main/ipc/entidades.js with generic CRUD functions accepting table name
+
 ```
 
 ### 5.2 Conflicting Patterns
@@ -634,9 +690,11 @@ Update P5-02:
 
 **Recommendation:**
 ```
+
 - Create shared utility: src/renderer/utils/sortEntries.js
 - Export functions: sortByUrgent(entries), sortByDate(entries, field), sortByMultiple(entries, comparators)
 - Use in both Home and URGENTE pages
+
 ```
 
 ---
@@ -659,6 +717,7 @@ Update P5-02:
 
 **Action Required:** Add to docs/DEVELOPMENT_GUIDE.md:
 ```
+
 ## 12. Adding Database Migrations
 
 When adding a new field or table:
@@ -668,6 +727,7 @@ When adding a new field or table:
    - Name describes the change (e.g., `002_add_notas_archivado.sql`)
 
 2. Write additive SQL only (v1 does not support rollbacks):
+
    ```sql
    -- Good: Add new optional column
    ALTER TABLE notas ADD COLUMN archivado INTEGER NOT NULL DEFAULT 0;
@@ -688,6 +748,7 @@ When adding a new field or table:
 
 6. If migration fails, DO NOT modify the migration file
    - Instead, create a new migration to fix the issue
+
 ```
 
 ### 6.2 Adding New Modules
@@ -702,6 +763,7 @@ When adding a new field or table:
 
 **Action Required:** Add to docs/ARCHITECTURE.md:
 ```
+
 ## 8. Adding a New Module
 
 To add a new module (e.g., "Proveedores"):
@@ -745,6 +807,7 @@ To add a new module (e.g., "Proveedores"):
    - Add requirements to docs/REQUIREMENTS.md
    - Update docs/UI_DESIGN.md with routes
    - Mark in PROMPTS.md under "Discovered / Follow-on Prompts"
+
 ```
 
 ### 6.3 Dependency Updates
@@ -759,6 +822,7 @@ To add a new module (e.g., "Proveedores"):
 
 **Action Required:** Add to docs/DEVELOPMENT_GUIDE.md:
 ```
+
 ## 13. Updating Dependencies
 
 ### Electron Version Updates
@@ -800,8 +864,10 @@ npm audit fix --force  # Fix breaking updates (test thoroughly after)
 ```
 
 For better-sqlite3 security updates:
+
 - Check GitHub releases: https://github.com/WiseLibs/better-sqlite3/releases
 - Native modules require rebuild: `npm run rebuild-natives`
+
 ```
 
 ---
@@ -844,53 +910,58 @@ For better-sqlite3 security updates:
 
 **Action Required:** Rewrite P2-04 with concrete specifications:
 ```
+
 ### P2-04 — Home page: unified list + module quick-nav `[ ]`
 
 > Implement the Home page as specified in docs/REQUIREMENTS.md §3.1 and docs/UI_DESIGN.md §5.
 >
 > Requirements:
+>
 > - Create `src/renderer/pages/Home/index.jsx`
 > - Fetch data on mount:
->   * Call window.electronAPI.notas.getAll(), llamar.getAll(), encargar.getAll() using Promise.all
->   * Transform results into unified array of objects: `{ id: number, type: 'notas'|'llamar'|'encargar', title: string, contacto: string|null, descripcion: string|null, urgente: boolean, fecha_creacion: string, fecha_mod: string }`
->   * title = nombre (notas), asunto (llamar), articulo (encargar)
+>   - Call window.electronAPI.notas.getAll(), llamar.getAll(), encargar.getAll() using Promise.all
+>   - Transform results into unified array of objects: `{ id: number, type: 'notas'|'llamar'|'encargar', title: string, contacto: string|null, descripcion: string|null, urgente: boolean, fecha_creacion: string, fecha_mod: string }`
+>   - title = nombre (notas), asunto (llamar), articulo (encargar)
 > - Sorting:
->   * Primary: urgente DESC (always)
->   * Secondary: user-selected column (default: fecha_creacion DESC)
->   * Use Array.sort with multi-level comparator
+>   - Primary: urgente DESC (always)
+>   - Secondary: user-selected column (default: fecha_creacion DESC)
+>   - Use Array.sort with multi-level comparator
 > - Search:
->   * <SearchBar /> component at top with onChange handler
->   * Filter entries where query appears in title, contacto, or descripcion (case-insensitive)
->   * Use String.prototype.toLowerCase().includes()
+>   - <SearchBar /> component at top with onChange handler
+>   - Filter entries where query appears in title, contacto, or descripcion (case-insensitive)
+>   - Use String.prototype.toLowerCase().includes()
 > - Filtering:
->   * <FilterPanel /> component with dropdowns:
+>   - <FilterPanel /> component with dropdowns:
 >     - Module type: All / Notas / Llamar / Encargar
 >     - URGENTE: All / Only urgent / Non-urgent
 >     - Date range: Last 7 days / Last 30 days / All time
->   * Apply filters before rendering table
+>   - Apply filters before rendering table
 > - Module quick-nav panel:
->   * Grid of 6 large icon buttons (120x120px each)
->   * Icons link to: /urgente, /notas, /llamar, /encargar, /facturas, /email
->   * Use Link component from react-router-dom
+>   - Grid of 6 large icon buttons (120x120px each)
+>   - Icons link to: /urgente, /notas, /llamar, /encargar, /facturas, /email
+>   - Use Link component from react-router-dom
 > - List rendering:
->   * Reuse <DataTable /> component
->   * Columns: Type (badge), URGENTE (red dot if true), Title, Contacto, Fecha
->   * Row click navigates to entry edit page: /${entry.type}/${entry.id}
+>   - Reuse <DataTable /> component
+>   - Columns: Type (badge), URGENTE (red dot if true), Title, Contacto, Fecha
+>   - Row click navigates to entry edit page: /${entry.type}/${entry.id}
 > - Write component tests:
->   * Search filters list correctly
->   * Sort by date works
->   * Module type filter works
->   * Empty state shows when no entries
+>   - Search filters list correctly
+>   - Sort by date works
+>   - Module type filter works
+>   - Empty state shows when no entries
 > - Performance: List should render < 100ms for 1000 entries
+
 ```
 
 **Action Required:** Rewrite P3-03 with concrete specifications:
 ```
+
 ### P3-03 — PDF thumbnail generation `[ ]`
 
 > Add lazy thumbnail generation for PDFs using PDF.js.
 >
 > Requirements:
+>
 > - Install: `npm install pdfjs-dist`
 > - Configure worker in renderer:
 >   ```javascript
@@ -899,94 +970,98 @@ For better-sqlite3 security updates:
 >   ```
 > - Copy pdf.worker.js from node_modules/pdfjs-dist/build/ to public/
 > - Create `src/renderer/components/PDFThumbnail.jsx`:
->   * Props: { pdfPath: string }
->   * State: loading (boolean), thumbnailDataUrl (string | null), error (Error | null)
+>   - Props: { pdfPath: string }
+>   - State: loading (boolean), thumbnailDataUrl (string | null), error (Error | null)
 > - Thumbnail generation logic:
->   * On mount, call window.electronAPI.getPDFBytes(pdfPath)
->   * Load PDF: `pdfjsLib.getDocument({ data: arrayBuffer })`
->   * Get first page: `pdf.getPage(1)`
->   * Create canvas element (160x210px - A4 aspect ratio)
->   * Render page to canvas: `page.render({ canvasContext, viewport })`
->   * Convert to data URL: `canvas.toDataURL('image/png')`
->   * Set state: thumbnailDataUrl
->   * Wrap in try-catch: set error state on failure
+>   - On mount, call window.electronAPI.getPDFBytes(pdfPath)
+>   - Load PDF: `pdfjsLib.getDocument({ data: arrayBuffer })`
+>   - Get first page: `pdf.getPage(1)`
+>   - Create canvas element (160x210px - A4 aspect ratio)
+>   - Render page to canvas: `page.render({ canvasContext, viewport })`
+>   - Convert to data URL: `canvas.toDataURL('image/png')`
+>   - Set state: thumbnailDataUrl
+>   - Wrap in try-catch: set error state on failure
 > - Lazy loading with IntersectionObserver:
->   * Create useIntersectionObserver hook
->   * Observer config: rootMargin: '200px', threshold: 0.01
->   * Only call getPDFBytes when component is in viewport
+>   - Create useIntersectionObserver hook
+>   - Observer config: rootMargin: '200px', threshold: 0.01
+>   - Only call getPDFBytes when component is in viewport
 > - Caching:
->   * Create context: ThumbnailCacheContext
->   * Store cache in context: Map<string, string> (path -> data URL)
->   * Check cache before generating thumbnail
->   * Add to cache after generation
+>   - Create context: ThumbnailCacheContext
+>   - Store cache in context: Map<string, string> (path -> data URL)
+>   - Check cache before generating thumbnail
+>   - Add to cache after generation
 > - Concurrency limit:
->   * Create queue in cache context
->   * Render max 3 thumbnails concurrently
->   * Queue others and process when slot available
+>   - Create queue in cache context
+>   - Render max 3 thumbnails concurrently
+>   - Queue others and process when slot available
 > - Error handling:
->   * Timeout: abort rendering if it takes > 5 seconds
->   * Display placeholder icon if PDF can't be rendered
->   * Log errors to console (not user-visible popup)
+>   - Timeout: abort rendering if it takes > 5 seconds
+>   - Display placeholder icon if PDF can't be rendered
+>   - Log errors to console (not user-visible popup)
 > - Loading state:
->   * Show <div data-testid="thumbnail-loading" className="animate-pulse bg-neutral-200" />
+>   - Show <div data-testid="thumbnail-loading" className="animate-pulse bg-neutral-200" />
 > - Write unit test for ThumbnailCache context:
->   * Verify cache stores and retrieves data URLs
->   * Verify cache doesn't re-render same PDF twice
+>   - Verify cache stores and retrieves data URLs
+>   - Verify cache doesn't re-render same PDF twice
 > - Write integration test:
->   * Use tests/fixtures/test-invoice.pdf
->   * Render PDFThumbnail component
->   * Verify canvas element created
->   * Verify data URL is non-empty
+>   - Use tests/fixtures/test-invoice.pdf
+>   - Render PDFThumbnail component
+>   - Verify canvas element created
+>   - Verify data URL is non-empty
+
 ```
 
 **Action Required:** Rewrite P5-01:
 ```
+
 ### P5-01 — Keyboard shortcuts & accessibility `[ ]`
 
 > Add keyboard support and accessibility attributes.
 >
 > Requirements:
+>
 > - Keyboard shortcuts:
->   * Create `src/renderer/hooks/useKeyboardShortcuts.js` hook
->   * On Ctrl+F: call document.querySelector('[data-search-input]')?.focus()
->   * On Escape: call closeModal() from modal context (if modal is open)
->   * On Enter in forms: call handleSubmit() (use onKeyDown handler on form element)
->   * Shortcuts should only apply when not typing in an input (check event.target.tagName)
+>   - Create `src/renderer/hooks/useKeyboardShortcuts.js` hook
+>   - On Ctrl+F: call document.querySelector('[data-search-input]')?.focus()
+>   - On Escape: call closeModal() from modal context (if modal is open)
+>   - On Enter in forms: call handleSubmit() (use onKeyDown handler on form element)
+>   - Shortcuts should only apply when not typing in an input (check event.target.tagName)
 > - Focus management:
->   * All buttons must have CSS: `focus:outline-2 focus:outline-primary focus:outline-offset-2`
->   * All inputs must have CSS: `focus:ring-2 focus:ring-primary`
->   * Modals must trap focus (use focus-trap-react library)
->   * On modal open, focus first interactive element
->   * On modal close, return focus to trigger element
+>   - All buttons must have CSS: `focus:outline-2 focus:outline-primary focus:outline-offset-2`
+>   - All inputs must have CSS: `focus:ring-2 focus:ring-primary`
+>   - Modals must trap focus (use focus-trap-react library)
+>   - On modal open, focus first interactive element
+>   - On modal close, return focus to trigger element
 > - ARIA labels:
->   * All icon buttons without text must have aria-label attribute
->   * Labels must be in Spanish: aria-label="Editar entrada", "Eliminar entrada", "Buscar", "Filtrar"
->   * Context menu buttons: aria-label="Abrir menú de acciones"
+>   - All icon buttons without text must have aria-label attribute
+>   - Labels must be in Spanish: aria-label="Editar entrada", "Eliminar entrada", "Buscar", "Filtrar"
+>   - Context menu buttons: aria-label="Abrir menú de acciones"
 > - ARIA roles:
->   * Use semantic HTML where possible (<button>, <nav>, <main>, <header>)
->   * Add role="dialog" to modal overlays
->   * Add role="alertdialog" to confirmation dialogs
->   * Add role="navigation" to sidebar
+>   - Use semantic HTML where possible (<button>, <nav>, <main>, <header>)
+>   - Add role="dialog" to modal overlays
+>   - Add role="alertdialog" to confirmation dialogs
+>   - Add role="navigation" to sidebar
 > - Accessibility audit:
->   * Install: `npm install --save-dev axe-core @axe-core/react`
->   * Add axe-core to development mode only:
+>   - Install: `npm install --save-dev axe-core @axe-core/react`
+>   - Add axe-core to development mode only:
 >     ```javascript
 >     if (import.meta.env.DEV) {
->       import('@axe-core/react').then(axe => {
+>       import('@axe-core/react').then((axe) => {
 >         axe.default(React, ReactDOM, 1000);
 >       });
 >     }
 >     ```
->   * Run app in dev mode and fix any accessibility warnings in console
+>   - Run app in dev mode and fix any accessibility warnings in console
 > - Write component test:
->   * Use @testing-library/user-event
->   * Test Tab key navigation through form fields
->   * Test Escape key closes modal
->   * Test Ctrl+F focuses search bar
+>   - Use @testing-library/user-event
+>   - Test Tab key navigation through form fields
+>   - Test Escape key closes modal
+>   - Test Ctrl+F focuses search bar
 > - Success criteria:
->   * `npm run dev` shows no axe-core errors in console
->   * All tests pass
->   * Manual test: Navigate entire app using only keyboard (Tab, Enter, Escape, Arrow keys)
+>   - `npm run dev` shows no axe-core errors in console
+>   - All tests pass
+>   - Manual test: Navigate entire app using only keyboard (Tab, Enter, Escape, Arrow keys)
+
 ```
 
 ### 7.2 Dependency on External Documentation
@@ -1005,9 +1080,11 @@ For better-sqlite3 security updates:
 **Recommendation:**
 **Action Required:** Cross-check all documentation references:
 ```
+
 - Verify every "per docs/X.md §Y" reference points to existing section
 - Ensure referenced sections contain sufficient detail for implementation
 - If doc section is ambiguous, either clarify doc or include detail in prompt
+
 ```
 
 ### 7.3 Prompt Sequencing and Dependencies
@@ -1033,14 +1110,17 @@ For better-sqlite3 security updates:
 **Action Required:** Add dependency notation to prompts:
 
 ```
+
 ### P2-04 — Home page: unified list + module quick-nav `[ ]`
 
 **Dependencies:** P2-01 (Notas), P2-02 (Llamar), P2-03 (Encargar) must be completed first.
 
 > Implement the Home page...
+
 ```
 
 ```
+
 ### P3-03 — PDF thumbnail generation `[ ]`
 
 **Dependencies:** P3-02 (PDF upload and storage) must be completed first.
@@ -1048,14 +1128,17 @@ For better-sqlite3 security updates:
 **Note:** This prompt requires P3-02 to expose an IPC handler `facturas:getPDFBytes` (if not already present, add it in P3-02).
 
 > Add lazy thumbnail generation...
+
 ```
 
 ```
+
 ### P5-03 — End-to-end smoke test `[ ]`
 
 **Dependencies:** All prompts P1-01 through P5-02 must be completed first. This is an integration test of the entire application.
 
 > Write a minimal end-to-end test...
+
 ```
 
 ### 7.4 Size and Complexity of Individual Prompts
@@ -1077,32 +1160,40 @@ For better-sqlite3 security updates:
 
 **P1-01** is acceptable (project bootstrap is naturally large), but could be split:
 ```
+
 P1-01a: Scaffold Electron + React + Vite
 P1-01b: Configure Tailwind, ESLint, Prettier, Husky
 P1-01c: Add Vitest and React Testing Library
+
 ```
 
 **P2-04** should be split:
 ```
+
 P2-04a: Implement unified data fetching and merging
 P2-04b: Implement search and filter panel
 P2-04c: Implement module quick-nav panel
+
 ```
 
 **P3-03** should be split:
 ```
+
 P3-03a: Implement basic PDF thumbnail rendering with PDF.js
 P3-03b: Add lazy loading with IntersectionObserver
 P3-03c: Add thumbnail caching and concurrency control
+
 ```
 
 **P5-03** should be split (already recommended in §3.1):
 ```
+
 P5-03a: E2E test for Notas module
 P5-03b: E2E test for Llamar module
 P5-03c: E2E test for Encargar module
 P5-03d: E2E test for URGENTE aggregation
 P5-03e: E2E test for Facturas PDF upload
+
 ```
 
 **Recommendation:**
@@ -1125,11 +1216,13 @@ P5-03e: E2E test for Facturas PDF upload
 
 **Action Required:** Add new prompt:
 ```
+
 ### P1-04 — Database backup and recovery `[ ]`
 
 > Implement automatic database backup and recovery mechanisms.
 >
 > Requirements:
+>
 > - On app startup, create timestamped backup: `{userData}/backups/entretelas-YYYY-MM-DD-HHmmss.db`
 > - Keep last 7 backups, delete older backups
 > - Create IPC handler `db:restore` that accepts backup filename
@@ -1137,20 +1230,23 @@ P5-03e: E2E test for Facturas PDF upload
 > - Show user notification on restore: "Base de datos restaurada desde copia de seguridad"
 > - Add manual backup option in a (future) Settings page
 > - Write integration test:
->   * Create entries in test DB
->   * Backup DB
->   * Delete entries
->   * Restore DB
->   * Verify entries reappear
+>   - Create entries in test DB
+>   - Backup DB
+>   - Delete entries
+>   - Restore DB
+>   - Verify entries reappear
+
 ```
 
 **Action Required:** Add auto-save to forms (P2-01):
 ```
+
 - Use useEffect with debounce (500ms) to auto-save form state to localStorage
 - Key: `autosave-${moduleName}-${entryId || 'new'}`
 - On form mount, check localStorage for autosave data and restore if present
 - Clear autosave data on successful submit or cancel
 - Show indicator: "Guardado automáticamente" in form footer
+
 ```
 
 ### 8.2 Performance and Scalability
@@ -1171,15 +1267,16 @@ P5-03e: E2E test for Facturas PDF upload
 
 **Action Required:** Add to docs/REQUIREMENTS.md:
 ```
+
 ## 6. Performance and Scale Targets
 
-| Metric | Target | Notes |
-|--------|--------|-------|
+| Metric                                    | Target       | Notes                                  |
+| ----------------------------------------- | ------------ | -------------------------------------- |
 | Total entries (Notas + Llamar + Encargar) | Up to 10,000 | Reasonable for 5 years of business use |
-| PDF files | Up to 1,000 | Storage: ~50 MB avg/file = 50 GB max |
-| Database size | Up to 500 MB | SQLite performs well at this scale |
-| List rendering | < 100 ms | For up to 1,000 visible entries |
-| Search query | < 50 ms | Using FTS5 indexes |
+| PDF files                                 | Up to 1,000  | Storage: ~50 MB avg/file = 50 GB max   |
+| Database size                             | Up to 500 MB | SQLite performs well at this scale     |
+| List rendering                            | < 100 ms     | For up to 1,000 visible entries        |
+| Search query                              | < 50 ms      | Using FTS5 indexes                     |
 
 ### Scalability Strategy
 
@@ -1187,19 +1284,22 @@ P5-03e: E2E test for Facturas PDF upload
 - **Virtual scrolling:** Implement if > 500 entries (use react-window)
 - **Lazy loading:** Only load data for active module (not all data on startup)
 - **Query optimization:** Use EXPLAIN QUERY PLAN to verify indexes are used
+
 ```
 
 **Action Required:** Update P2-01 (and P2-02, P2-03):
 ```
+
 - Implement pagination for list view:
-  * Default page size: 100 entries
-  * Show "Anterior" / "Siguiente" buttons at bottom
-  * Update Zustand store with currentPage state
-  * Only render current page of entries
+  - Default page size: 100 entries
+  - Show "Anterior" / "Siguiente" buttons at bottom
+  - Update Zustand store with currentPage state
+  - Only render current page of entries
 - If list has > 500 entries, use react-window for virtual scrolling:
-  * Install: npm install react-window
-  * Wrap list in <FixedSizeList> component
-  * Set item size: 60px per row
+  - Install: npm install react-window
+  - Wrap list in <FixedSizeList> component
+  - Set item size: 60px per row
+
 ```
 
 ### 8.3 Error Handling and User Feedback
@@ -1220,26 +1320,28 @@ P5-03e: E2E test for Facturas PDF upload
 
 **Action Required:** Add new prompt P1-02a:
 ```
+
 ### P1-02a — Error handling infrastructure `[ ]`
 
 > Implement global error boundary and error notification system.
 >
 > Requirements:
+>
 > - Create `src/renderer/components/ErrorBoundary.jsx`:
->   * Catch React errors
->   * Display fallback UI: "Algo salió mal. Recargar la aplicación."
->   * Log error to console
->   * Wrap <App /> in ErrorBoundary in main.jsx
+>   - Catch React errors
+>   - Display fallback UI: "Algo salió mal. Recargar la aplicación."
+>   - Log error to console
+>   - Wrap <App /> in ErrorBoundary in main.jsx
 > - Create `src/renderer/components/Toast.jsx`:
->   * Notification component for non-critical errors and success messages
->   * Auto-dismiss after 5 seconds
->   * Stack multiple toasts vertically
->   * Types: success (green), error (red), info (blue)
+>   - Notification component for non-critical errors and success messages
+>   - Auto-dismiss after 5 seconds
+>   - Stack multiple toasts vertically
+>   - Types: success (green), error (red), info (blue)
 > - Create `src/renderer/hooks/useToast.js`:
->   * Returns showToast(message, type) function
->   * Use context to manage toast state globally
+>   - Returns showToast(message, type) function
+>   - Use context to manage toast state globally
 > - Create `src/renderer/utils/errorMessages.js`:
->   * Map error codes to Spanish messages:
+>   - Map error codes to Spanish messages:
 >     - DB_ERROR: "Error al guardar los datos"
 >     - NOT_FOUND: "Entrada no encontrada"
 >     - INVALID_INPUT: "Por favor, revisa los datos ingresados"
@@ -1248,13 +1350,16 @@ P5-03e: E2E test for Facturas PDF upload
 > - Update IPC error responses to include error codes (not just messages)
 > - Write component test for ErrorBoundary (throw error in child component)
 > - Write component test for Toast (show and auto-dismiss)
+
 ```
 
 **Action Required:** Update all module prompts (P2-01, etc.) to use error handling:
 ```
+
 - In Zustand store actions, wrap IPC calls in try-catch
 - On error response, call useToast().showToast(errorMessages[error.code], 'error')
 - On success, call useToast().showToast('Guardado correctamente', 'success')
+
 ```
 
 ### 8.4 Electron-Specific Risks
@@ -1284,27 +1389,32 @@ P5-03e: E2E test for Facturas PDF upload
 
 **Action Required:** Update P1-01:
 ```
+
 - Register app lifecycle handlers in src/main/index.js:
-  * app.on('before-quit'): Close database connection cleanly
-  * app.on('window-all-closed'): Quit app on Windows (app.quit())
-  * app.on('second-instance'): Prevent multiple instances - focus existing window
+  - app.on('before-quit'): Close database connection cleanly
+  - app.on('window-all-closed'): Quit app on Windows (app.quit())
+  - app.on('second-instance'): Prevent multiple instances - focus existing window
 - Implement window state persistence:
-  * Save window bounds to userData/window-state.json on close
-  * Restore bounds on next launch
-  * Use electron-window-state package: `npm install electron-window-state`
+  - Save window bounds to userData/window-state.json on close
+  - Restore bounds on next launch
+  - Use electron-window-state package: `npm install electron-window-state`
+
 ```
 
 **Action Required:** Add to DEVELOPMENT_GUIDE.md:
 ```
+
 ## 14. Debugging Production Issues
 
 ### Logs
 
 Electron logs are written to:
+
 - Windows: `%APPDATA%\App-Entretelas\logs\main.log` (main process)
 - Windows: `%APPDATA%\App-Entretelas\logs\renderer.log` (renderer process)
 
 To enable logging:
+
 - Install electron-log: `npm install electron-log`
 - In main process: `import log from 'electron-log'` and use `log.info()`, `log.error()`
 - In renderer: logs are forwarded via IPC to main process
@@ -1312,8 +1422,10 @@ To enable logging:
 ### Crash Reports
 
 Use Electron's built-in crash reporter (future enhancement):
+
 - Configure crashReporter.start() in main process
 - Send reports to self-hosted server (not public service for privacy)
+
 ```
 
 ### 8.5 User Experience Edge Cases
@@ -1333,11 +1445,13 @@ Use Electron's built-in crash reporter (future enhancement):
 
 **Action Required:** Add UX guidance to UI_DESIGN.md:
 ```
+
 ## 13. UX Patterns and Edge Cases
 
 ### Loading States
 
 All data-fetching operations must show loading indicator:
+
 - Lists: Show skeleton rows (3 rows of animated gray bars)
 - Forms: Disable submit button and show spinner
 - PDFs: Show "Cargando..." text in thumbnail placeholder
@@ -1346,6 +1460,7 @@ All data-fetching operations must show loading indicator:
 ### Empty States
 
 All lists must show empty state when no data:
+
 - Use pattern from UI_DESIGN.md §11
 - Include icon (📭), message, and call-to-action button
 - Empty state should be visually centered in content area
@@ -1353,6 +1468,7 @@ All lists must show empty state when no data:
 ### Optimistic Updates
 
 For delete operations:
+
 - Immediately remove entry from list (optimistic)
 - If IPC delete fails, re-add entry and show error toast
 - For create/update: wait for IPC response before showing in list (to get ID)
@@ -1369,6 +1485,7 @@ For delete operations:
 
 - Lists refresh data when page regains focus (useEffect with focus event listener)
 - No real-time sync needed (single-user, single-instance app)
+
 ```
 
 ---
@@ -1451,3 +1568,4 @@ By implementing these recommendations, the prompts will be:
 
 **Document Status:** ✅ Complete
 **Next Steps:** Update PROMPTS.md and documentation files per recommendations
+```

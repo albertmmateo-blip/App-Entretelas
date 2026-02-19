@@ -45,26 +45,26 @@
 
 ## 3. Colour Palette
 
-| Token | Hex | Usage |
-|---|---|---|
-| `primary` | `#1D4ED8` | Active nav item, primary buttons, links |
-| `danger` | `#DC2626` | Urgent badge, delete buttons |
-| `success` | `#16A34A` | Confirmation states |
-| `neutral-50` | `#F9FAFB` | Page background |
-| `neutral-200` | `#E5E7EB` | Dividers, borders |
-| `neutral-700` | `#374151` | Body text |
-| `neutral-900` | `#111827` | Headings |
+| Token         | Hex       | Usage                                   |
+| ------------- | --------- | --------------------------------------- |
+| `primary`     | `#1D4ED8` | Active nav item, primary buttons, links |
+| `danger`      | `#DC2626` | Urgent badge, delete buttons            |
+| `success`     | `#16A34A` | Confirmation states                     |
+| `neutral-50`  | `#F9FAFB` | Page background                         |
+| `neutral-200` | `#E5E7EB` | Dividers, borders                       |
+| `neutral-700` | `#374151` | Body text                               |
+| `neutral-900` | `#111827` | Headings                                |
 
 ---
 
 ## 4. Typography
 
-| Element | Style |
-|---|---|
-| Page title | `text-2xl font-bold text-neutral-900` |
-| Section heading | `text-lg font-semibold text-neutral-700` |
-| Body / table cells | `text-sm text-neutral-700` |
-| Placeholder / meta | `text-xs text-neutral-400` |
+| Element            | Style                                    |
+| ------------------ | ---------------------------------------- |
+| Page title         | `text-2xl font-bold text-neutral-900`    |
+| Section heading    | `text-lg font-semibold text-neutral-700` |
+| Body / table cells | `text-sm text-neutral-700`               |
+| Placeholder / meta | `text-xs text-neutral-400`               |
 
 ---
 
@@ -247,25 +247,25 @@ Clicking a Proveedor folder opens:
 
 ## 12. Routing (React Router)
 
-| Route | Page |
-|---|---|
-| `/` | Home |
-| `/urgente` | URGENTE! |
-| `/notas` | Notas list |
-| `/notas/nueva` | New note form |
-| `/notas/:id` | Edit note form |
-| `/llamar` | Llamar list |
-| `/llamar/nueva` | New llamar form |
-| `/llamar/:id` | Edit llamar form |
-| `/encargar` | Encargar list |
-| `/encargar/nueva` | New encargar form |
-| `/encargar/:id` | Edit encargar form |
-| `/facturas` | Facturas root (two folders) |
-| `/facturas/compra` | Facturas Compra – Proveedor list |
-| `/facturas/compra/:proveedorId` | PDF list for a Proveedor |
-| `/facturas/venta` | Facturas Venta – Cliente list |
-| `/facturas/venta/:clienteId` | PDF list for a Cliente |
-| `/email` | Gmail webview |
+| Route                           | Page                             |
+| ------------------------------- | -------------------------------- |
+| `/`                             | Home                             |
+| `/urgente`                      | URGENTE!                         |
+| `/notas`                        | Notas list                       |
+| `/notas/nueva`                  | New note form                    |
+| `/notas/:id`                    | Edit note form                   |
+| `/llamar`                       | Llamar list                      |
+| `/llamar/nueva`                 | New llamar form                  |
+| `/llamar/:id`                   | Edit llamar form                 |
+| `/encargar`                     | Encargar list                    |
+| `/encargar/nueva`               | New encargar form                |
+| `/encargar/:id`                 | Edit encargar form               |
+| `/facturas`                     | Facturas root (two folders)      |
+| `/facturas/compra`              | Facturas Compra – Proveedor list |
+| `/facturas/compra/:proveedorId` | PDF list for a Proveedor         |
+| `/facturas/venta`               | Facturas Venta – Cliente list    |
+| `/facturas/venta/:clienteId`    | PDF list for a Cliente           |
+| `/email`                        | Gmail webview                    |
 
 ---
 
