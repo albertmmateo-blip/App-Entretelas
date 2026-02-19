@@ -3,15 +3,13 @@ import { render, screen } from '@testing-library/react';
 import App from '../../src/renderer/App';
 
 describe('App', () => {
-  it('renders the app title', () => {
+  it('renders the application shell with sidebar and content area', () => {
     render(<App />);
-    expect(screen.getByText('App-Entretelas')).toBeInTheDocument();
+    expect(screen.getByRole('navigation')).toBeInTheDocument();
   });
 
-  it('renders the description', () => {
+  it('renders the Home page by default', () => {
     render(<App />);
-    expect(
-      screen.getByText(/Desktop business-manager application built with Electron/)
-    ).toBeInTheDocument();
+    expect(screen.getByText('Home')).toBeInTheDocument();
   });
 });
