@@ -15,4 +15,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     update: (id, data) => ipcRenderer.invoke('notas:update', id, data),
     delete: (id) => ipcRenderer.invoke('notas:delete', id),
   },
+  // Llamar module
+  llamar: {
+    getAll: () => ipcRenderer.invoke('llamar:getAll'),
+    create: (data) => ipcRenderer.invoke('llamar:create', data),
+    update: (id, data) => ipcRenderer.invoke('llamar:update', id, data),
+    delete: (id) => ipcRenderer.invoke('llamar:delete', id),
+  },
 });
