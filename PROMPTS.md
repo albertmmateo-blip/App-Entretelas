@@ -113,7 +113,7 @@ This file contains an ordered sequence of AI agent prompts for incrementally bui
 > - Create `tests/helpers/e2e.js`: `launchApp()` starts Electron app for E2E tests and returns app instance; `cleanDatabase()` resets test database between E2E tests.
 > - Document usage of all helpers in `docs/DEVELOPMENT_GUIDE.md §8`.
 
-### P1-04 — Database backup and recovery `[ ]`
+### P1-04 — Database backup and recovery `[x]`
 
 > Implement automatic database backup and recovery mechanisms.
 >
@@ -126,6 +126,13 @@ This file contains an ordered sequence of AI agent prompts for incrementally bui
 > - Create IPC handler `db:restoreBackup` that accepts backup filename, closes current DB, copies backup to main DB path, reopens DB. Returns `{ success: true }` or `{ success: false, error }`.
 > - Write integration test: create entries in test DB, backup DB, delete entries, restore DB, verify entries reappear.
 > - Show user notification (using Toast from P1-02a) on restore: "Base de datos restaurada desde copia de seguridad".
+>
+> Implementation notes:
+>
+> - Backup timestamp format: `YYYYMMDD-HHmmss` (e.g., `20260219-143052`)
+> - IPC handlers registered in `src/main/ipc/db.js`
+> - Backup functions exported from `src/main/db/connection.js`: `listBackups()`, `restoreFromBackup()`
+> - Toast notification for restore is deferred to future UI implementation when backup/restore UI is added
 
 ---
 

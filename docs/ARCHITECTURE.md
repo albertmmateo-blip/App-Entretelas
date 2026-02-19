@@ -61,6 +61,8 @@ Examples:
 | `facturas:deletePDF` | renderer → main | Delete a PDF file                       |
 | `proveedores:getAll` | renderer → main | Fetch all proveedor records             |
 | `clientes:getAll`    | renderer → main | Fetch all cliente records               |
+| `db:listBackups`     | renderer → main | List available database backups         |
+| `db:restoreBackup`   | renderer → main | Restore database from a specific backup |
 
 ---
 
@@ -210,6 +212,9 @@ if (response.success) {
 - A single SQLite file is placed at `{userData}/entretelas.db`.
 - Schema migrations are applied sequentially on startup via numbered SQL files in `src/main/db/migrations/`.
 - All queries are executed synchronously in the main process (better-sqlite3 is synchronous by design); this is safe because SQLite queries on a local file complete well within 200 ms.
+- **Automatic backups**: On successful database open, a timestamped backup is created at `{userData}/backups/entretelas-YYYY-MM-DD-HHmmss.db`. Only the 7 most recent backups are kept.
+- **Automatic recovery**: If the database fails to open (corruption), the system automatically restores from the latest backup and retries opening the database.
+- **Manual backup management**: IPC handlers `db:listBackups` and `db:restoreBackup` allow listing and restoring from specific backups.
 
 ---
 

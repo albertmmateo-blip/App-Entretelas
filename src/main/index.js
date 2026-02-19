@@ -2,6 +2,7 @@ const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const windowStateKeeper = require('electron-window-state');
 const { getDatabase } = require('./db/connection');
+const { registerDbHandlers } = require('./ipc/db');
 
 let mainWindow;
 
@@ -60,6 +61,9 @@ if (!gotTheLock) {
   });
 
   app.whenReady().then(() => {
+    // Register IPC handlers
+    registerDbHandlers();
+
     createWindow();
 
     app.on('activate', () => {

@@ -1,8 +1,13 @@
-const { contextBridge } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
 
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electronAPI', {
+  // Database backup operations
+  db: {
+    listBackups: () => ipcRenderer.invoke('db:listBackups'),
+    restoreBackup: (backupFilename) => ipcRenderer.invoke('db:restoreBackup', backupFilename),
+  },
   // Placeholder for future IPC handlers
   // Example: notas: {
   //   getAll: () => ipcRenderer.invoke('notas:getAll'),
