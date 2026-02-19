@@ -1,0 +1,166 @@
+import { describe, it, expect } from 'vitest';
+import { render, screen, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { AppLayout } from '../../src/renderer/App';
+
+describe('App - Sidebar Navigation', () => {
+  it('renders all six navigation links in the correct order', () => {
+    render(
+      <MemoryRouter>
+        <AppLayout />
+      </MemoryRouter>
+    );
+
+    const links = screen.getAllByRole('link');
+
+    expect(links[0]).toHaveTextContent('URGENTE!');
+    expect(links[1]).toHaveTextContent('Notas');
+    expect(links[2]).toHaveTextContent('Llamar');
+    expect(links[3]).toHaveTextContent('Encargar');
+    expect(links[4]).toHaveTextContent('Facturas');
+    expect(links[5]).toHaveTextContent('E-mail');
+  });
+
+  it('highlights the active route with primary color', () => {
+    render(
+      <MemoryRouter initialEntries={['/notas']}>
+        <AppLayout />
+      </MemoryRouter>
+    );
+
+    const notasLink = screen.getByRole('link', { name: /Notas/i });
+    expect(notasLink).toHaveClass('text-primary');
+  });
+
+  it('renders Home page at / route', () => {
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <AppLayout />
+      </MemoryRouter>
+    );
+
+    const main = screen.getByRole('main');
+    expect(within(main).getByRole('heading', { name: 'Home' })).toBeInTheDocument();
+  });
+
+  it('renders URGENTE! page at /urgente route', () => {
+    render(
+      <MemoryRouter initialEntries={['/urgente']}>
+        <AppLayout />
+      </MemoryRouter>
+    );
+
+    const main = screen.getByRole('main');
+    expect(within(main).getByRole('heading', { name: 'URGENTE!' })).toBeInTheDocument();
+  });
+
+  it('renders Notas page at /notas route', () => {
+    render(
+      <MemoryRouter initialEntries={['/notas']}>
+        <AppLayout />
+      </MemoryRouter>
+    );
+
+    const main = screen.getByRole('main');
+    expect(within(main).getByRole('heading', { name: 'Notas' })).toBeInTheDocument();
+  });
+
+  it('renders Llamar page at /llamar route', () => {
+    render(
+      <MemoryRouter initialEntries={['/llamar']}>
+        <AppLayout />
+      </MemoryRouter>
+    );
+
+    const main = screen.getByRole('main');
+    expect(within(main).getByRole('heading', { name: 'Llamar' })).toBeInTheDocument();
+  });
+
+  it('renders Encargar page at /encargar route', () => {
+    render(
+      <MemoryRouter initialEntries={['/encargar']}>
+        <AppLayout />
+      </MemoryRouter>
+    );
+
+    const main = screen.getByRole('main');
+    expect(within(main).getByRole('heading', { name: 'Encargar' })).toBeInTheDocument();
+  });
+
+  it('renders Facturas page at /facturas route', () => {
+    render(
+      <MemoryRouter initialEntries={['/facturas']}>
+        <AppLayout />
+      </MemoryRouter>
+    );
+
+    const main = screen.getByRole('main');
+    expect(within(main).getByRole('heading', { name: 'Facturas' })).toBeInTheDocument();
+  });
+
+  it('renders E-mail page at /email route', () => {
+    render(
+      <MemoryRouter initialEntries={['/email']}>
+        <AppLayout />
+      </MemoryRouter>
+    );
+
+    const main = screen.getByRole('main');
+    expect(within(main).getByRole('heading', { name: 'E-mail' })).toBeInTheDocument();
+  });
+
+  it('registers nested routes for notas module', () => {
+    render(
+      <MemoryRouter initialEntries={['/notas/nueva']}>
+        <AppLayout />
+      </MemoryRouter>
+    );
+
+    const main = screen.getByRole('main');
+    expect(within(main).getByRole('heading', { name: 'Notas' })).toBeInTheDocument();
+  });
+
+  it('registers nested routes for llamar module', () => {
+    render(
+      <MemoryRouter initialEntries={['/llamar/123']}>
+        <AppLayout />
+      </MemoryRouter>
+    );
+
+    const main = screen.getByRole('main');
+    expect(within(main).getByRole('heading', { name: 'Llamar' })).toBeInTheDocument();
+  });
+
+  it('registers nested routes for encargar module', () => {
+    render(
+      <MemoryRouter initialEntries={['/encargar/nueva']}>
+        <AppLayout />
+      </MemoryRouter>
+    );
+
+    const main = screen.getByRole('main');
+    expect(within(main).getByRole('heading', { name: 'Encargar' })).toBeInTheDocument();
+  });
+
+  it('registers nested routes for facturas compra', () => {
+    render(
+      <MemoryRouter initialEntries={['/facturas/compra']}>
+        <AppLayout />
+      </MemoryRouter>
+    );
+
+    const main = screen.getByRole('main');
+    expect(within(main).getByRole('heading', { name: 'Facturas' })).toBeInTheDocument();
+  });
+
+  it('registers nested routes for facturas venta', () => {
+    render(
+      <MemoryRouter initialEntries={['/facturas/venta/456']}>
+        <AppLayout />
+      </MemoryRouter>
+    );
+
+    const main = screen.getByRole('main');
+    expect(within(main).getByRole('heading', { name: 'Facturas' })).toBeInTheDocument();
+  });
+});

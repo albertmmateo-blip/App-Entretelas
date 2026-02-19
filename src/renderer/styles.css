@@ -1,6 +1,15 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #1d4ed8;
+  --color-danger: #dc2626;
+  --color-success: #16a34a;
+  --color-neutral-50: #f9fafb;
+  --color-neutral-200: #e5e7eb;
+  --color-neutral-400: #9ca3af;
+  --color-neutral-700: #374151;
+  --color-neutral-900: #111827;
+}
 
 body {
   margin: 0;
@@ -9,7 +18,8 @@ body {
     'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  @apply bg-neutral-50 text-neutral-700;
+  background-color: var(--color-neutral-50);
+  color: var(--color-neutral-700);
 }
 
 * {

@@ -62,7 +62,7 @@ This file contains an ordered sequence of AI agent prompts for incrementally bui
 > - Create `.npmrc` file with `audit-level=moderate` to fail CI builds on moderate+ vulnerabilities.
 > - Update `docs/DEVELOPMENT_GUIDE.md §11` with troubleshooting section for common Electron 30 compatibility issues.
 
-### P1-02 — Application shell: sidebar navigation + routing `[ ]`
+### P1-02 — Application shell: sidebar navigation + routing `[x]`
 
 > Implement the application shell described in `docs/UI_DESIGN.md §2`.
 >
@@ -75,6 +75,7 @@ This file contains an ordered sequence of AI agent prompts for incrementally bui
 > - Use the colour palette and typography defined in `docs/UI_DESIGN.md §3–4`.
 > - Add a component test verifying the sidebar renders all six navigation links and correct routes are registered.
 > - Update `docs/UI_DESIGN.md` if any layout decision differs from the spec.
+
 
 ### P1-02a — Error handling infrastructure `[ ]`
 
