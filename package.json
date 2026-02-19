@@ -21,7 +21,8 @@
     "lint:fix": "eslint . --ext .js,.jsx --fix && prettier --write \"**/*.{js,jsx,json,css,md}\"",
     "format": "prettier --write \"**/*.{js,jsx,json,css,md}\"",
     "prepare": "husky",
-    "rebuild-natives": "electron-rebuild -f -w better-sqlite3"
+    "rebuild-natives": "electron-rebuild -f -w better-sqlite3",
+    "audit:security": "npm audit --production"
   },
   "lint-staged": {
     "*.{js,jsx}": [

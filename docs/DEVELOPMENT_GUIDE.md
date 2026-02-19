@@ -2,13 +2,13 @@
 
 ## 1. Prerequisites
 
-| Tool | Minimum Version | Notes |
-|---|---|---|
-| OS | Windows 10 (64-bit) | **Windows only** — the app is not supported on macOS or Linux |
-| Node.js | 20 LTS | Use [nvm-windows](https://github.com/coreybutler/nvm-windows) to manage versions |
-| npm | 10+ | Bundled with Node.js 20 |
-| Git | 2.40+ | [git-scm.com/download/win](https://git-scm.com/download/win) |
-| Visual Studio Build Tools | 2022 | Required by `better-sqlite3` native bindings; install the "Desktop development with C++" workload |
+| Tool                      | Minimum Version     | Notes                                                                                             |
+| ------------------------- | ------------------- | ------------------------------------------------------------------------------------------------- |
+| OS                        | Windows 10 (64-bit) | **Windows only** — the app is not supported on macOS or Linux                                     |
+| Node.js                   | 20 LTS              | Use [nvm-windows](https://github.com/coreybutler/nvm-windows) to manage versions                  |
+| npm                       | 10+                 | Bundled with Node.js 20                                                                           |
+| Git                       | 2.40+               | [git-scm.com/download/win](https://git-scm.com/download/win)                                      |
+| Visual Studio Build Tools | 2022                | Required by `better-sqlite3` native bindings; install the "Desktop development with C++" workload |
 
 > **Note:** Python 3 is also required by `node-gyp` (included in Visual Studio Build Tools installer). Run `npm config set python python3` after installation.
 
@@ -39,15 +39,15 @@ npm run rebuild-natives
 
 ## 3. Available Scripts
 
-| Script | Command | Description |
-|---|---|---|
-| Dev | `npm run dev` | Starts Vite dev server + Electron with hot reload |
-| Build | `npm run build` | Compiles renderer (Vite) + packages Electron app via electron-builder |
-| Dist | `npm run dist` | Produces a Windows installer (NSIS) in `dist/` |
-| Test | `npm test` | Runs Vitest (unit + component tests) |
-| Lint | `npm run lint` | ESLint + Prettier check |
-| Lint fix | `npm run lint:fix` | ESLint auto-fix + Prettier format |
-| Rebuild natives | `npm run rebuild-natives` | Recompiles native Node modules for the current Electron version |
+| Script          | Command                   | Description                                                           |
+| --------------- | ------------------------- | --------------------------------------------------------------------- |
+| Dev             | `npm run dev`             | Starts Vite dev server + Electron with hot reload                     |
+| Build           | `npm run build`           | Compiles renderer (Vite) + packages Electron app via electron-builder |
+| Dist            | `npm run dist`            | Produces a Windows installer (NSIS) in `dist/`                        |
+| Test            | `npm test`                | Runs Vitest (unit + component tests)                                  |
+| Lint            | `npm run lint`            | ESLint + Prettier check                                               |
+| Lint fix        | `npm run lint:fix`        | ESLint auto-fix + Prettier format                                     |
+| Rebuild natives | `npm run rebuild-natives` | Recompiles native Node modules for the current Electron version       |
 
 ---
 
@@ -55,12 +55,12 @@ npm run rebuild-natives
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the full folder tree. Key entry points:
 
-| File | Role |
-|---|---|
-| `src/main/index.js` | Electron main process entry |
-| `src/preload/index.js` | contextBridge definitions |
-| `src/renderer/main.jsx` | React DOM entry |
-| `src/renderer/App.jsx` | Router + sidebar layout |
+| File                        | Role                                 |
+| --------------------------- | ------------------------------------ |
+| `src/main/index.js`         | Electron main process entry          |
+| `src/preload/index.js`      | contextBridge definitions            |
+| `src/renderer/main.jsx`     | React DOM entry                      |
+| `src/renderer/App.jsx`      | Router + sidebar layout              |
 | `src/main/db/connection.js` | SQLite connection + migration runner |
 
 ---
@@ -94,6 +94,7 @@ npm run dist
 ```
 
 This invokes `electron-builder` which:
+
 1. Runs `npm run build` (Vite production build).
 2. Packages the app into `dist/win-unpacked/`.
 3. Creates an NSIS installer at `dist/App-Entretelas Setup x.y.z.exe`.
@@ -178,12 +179,98 @@ npm run lint:fix
 
 ## 11. Troubleshooting
 
-| Problem | Solution |
-|---|---|
-| `better-sqlite3` fails to install | Run `npm run rebuild-natives`; ensure Visual Studio Build Tools 2022 are installed |
-| Blank white window on dev start | Wait for the Vite server to fully start; Electron retries automatically |
-| PDFs not loading | Check that `ENTRETELAS_DATA_DIR` points to an existing directory |
-| Gmail webview blocked | Ensure the Content Security Policy in `index.html` allows `https://mail.google.com` |
+| Problem                           | Solution                                                                            |
+| --------------------------------- | ----------------------------------------------------------------------------------- |
+| `better-sqlite3` fails to install | Run `npm run rebuild-natives`; ensure Visual Studio Build Tools 2022 are installed  |
+| Blank white window on dev start   | Wait for the Vite server to fully start; Electron retries automatically             |
+| PDFs not loading                  | Check that `ENTRETELAS_DATA_DIR` points to an existing directory                    |
+| Gmail webview blocked             | Ensure the Content Security Policy in `index.html` allows `https://mail.google.com` |
+
+### Electron 30 Compatibility
+
+#### better-sqlite3 Compatibility
+
+**Verified Compatible:** better-sqlite3@12.6.2 (latest) is fully compatible with Electron 30.5.1.
+
+- **Node.js Version:** Electron 30 uses Node.js 20.x, which matches better-sqlite3's requirement of Node.js 20.x+
+- **Native Module Compilation:** better-sqlite3 uses native C++ bindings that must be compiled specifically for Electron
+- **Rebuild Required:** After installing or updating better-sqlite3, run `npm run rebuild-natives` to recompile for Electron's Node.js ABI
+
+**Installation Steps:**
+
+1. Ensure Visual Studio Build Tools 2022 are installed (required for native compilation)
+2. Install the package: `npm install better-sqlite3`
+3. Rebuild for Electron: `npm run rebuild-natives`
+4. Verify the module loads: Start the app in dev mode (`npm run dev`) and check console for errors
+
+**Common Issues:**
+
+- **Error: "The module was compiled against a different Node.js version"**
+  - Solution: Run `npm run rebuild-natives` to recompile for Electron's Node.js version
+- **Error: "Cannot find module 'better-sqlite3'"**
+  - Solution: Ensure the module is listed in dependencies (not devDependencies) and run `npm install`
+- **Build fails with MSBuild errors**
+  - Solution: Install Visual Studio Build Tools 2022 with "Desktop development with C++" workload
+
+#### Vite Hot Module Replacement (HMR)
+
+**Verified Working:** Vite 5.4.21 HMR functions correctly with Electron 30 in development mode.
+
+**Configuration Notes:**
+
+- Vite config must use `.mjs` extension or be ESM-compatible due to `@vitejs/plugin-react` being ESM-only
+- The dev server runs on `http://localhost:5173` and Electron loads this URL in development
+- React Fast Refresh is automatically enabled through `@vitejs/plugin-react`
+
+**Testing HMR:**
+
+1. Start dev server: `npm run dev`
+2. Modify any React component in `src/renderer/`
+3. Save the file
+4. Observe the browser window updates without full page reload
+5. Component state is preserved during hot updates
+
+**HMR Troubleshooting:**
+
+- **Changes not reflecting:** Check browser console for Vite connection errors; ensure port 5173 is not blocked
+- **Full page reload instead of HMR:** React components must use function or class syntax with proper export
+- **Vite config errors:** Ensure `vite.config.mjs` uses ESM syntax (import/export) not CommonJS (require/module.exports)
+
+#### Known Electron 30 Issues
+
+**ASAR Integrity Bypass (Moderate Severity):**
+
+- **Advisory:** [GHSA-vmqv-hx8q-j7mg](https://github.com/advisories/GHSA-vmqv-hx8q-j7mg)
+- **Status:** Accepted risk for v1.0.x (see SECURITY.md for justification)
+- **Mitigation:** Standard Windows file permissions and deployment to trusted environments
+- **Resolution:** Will be addressed in future versions when upgrading to Electron 35+
+
+#### Migration Path to Newer Electron Versions
+
+When upgrading from Electron 30 to newer versions:
+
+1. **Review Breaking Changes:**
+   - Check Electron release notes: https://releases.electronjs.org/
+   - Note API changes affecting: BrowserWindow, contextBridge, ipcMain/ipcRenderer
+
+2. **Update Dependencies:**
+
+   ```powershell
+   npm install electron@latest
+   npm run rebuild-natives
+   ```
+
+3. **Test Critical Functionality:**
+   - Window creation and state persistence
+   - IPC communication between main and renderer
+   - Native module loading (better-sqlite3)
+   - Vite development server integration
+   - Webview functionality (Gmail embed)
+
+4. **Update Documentation:**
+   - Update this section with new version number
+   - Document any new compatibility issues or workarounds
+   - Update SECURITY.md if new vulnerabilities are addressed
 
 ---
 
@@ -196,6 +283,7 @@ When adding a new field or table:
    - Name describes the change clearly
 
 2. Write **additive SQL only** (v1 does not support rollbacks):
+
    ```sql
    -- ✅ Good: Add new optional column
    ALTER TABLE notas ADD COLUMN archivado INTEGER NOT NULL DEFAULT 0;
@@ -273,11 +361,13 @@ npm audit fix --force        # Fix breaking updates (TEST THOROUGHLY after)
 ```
 
 For `better-sqlite3` security updates:
+
 - Check GitHub releases: https://github.com/WiseLibs/better-sqlite3/releases
 - Native modules require rebuild: `npm install better-sqlite3@latest && npm run rebuild-natives`
 - Test database operations after update
 
 For `pdfjs-dist` security updates:
+
 - Check GitHub releases: https://github.com/mozilla/pdf.js/releases
 - Test PDF thumbnail generation with sample PDFs after update
 - Verify Web Worker still loads correctly
@@ -289,6 +379,7 @@ For `pdfjs-dist` security updates:
 ### Logs
 
 Electron logs should be written to:
+
 - **Windows:** `%APPDATA%\App-Entretelas\logs\main.log` (main process)
 - **Windows:** `%APPDATA%\App-Entretelas\logs\renderer.log` (renderer process)
 
@@ -303,8 +394,7 @@ To enable logging (recommended for production):
    ```
 3. In renderer (forward to main via IPC):
    ```javascript
-   window.electronAPI.log = (level, message) =>
-     ipcRenderer.send('log', level, message);
+   window.electronAPI.log = (level, message) => ipcRenderer.send('log', level, message);
    ```
 4. In main IPC handler:
    ```javascript
@@ -323,17 +413,18 @@ Use Electron's built-in crash reporter (future enhancement):
 
 ### Common Issues
 
-| Issue | Diagnosis | Solution |
-|-------|-----------|----------|
-| App won't start | Check logs in `%APPDATA%\App-Entretelas\logs\` | Look for errors on startup |
-| Database locked | Another instance running? | Close all instances, restart |
-| PDFs not displaying | Check PDF file permissions | Verify files exist in `{userData}/facturas/` |
-| Webview blank | Gmail blocked by firewall? | Check network, try different network |
-| Slow performance | Large database? | Run `VACUUM` on SQLite database |
+| Issue               | Diagnosis                                      | Solution                                     |
+| ------------------- | ---------------------------------------------- | -------------------------------------------- |
+| App won't start     | Check logs in `%APPDATA%\App-Entretelas\logs\` | Look for errors on startup                   |
+| Database locked     | Another instance running?                      | Close all instances, restart                 |
+| PDFs not displaying | Check PDF file permissions                     | Verify files exist in `{userData}/facturas/` |
+| Webview blank       | Gmail blocked by firewall?                     | Check network, try different network         |
+| Slow performance    | Large database?                                | Run `VACUUM` on SQLite database              |
 
 ### Performance Profiling
 
 1. **Database queries:** Add query timing:
+
    ```javascript
    const start = Date.now();
    const rows = db.prepare('SELECT ...').all();
