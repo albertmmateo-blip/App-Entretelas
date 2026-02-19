@@ -4,6 +4,7 @@ const windowStateKeeper = require('electron-window-state');
 const { getDatabase } = require('./db/connection');
 const { registerDbHandlers } = require('./ipc/db');
 const { registerNotasHandlers } = require('./ipc/notas');
+const { registerLlamarHandlers } = require('./ipc/llamar');
 
 let mainWindow;
 
@@ -65,6 +66,7 @@ if (!gotTheLock) {
     // Register IPC handlers
     registerDbHandlers();
     registerNotasHandlers();
+    registerLlamarHandlers();
 
     createWindow();
 
