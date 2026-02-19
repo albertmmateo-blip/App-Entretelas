@@ -21,6 +21,7 @@ function NotasList() {
 
   useEffect(() => {
     fetchAll(showToast);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Filter and sort notas
@@ -95,6 +96,7 @@ function NotasList() {
       document.addEventListener('click', handleClick);
       return () => document.removeEventListener('click', handleClick);
     }
+    return undefined;
   }, [contextMenu]);
 
   if (loading && notas.length === 0) {
@@ -119,6 +121,7 @@ function NotasList() {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold text-neutral-900">Notas</h1>
         <button
+          type="button"
           onClick={() => navigate('/notas/nueva')}
           className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
         >
@@ -162,6 +165,7 @@ function NotasList() {
                 <tr>
                   <th className="px-4 py-3 text-left">
                     <button
+                      type="button"
                       onClick={() => handleSort('urgente')}
                       className="text-sm font-semibold text-neutral-700 hover:text-neutral-900 flex items-center gap-1"
                     >
@@ -171,6 +175,7 @@ function NotasList() {
                   </th>
                   <th className="px-4 py-3 text-left">
                     <button
+                      type="button"
                       onClick={() => handleSort('nombre')}
                       className="text-sm font-semibold text-neutral-700 hover:text-neutral-900 flex items-center gap-1"
                     >
@@ -180,6 +185,7 @@ function NotasList() {
                   </th>
                   <th className="px-4 py-3 text-left">
                     <button
+                      type="button"
                       onClick={() => handleSort('contacto')}
                       className="text-sm font-semibold text-neutral-700 hover:text-neutral-900 flex items-center gap-1"
                     >
@@ -189,6 +195,7 @@ function NotasList() {
                   </th>
                   <th className="px-4 py-3 text-left">
                     <button
+                      type="button"
                       onClick={() => handleSort('fecha_creacion')}
                       className="text-sm font-semibold text-neutral-700 hover:text-neutral-900 flex items-center gap-1"
                     >
@@ -217,7 +224,9 @@ function NotasList() {
                         <span className="text-neutral-300">○</span>
                       )}
                     </td>
-                    <td className={`px-4 py-3 text-sm ${nota.urgente ? 'text-danger font-semibold' : 'text-neutral-700'}`}>
+                    <td
+                      className={`px-4 py-3 text-sm ${nota.urgente ? 'text-danger font-semibold' : 'text-neutral-700'}`}
+                    >
                       {nota.nombre || <span className="text-neutral-400 italic">Sin nombre</span>}
                     </td>
                     <td className="px-4 py-3 text-sm text-neutral-700">
@@ -228,6 +237,7 @@ function NotasList() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <button
+                        type="button"
                         onClick={(e) => handleContextMenu(e, nota)}
                         className="text-neutral-500 hover:text-neutral-700 px-2 py-1"
                         aria-label="Abrir menú de acciones"
@@ -245,6 +255,7 @@ function NotasList() {
           {totalPages > 1 && (
             <div className="flex justify-center items-center gap-4 mt-4">
               <button
+                type="button"
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
                 className="px-4 py-2 border border-neutral-200 rounded hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -255,6 +266,7 @@ function NotasList() {
                 Página {currentPage} de {totalPages}
               </span>
               <button
+                type="button"
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
                 className="px-4 py-2 border border-neutral-200 rounded hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -273,6 +285,7 @@ function NotasList() {
           style={{ top: contextMenu.y, left: contextMenu.x }}
         >
           <button
+            type="button"
             onClick={() => {
               navigate(`/notas/${contextMenu.nota.id}`);
               setContextMenu(null);
@@ -282,12 +295,14 @@ function NotasList() {
             Editar
           </button>
           <button
+            type="button"
             onClick={() => handleToggleUrgente(contextMenu.nota)}
             className="block w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
           >
             {contextMenu.nota.urgente ? 'Desmarcar urgente' : 'Marcar urgente'}
           </button>
           <button
+            type="button"
             onClick={() => {
               setDeleteConfirm(contextMenu.nota);
               setContextMenu(null);

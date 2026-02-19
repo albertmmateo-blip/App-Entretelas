@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import useNotasStore from '../../store/notas';
 import useToast from '../../hooks/useToast';
@@ -149,6 +149,7 @@ function NotasForm() {
     <div className="p-6 max-w-4xl mx-auto">
       <div className="mb-6">
         <button
+          type="button"
           onClick={handleCancel}
           className="text-primary hover:text-primary/80 flex items-center gap-1 mb-2"
         >
@@ -224,7 +225,9 @@ function NotasForm() {
               onChange={handleChange}
               className="w-4 h-4 text-primary border-neutral-300 rounded focus:ring-2 focus:ring-primary"
             />
-            <span className={`text-sm font-medium ${formData.urgente ? 'text-danger' : 'text-neutral-700'}`}>
+            <span
+              className={`text-sm font-medium ${formData.urgente ? 'text-danger' : 'text-neutral-700'}`}
+            >
               Marcar como URGENTE!
             </span>
           </label>

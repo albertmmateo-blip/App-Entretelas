@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { createTestDb, clearTable, seedTestData } from '../helpers/db.js';
-import { createNota } from '../fixtures/sample-data.js';
+import { createTestDb, seedTestData } from '../helpers/db';
+import { createNota } from '../fixtures/sample-data';
 
 // Mock electron's ipcMain
 const mockHandlers = {};
@@ -17,19 +17,17 @@ vi.mock('electron', () => ({
 
 describe('Notas IPC Handlers', () => {
   let db;
-  let originalGetDatabase;
 
   beforeEach(async () => {
     // Create test database
     db = createTestDb();
 
     // Mock getDatabase to return our test database
-    const connectionModule = await import('../../src/main/db/connection.js');
-    originalGetDatabase = connectionModule.getDatabase;
+    const connectionModule = await import('../../src/main/db/connection');
     connectionModule.getDatabase = () => db;
 
     // Register handlers
-    const { registerNotasHandlers } = await import('../../src/main/ipc/notas.js');
+    const { registerNotasHandlers } = await import('../../src/main/ipc/notas');
     registerNotasHandlers();
   });
 

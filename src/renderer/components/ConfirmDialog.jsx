@@ -1,6 +1,13 @@
 import React from 'react';
 
-function ConfirmDialog({ title, message, onConfirm, onCancel, confirmText = 'Confirmar', confirmDanger = false }) {
+function ConfirmDialog({
+  title,
+  message,
+  onConfirm,
+  onCancel,
+  confirmText = 'Confirmar',
+  confirmDanger = false,
+}) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
@@ -13,12 +20,14 @@ function ConfirmDialog({ title, message, onConfirm, onCancel, confirmText = 'Con
         </div>
         <div className="flex justify-end gap-3">
           <button
+            type="button"
             onClick={onCancel}
             className="px-4 py-2 border border-neutral-200 rounded hover:bg-neutral-50 transition-colors"
           >
             Cancelar
           </button>
           <button
+            type="button"
             onClick={onConfirm}
             className={`px-4 py-2 rounded transition-colors ${
               confirmDanger

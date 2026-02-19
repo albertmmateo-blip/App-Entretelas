@@ -159,7 +159,9 @@ const useNotasStore = create((set, get) => ({
     // Optimistic update
     const previousNotas = get().notas;
     set((state) => ({
-      notas: state.notas.map((nota) => (nota.id === id ? { ...nota, urgente: urgente ? 1 : 0 } : nota)),
+      notas: state.notas.map((nota) =>
+        nota.id === id ? { ...nota, urgente: urgente ? 1 : 0 } : nota
+      ),
     }));
 
     try {

@@ -195,9 +195,16 @@ function registerNotasHandlers() {
       }
 
       // Trim whitespace from string fields
-      const nombre = data.nombre !== undefined ? (data.nombre ? data.nombre.trim() : null) : undefined;
-      const descripcion = data.descripcion !== undefined ? (data.descripcion ? data.descripcion.trim() : null) : undefined;
-      const contacto = data.contacto !== undefined ? (data.contacto ? data.contacto.trim() : null) : undefined;
+      const nombre =
+        data.nombre !== undefined ? (data.nombre ? data.nombre.trim() : null) : undefined;
+      const descripcion =
+        data.descripcion !== undefined
+          ? data.descripcion
+            ? data.descripcion.trim()
+            : null
+          : undefined;
+      const contacto =
+        data.contacto !== undefined ? (data.contacto ? data.contacto.trim() : null) : undefined;
       const urgente = data.urgente !== undefined ? (data.urgente ? 1 : 0) : undefined;
 
       // Build update query dynamically based on provided fields
