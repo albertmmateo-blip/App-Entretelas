@@ -280,13 +280,49 @@ This file contains an ordered sequence of AI agent prompts for incrementally bui
 
 > Add lazy thumbnail generation for PDFs using PDF.js.
 >
+> **Dependencies:** P3-02 (PDF storage and `facturas:getPDFBytes` handler) must be completed first.
+>
 > Requirements:
-> - In the renderer, use `pdfjs-dist` to render the first page of each PDF to a `<canvas>` and export it as a PNG data URL.
-> - Thumbnails are generated lazily when they scroll into the viewport (use `IntersectionObserver`).
-> - Cache rendered thumbnails in a `Map` keyed by PDF path so each PDF is rendered at most once per session.
-> - Show a loading skeleton while the thumbnail is being generated.
-> - Show a placeholder icon if the PDF cannot be rendered (handle errors gracefully).
-> - Write a unit test for the thumbnail cache logic.
+> - Install: `npm install pdfjs-dist`.
+> - Configure PDF.js Web Worker in renderer: create `src/renderer/utils/pdfjs-setup.js` that imports `pdfjs-dist` and sets `pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.js', import.meta.url).href`. Import this file in `main.jsx`.
+> - Create `src/renderer/components/PDFThumbnail.jsx`:
+>   * Props: `{ pdfPath: string }` (relative path from facturas_pdf table).
+>   * State: `{ loading: boolean, thumbnailDataUrl: string | null, error: Error | null }`.
+>   * On mount (when component enters viewport, see IntersectionObserver below):
+>     - Call `window.electronAPI.getPDFBytes(pdfPath)` to get ArrayBuffer.
+>     - Load PDF: `await pdfjsLib.getDocument({ data: arrayBuffer }).promise`.
+>     - Get first page: `await pdf.getPage(1)`.
+>     - Create canvas element (160×210 px - A4 aspect ratio).
+>     - Calculate viewport: `page.getViewport({ scale: 160 / page.getViewport({scale: 1}).width })`.
+>     - Render page to canvas: `await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise`.
+>     - Convert to data URL: `canvas.toDataURL('image/png')`.
+>     - Set state: `thumbnailDataUrl`.
+>     - Wrap entire process in try-catch: on error, set `error` state.
+>     - Add timeout: use `Promise.race` with 5-second timeout. If timeout, treat as error.
+>   * Canvas rendering limits: max canvas size 4096×4096 px (check before rendering, show error if PDF page exceeds this).
+>   * Rendering: display `thumbnailDataUrl` in `<img>` if loaded; `<div data-testid="thumbnail-loading" className="animate-pulse bg-neutral-200 h-[210px] w-[160px]" />` while loading; placeholder icon (📄) if error.
+> - Lazy loading with IntersectionObserver:
+>   * Create `src/renderer/hooks/useIntersectionObserver.js` custom hook.
+>   * Observer config: `{ rootMargin: '200px', threshold: 0.01 }` (pre-load 200px before entering viewport).
+>   * PDFThumbnail component only triggers `getPDFBytes` when `isIntersecting === true`.
+> - Thumbnail caching:
+>   * Create `src/renderer/context/ThumbnailCacheContext.jsx`.
+>   * Cache structure: `Map<string, string>` (pdfPath → data URL).
+>   * Before generating thumbnail, check cache. If present, use cached data URL immediately.
+>   * After generating, store in cache.
+> - Concurrency control:
+>   * Thumbnail cache context also manages render queue.
+>   * Max concurrent renders: 3.
+>   * If > 3 thumbnails are loading, queue additional requests.
+>   * Use `Promise.all` with concurrency limit (can use p-limit library or implement manually).
+> - Write integration test:
+>   * Use `tests/fixtures/test-invoice.pdf` from P1-03a.
+>   * Upload to test database via `facturas:uploadPDF`.
+>   * Render PDFThumbnail component with test PDF path.
+>   * Wait for loading to complete (use `waitFor` from testing-library).
+>   * Verify `<img>` element has non-empty src (data URL).
+>   * Render same PDFThumbnail again, verify cache used (no second `getPDFBytes` call).
+> - Write unit test for ThumbnailCacheContext: verify get/set operations, verify concurrency queue works.
 
 ---
 
@@ -297,10 +333,34 @@ This file contains an ordered sequence of AI agent prompts for incrementally bui
 > Implement the E-mail page as specified in `docs/REQUIREMENTS.md §3.7`.
 >
 > Requirements:
-> - Use an Electron `<webview>` tag with `src="https://mail.google.com"` and `partition="persist:gmail"` so the session is persisted.
-> - Listen to `will-navigate` and `new-window` events on the webview; redirect external URLs to `shell.openExternal()`.
-> - The webview fills the entire content area (no surrounding chrome beyond the sidebar).
-> - Test that the webview component renders without crashing (mock the webview in the component test environment).
+> - Update CSP in `src/renderer/index.html` to allow webview for Gmail: add `webview-src https://mail.google.com https://*.google.com;` to the existing Content-Security-Policy meta tag.
+> - Create `src/renderer/pages/Email/index.jsx` with Electron `<webview>` tag.
+> - Webview attributes:
+>   * `src="https://mail.google.com"`
+>   * `partition="persist:gmail"` (persists session across app restarts)
+>   * `allowpopups="false"` (prevent popup windows)
+>   * `disablewebsecurity="false"` (keep web security enabled)
+>   * `nodeintegration="false"` (never allow Node.js in webview)
+>   * `style={{ width: '100%', height: '100%' }}` (fills content area)
+> - Navigation security:
+>   * Listen to `will-navigate` event on webview ref.
+>   * Allow-list: only URLs matching `https://mail.google.com/*` or `https://*.google.com/*` patterns.
+>   * For allowed navigations within Gmail/Google domains: allow (return without preventing).
+>   * For external URLs: prevent default navigation (`e.preventDefault()`), show confirmation dialog "Abrir enlace externo en navegador?" with Cancel/Abrir buttons.
+>   * If user clicks Abrir, call `shell.openExternal(url)` ONLY if URL protocol is `http://` or `https://` (block `file://`, `javascript:`, etc.).
+> - New window handling:
+>   * Listen to `new-window` event on webview ref.
+>   * Prevent default (`e.preventDefault()`).
+>   * Apply same URL validation as will-navigate.
+>   * Open external URLs via `shell.openExternal` after user confirmation.
+> - Webview fills entire content area (no chrome beyond sidebar, as per UI_DESIGN.md).
+> - Component test:
+>   * Render Email page component.
+>   * Verify `<webview>` element is present in DOM (check `document.querySelector('webview')`).
+>   * Verify `src` attribute is `https://mail.google.com`.
+>   * Verify security attributes are set correctly.
+>   * Note: Webview functionality cannot be fully tested in JSDOM environment (that's OK).
+> - E2E test (add to P5-03): verify Gmail login page loads in webview (check webview.getURL() starts with 'https://mail.google.com').
 
 ---
 
@@ -308,32 +368,172 @@ This file contains an ordered sequence of AI agent prompts for incrementally bui
 
 ### P5-01 — Keyboard shortcuts & accessibility `[ ]`
 
-> Add basic keyboard support:
-> - `Ctrl+F` focuses the search bar on list pages.
-> - `Escape` closes open modals/dialogs.
-> - `Enter` submits forms.
-> - All interactive elements are focusable via Tab and have visible focus rings.
-> - All icon buttons have `aria-label` attributes in Spanish.
+> Add keyboard support and accessibility attributes.
+>
+> Requirements:
+> - Keyboard shortcuts:
+>   * Create `src/renderer/hooks/useKeyboardShortcuts.js` hook.
+>   * On `Ctrl+F` (Windows): call `document.querySelector('[data-search-input]')?.focus()`. Check `event.target.tagName !== 'INPUT'` and `!== 'TEXTAREA'` to avoid triggering when user is typing.
+>   * On `Escape`: call `closeModal()` from modal context (if modal is open). Otherwise, blur active element.
+>   * On `Enter` in forms: form elements should use `onSubmit` handler (default browser behavior). No special hook needed.
+>   * Register shortcuts using `useEffect` with `document.addEventListener('keydown')`. Clean up on unmount.
+> - Focus management:
+>   * All `<button>` elements must have Tailwind focus styles: `focus:outline-2 focus:outline-primary focus:outline-offset-2`.
+>   * All `<input>`, `<textarea>`, `<select>` elements must have: `focus:ring-2 focus:ring-primary`.
+>   * Modal dialogs must trap focus: install `npm install focus-trap-react`, wrap modal content in `<FocusTrap>`.
+>   * On modal open: focus first interactive element (button or input).
+>   * On modal close: return focus to trigger element (store ref to triggering button).
+> - ARIA labels (all in Spanish):
+>   * Icon buttons without visible text must have `aria-label`:
+>     - Edit button: `aria-label="Editar entrada"`
+>     - Delete button: `aria-label="Eliminar entrada"`
+>     - Search button: `aria-label="Buscar"`
+>     - Filter button: `aria-label="Filtrar resultados"`
+>     - Context menu button: `aria-label="Abrir menú de acciones"`
+>     - Close modal button: `aria-label="Cerrar"`
+> - ARIA roles:
+>   * Use semantic HTML where possible (`<button>`, `<nav>`, `<main>`, `<header>`, `<form>`).
+>   * Modals: `<div role="dialog" aria-modal="true" aria-labelledby="modal-title">`.
+>   * Confirmation dialogs: `<div role="alertdialog" aria-modal="true" aria-labelledby="dialog-title" aria-describedby="dialog-desc">`.
+>   * Sidebar navigation: `<nav role="navigation" aria-label="Navegación principal">`.
+>   * Search inputs: `<input type="search" role="searchbox" aria-label="Buscar entradas">`.
+> - Accessibility audit:
+>   * Install: `npm install --save-dev axe-core @axe-core/react`.
+>   * Add axe-core in development mode only (`src/renderer/main.jsx`):
+>     ```javascript
+>     if (import.meta.env.DEV) {
+>       import('@axe-core/react').then((axe) => {
+>         axe.default(React, ReactDOM, 1000);
+>       });
+>     }
+>     ```
+>   * Run app in dev mode (`npm run dev`), check browser console for axe-core warnings.
+>   * Fix all accessibility errors before completing this prompt.
+> - Component test:
+>   * Use `@testing-library/user-event` to test keyboard interactions.
+>   * Test: press Tab key, verify focus moves through form fields in correct order.
+>   * Test: open modal, press Escape, verify modal closes.
+>   * Test: press Ctrl+F on Home page, verify search input receives focus.
+> - Success criteria:
+>   * Run `npm run dev`, open browser console, verify no axe-core errors logged.
+>   * All component tests pass.
+>   * Manual test: navigate entire app using only keyboard (Tab, Enter, Escape, Ctrl+F, Arrow keys for dropdowns).
 
 ### P5-02 — Windows installer build `[ ]`
 
 > Configure `electron-builder` to produce a Windows NSIS installer as described in `docs/DEVELOPMENT_GUIDE.md §7`.
 >
 > Requirements:
-> - `npm run dist` produces `dist/App-Entretelas Setup x.y.z.exe`.
-> - The installer sets the app name to "App-Entretelas" and installs to `%LOCALAPPDATA%\Programs\App-Entretelas` by default.
-> - Include an app icon (`src/renderer/assets/icon.ico`).
-> - Verify the installer runs on a clean Windows 10 VM and the app starts correctly.
-> - Update `docs/DEVELOPMENT_GUIDE.md §7` with any configuration changes.
+> - Install: `npm install --save-dev electron-builder`.
+> - Add to `package.json` scripts: `"dist": "npm run build && electron-builder"`.
+> - Configure electron-builder in `package.json` (add `"build"` section):
+>   ```json
+>   {
+>     "build": {
+>       "appId": "com.entretelas.app",
+>       "productName": "App-Entretelas",
+>       "directories": {
+>         "output": "dist",
+>         "buildResources": "build"
+>       },
+>       "files": [
+>         "dist-renderer/**/*",
+>         "src/main/**/*",
+>         "src/preload/**/*",
+>         "package.json"
+>       ],
+>       "win": {
+>         "target": "nsis",
+>         "icon": "src/renderer/assets/icon.ico"
+>       },
+>       "nsis": {
+>         "oneClick": false,
+>         "allowToChangeInstallationDirectory": true,
+>         "createDesktopShortcut": true,
+>         "createStartMenuShortcut": true
+>       }
+>     }
+>   }
+>   ```
+> - Create `src/renderer/assets/icon.ico` (256×256 px Windows icon file). If not available, use placeholder.
+> - Run `npm run dist` successfully with exit code 0.
+> - Verify output file exists: `dist/App-Entretelas Setup x.y.z.exe` (where x.y.z is version from package.json) and file size is > 50 MB (reasonable for Electron app).
+> - Verify electron-builder log shows no errors (check console output or `dist/builder-effective-config.yaml`).
+> - Update `docs/DEVELOPMENT_GUIDE.md §7` with:
+>   * Confirmed electron-builder configuration.
+>   * Build command: `npm run dist`.
+>   * Output location: `dist/App-Entretelas Setup x.y.z.exe`.
+>   * Manual testing steps: "To verify installer on target machine: (1) Copy .exe to Windows 10+ machine, (2) Run installer, (3) Choose installation directory, (4) Complete installation, (5) Launch app from Start Menu, (6) Verify app opens, database initializes, and sidebar renders correctly."
 
-### P5-03 — End-to-end smoke test `[ ]`
+### P5-03 — End-to-end tests `[ ]`
 
-> Write a minimal end-to-end test using Playwright for Electron that:
-> - Launches the app.
-> - Creates one Nota, one Llamar entry, and one Encargar entry.
-> - Marks each as URGENTE! and verifies they appear on the URGENTE! page.
-> - Removes the urgent flag and verifies the URGENTE! page is empty.
-> - Uploads a PDF invoice to a Proveedor folder and verifies it appears in the list.
+> Write modular end-to-end tests using Playwright for Electron.
+>
+> **Dependencies:** All prompts P1-01 through P5-02 must be completed first. This is an integration test of the entire application.
+>
+> Requirements:
+> - Install: `npm install --save-dev @playwright/test playwright`.
+> - Create `tests/e2e/` directory for E2E test files.
+> - Create `tests/e2e/helpers.js` with shared utilities: `launchApp()` (starts Electron), `cleanDatabase()` (resets test DB), `closeApp(electronApp)`.
+> - Each test file should:
+>   * Import `test, expect` from `@playwright/test`.
+>   * Use `test.beforeEach(async () => { app = await launchApp(); await cleanDatabase(); })`.
+>   * Use `test.afterEach(async () => { await closeApp(app); })`.
+> - Create separate test files (each independently runnable):
+>
+> **tests/e2e/notas.spec.js:**
+>   - Launch app, navigate to /notas.
+>   - Click "+ Nueva entrada", fill form (nombre: "Test Nota", descripcion: "Description"), submit.
+>   - Verify nota appears in list.
+>   - Click nota row, edit nombre to "Updated Nota", save.
+>   - Verify updated name in list.
+>   - Mark as urgent via context menu.
+>   - Verify red badge appears.
+>   - Delete nota with confirmation.
+>   - Verify removed from list.
+>
+> **tests/e2e/llamar.spec.js:**
+>   - Navigate to /llamar.
+>   - Create llamar entry (asunto: "Test Call", contacto: "555-1234").
+>   - Verify appears in list.
+>   - Mark as urgent.
+>   - Delete entry.
+>
+> **tests/e2e/encargar.spec.js:**
+>   - Navigate to /encargar.
+>   - Create encargar entry (articulo: "Test Product").
+>   - Verify appears in list.
+>   - Mark as urgent.
+>   - Delete entry.
+>
+> **tests/e2e/urgente.spec.js:**
+>   - Create one nota, one llamar, one encargar (all marked urgent).
+>   - Navigate to /urgente.
+>   - Verify all 3 entries appear, grouped by module.
+>   - Click "Quitar urgencia" on nota.
+>   - Verify nota disappears from URGENTE page.
+>   - Navigate back to /notas, verify nota still exists but not urgent.
+>   - Delete all entries.
+>   - Navigate to /urgente, verify empty state message.
+>
+> **tests/e2e/facturas.spec.js:**
+>   - Navigate to /facturas/compra.
+>   - Create proveedor (razón_social: "Test Supplier").
+>   - Click proveedor folder.
+>   - Upload PDF (use `tests/fixtures/test-invoice.pdf`).
+>   - Verify PDF thumbnail appears in grid.
+>   - Right-click thumbnail, delete PDF.
+>   - Verify removed from list.
+>
+> **tests/e2e/gmail.spec.js:**
+>   - Navigate to /email.
+>   - Verify webview element exists.
+>   - Get webview.getURL(), verify starts with 'https://mail.google.com' (Gmail login page).
+>   - (Do not attempt to log in - just verify webview loads).
+>
+> - Add to `package.json` scripts: `"test:e2e": "playwright test tests/e2e/"`.
+> - Success criteria: `npm run test:e2e` passes all tests in < 2 minutes total runtime.
+> - Document E2E testing in `docs/DEVELOPMENT_GUIDE.md §8`: commands to run tests, how to debug with Playwright inspector, how to run individual test files.
 
 ---
 
