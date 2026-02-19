@@ -49,7 +49,7 @@ This file contains an ordered sequence of AI agent prompts for incrementally bui
 > - Success criteria: app window opens with `document.title === 'App-Entretelas'` and browser console shows no errors.
 > - Update `docs/DEVELOPMENT_GUIDE.md` with the verified bootstrap commands.
 
-### P1-01a — Verify dependency versions and security configuration `[ ]`
+### P1-01a — Verify dependency versions and security configuration `[x]`
 
 > Validate that all dependencies are compatible and securely configured.
 >
