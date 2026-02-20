@@ -35,13 +35,13 @@ function EntryCard({ urgente, onClick, children, onActionClick }) {
       }`}
     >
       {/* Urgente indicator */}
-      {urgente && (
+      {urgente ? (
         <div className="absolute top-2 right-2">
           <span className="text-danger font-bold text-xl" title="Urgente">
             ⚠
           </span>
         </div>
-      )}
+      ) : null}
 
       {/* Content */}
       <div className="pr-8">{children}</div>
