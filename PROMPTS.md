@@ -147,29 +147,42 @@ This file contains an ordered sequence of AI agent prompts for incrementally bui
 > - Register IPC handlers in `src/main/ipc/notas.js`: `notas:getAll`, `notas:create`, `notas:update`, `notas:delete`. All handlers return structured responses: `{ success: true, data: ... }` on success, `{ success: false, error: { code: 'ERROR_CODE', message: '...' } }` on failure. Use parameterised SQL queries. Validate inputs: `nombre` max 255 chars, `descripcion` max 5000 chars, `contacto` max 255 chars. Return error code `INVALID_INPUT` if validation fails.
 > - Expose in `src/preload/index.js` via `contextBridge.exposeInMainWorld('electronAPI', { notas: { getAll, create, update, delete } })`.
 > - Create Zustand store `src/renderer/store/notas.js` with actions: `fetchAll`, `create`, `update`, `delete`, `toggleUrgente`. Actions check `response.success` before updating state. On error, call `useToast().showToast(errorMessages[error.code], 'error')` from P1-02a. On success operations (create/update/delete), show toast: "Guardado correctamente" or "Eliminado correctamente".
-> - Implement list view at `/notas` per `docs/UI_DESIGN.md §6`: sortable table, search bar (filters by nombre, descripcion, contacto), row context menu (Editar / Marcar Urgente / Eliminar), empty state. Show pagination: 100 entries per page with "Anterior"/"Siguiente" buttons.
+> - Implement list view at `/notas`: responsive card grid (using shared entry components from P2-01a), search bar (filters by nombre, descripcion, contacto), card action menu (Editar / Marcar Urgente / Eliminar), empty state, loading state.
 > - Implement create/edit form at `/notas/nueva` and `/notas/:id` per `docs/UI_DESIGN.md §7`. Use `maxLength` attributes: nombre=255, descripcion=5000, contacto=255. Show character count when > 80% of limit. Trim whitespace on submit. Implement auto-save: use `useEffect` with 500ms debounce to save form state to localStorage key `autosave-notas-${id || 'new'}`. Restore autosave on mount. Clear autosave on submit/cancel.
 > - Implement confirmation dialog for deletion per `docs/UI_DESIGN.md §10`.
-> - Urgent entries have className including 'bg-danger' or 'text-danger' for testing purposes.
+> - Urgent entries have className including 'border-danger' or 'text-danger' for testing purposes.
 > - Write integration tests for IPC handlers (use `createTestDb()` from P1-03a): test create inserts row, getAll returns rows, update modifies row, delete removes row. Test validation: oversized inputs return INVALID_INPUT error.
 > - Write component tests: render list with mock data (use `mockIPCResponse` from P1-03a), verify search filters list, verify empty state renders when no data. Render form, fill fields, submit, verify IPC called.
-> - Write E2E test: launch app, navigate to /notas, create nota, verify appears in list, edit nota, verify changes saved, mark urgent, verify badge appears, delete nota with confirmation, verify removed from list.
+> - Write E2E test: launch app, navigate to /notas, create nota, verify appears in grid, edit nota, verify changes saved, mark urgent, verify badge appears, delete nota with confirmation, verify removed from grid.
 
-### P2-01a — Shared CRUD components and hooks `[ ]`
+### P2-01a — Shared CRUD components and hooks `[x]`
 
 > Refactor common patterns from P2-01 into reusable abstractions to prevent code duplication in P2-02 and P2-03.
 >
 > **Dependencies:** P2-01 must be completed first.
 >
+> **UI Standard for Entry Modules:**
+>
+> Entry-based modules (Notas, Llamar, Encargar) must use a **responsive card grid** UI pattern, not table layouts:
+>
+> - **Grid Layout**: Use `EntriesGrid` component (`src/renderer/components/entries/EntriesGrid.jsx`) for responsive grid layout (1/2/3 columns at mobile/md/lg breakpoints).
+> - **Card Component**: Use `EntryCard` component (`src/renderer/components/entries/EntryCard.jsx`) for individual entry cards with urgente indicator (red border + ⚠ icon) and action menu (⋮).
+> - **Empty State**: Use `EmptyState` component (`src/renderer/components/entries/EmptyState.jsx`) for search-aware empty state messaging.
+> - **Loading State**: Use `LoadingState` component (`src/renderer/components/entries/LoadingState.jsx`) for skeleton loading with grid layout.
+>
+> See `src/renderer/components/entries/README.md` for complete API documentation and usage examples.
+> See `src/renderer/pages/Llamar/index.jsx` and `src/renderer/pages/Notas/index.jsx` for reference implementations.
+>
+> **DataTable component** (`src/renderer/components/DataTable.jsx`) is preserved for aggregate/unified views (Home page, URGENTE page) where data from multiple modules is displayed together. Do NOT use DataTable for per-module entry lists.
+>
 > Requirements:
 >
-> - Create `src/renderer/components/DataTable.jsx`: generic sortable table component. Props: `columns` (array of `{ key, label, sortable }`), `data` (array of objects), `onRowClick`, `renderActions` (function returning context menu items for each row). Built-in features: sort by column (ascending/descending), pagination (100 per page). Reusable for Notas, Llamar, Encargar.
 > - Create `src/renderer/components/EntryForm.jsx`: generic form component. Props: `fields` (array of `{ name, label, type, required, maxLength }`), `initialValues`, `onSubmit`, `onCancel`, `showUrgenteToggle`. Built-in: validation, auto-save to localStorage, character counters, trimming.
 > - Create `src/renderer/hooks/useCRUD.js`: custom hook abstracting Zustand store operations. Accepts `moduleName` ('notas'|'llamar'|'encargar'), returns `{ entries, loading, error, fetchAll, create, update, delete, toggleUrgente }`. Internally calls `window.electronAPI[moduleName].*` and handles toasts.
-> - Refactor Notas module (from P2-01) to use DataTable, EntryForm, and useCRUD hook.
+> - Refactor Notas module (from P2-01) to use EntriesGrid, EntryCard, EmptyState, LoadingState, EntryForm, and useCRUD hook.
 > - Write unit tests for useCRUD hook (mock window.electronAPI calls).
 
-### P2-02 — Llamar module (CRUD + URGENTE! toggle) `[ ]`
+### P2-02 — Llamar module (CRUD + URGENTE! toggle) `[x]`
 
 > Implement the Llamar module as specified in `docs/REQUIREMENTS.md §3.4`.
 >
@@ -180,7 +193,7 @@ This file contains an ordered sequence of AI agent prompts for incrementally bui
 > - Register IPC handlers in `src/main/ipc/llamar.js` following the same pattern as P2-01: structured responses, input validation (asunto required & max 255 chars, contacto required & max 255 chars, nombre max 255, descripcion max 5000).
 > - Expose in preload: `contextBridge.exposeInMainWorld('electronAPI', { ..., llamar: { getAll, create, update, delete } })`.
 > - Use `useCRUD('llamar')` hook from P2-01a for state management.
-> - Use `DataTable` component from P2-01a for list view at `/llamar`. Configure columns: Asunto, Contacto, Nombre, Fecha.
+> - Use shared entry components from P2-01a for list view at `/llamar`: `EntriesGrid`, `EntryCard`, `EmptyState`, `LoadingState`. Display card content: asunto (title), contacto, nombre (if present), fecha_creacion.
 > - Use `EntryForm` component from P2-01a for `/llamar/nueva` and `/llamar/:id`. Pass fields config: asunto (required), contacto (required), nombre, descripcion.
 > - Write integration tests for IPC handlers and E2E test following P2-01 pattern.
 
@@ -195,7 +208,7 @@ This file contains an ordered sequence of AI agent prompts for incrementally bui
 > - Register IPC handlers in `src/main/ipc/encargar.js` following the same pattern: structured responses, input validation (articulo required & max 255 chars, all optional fields max 255 chars, descripcion max 5000).
 > - Expose in preload: `contextBridge.exposeInMainWorld('electronAPI', { ..., encargar: { getAll, create, update, delete } })`.
 > - Use `useCRUD('encargar')` hook from P2-01a.
-> - Use `DataTable` for list view at `/encargar`. Columns: Artículo, Proveedor, Ref. Interna, Fecha.
+> - Use shared entry components for list view at `/encargar`: `EntriesGrid`, `EntryCard`, `EmptyState`, `LoadingState`. Display card content: articulo (title), proveedor (if present), ref_interna (if present), fecha_creacion.
 > - Use `EntryForm` for `/encargar/nueva` and `/encargar/:id`. Fields: articulo (required), ref_interna, descripcion, proveedor, ref_proveedor.
 > - Write integration tests and E2E test following P2-01 pattern.
 >
