@@ -2,12 +2,15 @@ import React, { useEffect } from 'react';
 
 function Toast({ id, message, type = 'info', onDismiss }) {
   useEffect(() => {
+    // Success messages auto-dismiss faster (2s) to not block rapid entry creation
+    // Error and info messages stay longer (5s) as they need attention
+    const duration = type === 'success' ? 2000 : 5000;
     const timer = setTimeout(() => {
       onDismiss(id);
-    }, 5000);
+    }, duration);
 
     return () => clearTimeout(timer);
-  }, [id, onDismiss]);
+  }, [id, onDismiss, type]);
 
   const typeStyles = {
     success: 'bg-success-100 text-success-700 border-success-200',

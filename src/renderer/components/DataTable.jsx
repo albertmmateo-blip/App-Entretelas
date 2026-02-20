@@ -31,6 +31,14 @@ function DataTable({ columns, data, onRowClick, renderActions, initialSort, rowC
 
     const { key, direction } = sortConfig;
     return [...data].sort((a, b) => {
+      // Primary sort: urgent entries always first
+      const aUrgente = a.urgente ? 1 : 0;
+      const bUrgente = b.urgente ? 1 : 0;
+      if (bUrgente !== aUrgente) {
+        return bUrgente - aUrgente; // Descending: urgent (1) before non-urgent (0)
+      }
+
+      // Secondary sort: by selected column
       const column = columns.find((col) => col.key === key);
       const getValue = column?.sortValue || ((row) => row[key]);
       let aVal = getValue(a);

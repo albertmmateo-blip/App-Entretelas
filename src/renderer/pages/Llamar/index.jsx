@@ -46,9 +46,9 @@ function LlamarList() {
         sortable: true,
         render: (value) =>
           value ? (
-            <span className="text-danger font-bold text-lg">●</span>
+            <span className="text-danger font-bold text-xl" title="Urgente">⚠</span>
           ) : (
-            <span className="text-neutral-300">○</span>
+            <span className="text-neutral-300"></span>
           ),
         sortValue: (row) => (row.urgente ? 1 : 0),
       },
