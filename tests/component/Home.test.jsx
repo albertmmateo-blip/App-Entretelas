@@ -196,4 +196,45 @@ describe('Home page', () => {
     expect(screen.getByText('Nota urgente')).toBeInTheDocument();
     expect(screen.queryByText('Nota normal')).not.toBeInTheDocument();
   });
+
+  it('handles entries with duplicate IDs across different modules without key warnings', async () => {
+    // This tests the scenario where different modules have entries with the same ID
+    // which was causing React key warnings
+    mockIPCResponse(
+      'notas:getAll',
+      successResponse([
+        makeNota({ id: 1, nombre: 'Nota ID 1' }),
+        makeNota({ id: 2, nombre: 'Nota ID 2' }),
+      ])
+    );
+    mockIPCResponse(
+      'llamar:getAll',
+      successResponse([
+        makeLlamar({ id: 1, asunto: 'Llamar ID 1' }),
+        makeLlamar({ id: 2, asunto: 'Llamar ID 2' }),
+      ])
+    );
+    mockIPCResponse(
+      'encargar:getAll',
+      successResponse([
+        makeEncargar({ id: 1, articulo: 'Encargar ID 1' }),
+        makeEncargar({ id: 2, articulo: 'Encargar ID 2' }),
+      ])
+    );
+
+    renderHome();
+    await waitFor(() => {
+      expect(screen.getByText('Nota ID 1')).toBeInTheDocument();
+      expect(screen.getByText('Llamar ID 1')).toBeInTheDocument();
+      expect(screen.getByText('Encargar ID 1')).toBeInTheDocument();
+    });
+
+    // All 6 entries should be visible
+    expect(screen.getByText('Nota ID 1')).toBeInTheDocument();
+    expect(screen.getByText('Nota ID 2')).toBeInTheDocument();
+    expect(screen.getByText('Llamar ID 1')).toBeInTheDocument();
+    expect(screen.getByText('Llamar ID 2')).toBeInTheDocument();
+    expect(screen.getByText('Encargar ID 1')).toBeInTheDocument();
+    expect(screen.getByText('Encargar ID 2')).toBeInTheDocument();
+  });
 });

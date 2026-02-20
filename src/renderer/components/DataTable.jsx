@@ -114,7 +114,10 @@ function DataTable({ columns, data, onRowClick, renderActions, initialSort, rowC
         </thead>
         <tbody>
           {paginatedData.map((row, index) => {
-            const rowKey = row.id ?? row.key ?? `${index}`;
+            // Create a unique key that handles cases where multiple data sources
+            // (e.g., different modules) might have overlapping IDs
+            const rowKey =
+              row.type && row.id ? `${row.type}-${row.id}` : (row.id ?? row.key ?? `row-${index}`);
             return (
               <tr
                 key={rowKey}
