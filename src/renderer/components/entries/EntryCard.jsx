@@ -1,0 +1,67 @@
+import React from 'react';
+
+/**
+ * EntryCard - Standardized card component for entry lists
+ *
+ * A reusable card shell that supports:
+ * - Urgente indicator (red border + warning icon)
+ * - Configurable content via children or render props
+ * - Action menu button
+ * - Click handler for navigation
+ *
+ * @param {Object} props
+ * @param {boolean} props.urgente - Whether entry is marked as urgent
+ * @param {Function} props.onClick - Handler when card is clicked
+ * @param {React.ReactNode} props.children - Card content
+ * @param {Function} props.onActionClick - Handler for action menu button click
+ *
+ * @example
+ * <EntryCard
+ *   urgente={true}
+ *   onClick={() => navigate('/llamar/123')}
+ *   onActionClick={(e) => handleMenu(e)}
+ * >
+ *   <h3 className="text-lg font-semibold">Title</h3>
+ *   <p>Content...</p>
+ * </EntryCard>
+ */
+function EntryCard({ urgente, onClick, children, onActionClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`bg-white rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer p-4 relative text-left ${
+        urgente ? 'border-2 border-danger' : 'border border-neutral-200'
+      }`}
+    >
+      {/* Urgente indicator */}
+      {urgente && (
+        <div className="absolute top-2 right-2">
+          <span className="text-danger font-bold text-xl" title="Urgente">
+            ⚠
+          </span>
+        </div>
+      )}
+
+      {/* Content */}
+      <div className="pr-8">{children}</div>
+
+      {/* Actions button */}
+      {onActionClick && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onActionClick(e);
+          }}
+          className="absolute bottom-2 right-2 text-neutral-500 hover:text-neutral-700 px-2 py-1"
+          aria-label="Abrir menú de acciones"
+        >
+          ⋮
+        </button>
+      )}
+    </button>
+  );
+}
+
+export default EntryCard;

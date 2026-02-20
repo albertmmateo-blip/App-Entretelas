@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import { EntriesGrid, EntryCard, EmptyState, LoadingState } from '../../components/entries';
 import useCRUD from '../../hooks/useCRUD';
 import LlamarForm from './LlamarForm';
 
@@ -61,19 +62,7 @@ function LlamarList() {
   };
 
   if (loading && entries.length === 0) {
-    return (
-      <div className="p-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-neutral-200 rounded w-1/4 mb-4" />
-          <div className="h-10 bg-neutral-200 rounded mb-4" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="h-40 bg-neutral-200 rounded" />
-            <div className="h-40 bg-neutral-200 rounded" />
-            <div className="h-40 bg-neutral-200 rounded" />
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   return (
@@ -104,79 +93,42 @@ function LlamarList() {
 
       {/* Empty state */}
       {sortedLlamar.length === 0 && !loading && (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <span className="text-6xl mb-4">📞</span>
-          <h2 className="text-xl font-semibold text-neutral-700 mb-2">
-            {searchQuery ? 'No se encontraron resultados' : 'Sin entradas'}
-          </h2>
-          <p className="text-neutral-500 mb-4">
-            {searchQuery
-              ? 'Prueba con otros términos de búsqueda'
-              : 'No hay ninguna entrada todavía. Haz clic en "+ Nueva entrada" para añadir la primera.'}
-          </p>
-        </div>
+        <EmptyState icon="📞" title="entradas" hasSearchQuery={!!searchQuery} />
       )}
 
       {/* Grid */}
       {sortedLlamar.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <EntriesGrid>
           {sortedLlamar.map((llamar) => (
-            <button
-              type="button"
+            <EntryCard
               key={llamar.id}
+              urgente={llamar.urgente}
               onClick={() => navigate(`/llamar/${llamar.id}`)}
-              className={`bg-white rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer p-4 relative text-left ${
-                llamar.urgente ? 'border-2 border-danger' : 'border border-neutral-200'
-              }`}
+              onActionClick={(e) => setMenuState({ llamar, x: e.clientX, y: e.clientY })}
             >
-              {/* Urgente indicator */}
-              {llamar.urgente && (
-                <div className="absolute top-2 right-2">
-                  <span className="text-danger font-bold text-xl" title="Urgente">
-                    ⚠
-                  </span>
+              <h3
+                className={`text-lg font-semibold mb-2 ${
+                  llamar.urgente ? 'text-danger' : 'text-neutral-900'
+                }`}
+              >
+                {llamar.asunto}
+              </h3>
+              <div className="space-y-1 text-sm text-neutral-700">
+                <div>
+                  <span className="font-medium">Contacto:</span> {llamar.contacto}
                 </div>
-              )}
-
-              {/* Content */}
-              <div className="pr-8">
-                <h3
-                  className={`text-lg font-semibold mb-2 ${
-                    llamar.urgente ? 'text-danger' : 'text-neutral-900'
-                  }`}
-                >
-                  {llamar.asunto}
-                </h3>
-                <div className="space-y-1 text-sm text-neutral-700">
+                {llamar.nombre && (
                   <div>
-                    <span className="font-medium">Contacto:</span> {llamar.contacto}
+                    <span className="font-medium">Nombre:</span> {llamar.nombre}
                   </div>
-                  {llamar.nombre && (
-                    <div>
-                      <span className="font-medium">Nombre:</span> {llamar.nombre}
-                    </div>
-                  )}
-                  <div className="text-neutral-500">
-                    {new Date(llamar.fecha_creacion).toLocaleDateString('es-ES')}
-                  </div>
+                )}
+                <div className="text-neutral-500">
+                  {new Date(llamar.fecha_creacion).toLocaleDateString('es-ES')}
                 </div>
               </div>
-
-              {/* Actions button */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMenuState({ llamar, x: e.clientX, y: e.clientY });
-                }}
-                className="absolute bottom-2 right-2 text-neutral-500 hover:text-neutral-700 px-2 py-1"
-                aria-label="Abrir menú de acciones"
-              >
-                ⋮
-              </button>
-            </button>
+            </EntryCard>
           ))}
-        </div>
+        </EntriesGrid>
       )}
 
       {/* Actions menu */}
