@@ -284,8 +284,8 @@ To add a new module (e.g., "Proveedores"):
   - OR: Create custom form if fields are complex
 - **Routes:** Add to `src/renderer/App.jsx`:
   - `/proveedores` → List view
-  - `/proveedores/nueva` → Create form
-  - `/proveedores/:id` → Edit form
+  - `/proveedores/:id` → Create (`id === 'nueva'`) or edit form (`id` is a numeric ID)
+  - **Note:** Do not define a separate `/proveedores/nueva` route. React Router v6 renders the static route without any route params, so `useParams()` returns `{}` and the module component cannot detect the "nueva" sub-path. Instead, let `/proveedores/:id` handle both creation (`id='nueva'`) and editing (`id=<numeric>`).
 
 ### 5. Navigation
 

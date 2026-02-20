@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
+import { HashRouter, Routes, Route, NavLink } from 'react-router-dom';
 import Home from './pages/Home';
 import Urgente from './pages/Urgente';
 import Notas from './pages/Notas';
@@ -44,13 +44,10 @@ export function AppLayout() {
           <Route path="/" element={<Home />} />
           <Route path="/urgente" element={<Urgente />} />
           <Route path="/notas" element={<Notas />} />
-          <Route path="/notas/nueva" element={<Notas />} />
           <Route path="/notas/:id" element={<Notas />} />
           <Route path="/llamar" element={<Llamar />} />
-          <Route path="/llamar/nueva" element={<Llamar />} />
           <Route path="/llamar/:id" element={<Llamar />} />
           <Route path="/encargar" element={<Encargar />} />
-          <Route path="/encargar/nueva" element={<Encargar />} />
           <Route path="/encargar/:id" element={<Encargar />} />
           <Route path="/facturas" element={<Facturas />} />
           <Route path="/facturas/compra" element={<Facturas />} />
