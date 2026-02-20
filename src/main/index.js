@@ -5,6 +5,7 @@ const { getDatabase } = require('./db/connection');
 const { registerDbHandlers } = require('./ipc/db');
 const { registerNotasHandlers } = require('./ipc/notas');
 const { registerLlamarHandlers } = require('./ipc/llamar');
+const { registerEncargarHandlers } = require('./ipc/encargar');
 
 let mainWindow;
 
@@ -67,6 +68,7 @@ if (!gotTheLock) {
     registerDbHandlers();
     registerNotasHandlers();
     registerLlamarHandlers();
+    registerEncargarHandlers();
 
     createWindow();
 

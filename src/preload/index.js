@@ -22,4 +22,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     update: (id, data) => ipcRenderer.invoke('llamar:update', id, data),
     delete: (id) => ipcRenderer.invoke('llamar:delete', id),
   },
+  // Encargar module
+  encargar: {
+    getAll: () => ipcRenderer.invoke('encargar:getAll'),
+    create: (data) => ipcRenderer.invoke('encargar:create', data),
+    update: (id, data) => ipcRenderer.invoke('encargar:update', id, data),
+    delete: (id) => ipcRenderer.invoke('encargar:delete', id),
+  },
 });
