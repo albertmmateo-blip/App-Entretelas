@@ -214,7 +214,7 @@ This file contains an ordered sequence of AI agent prompts for incrementally bui
 >
 > Routes: `/encargar`, `/encargar/nueva`, `/encargar/:id`.
 
-### P2-04 — Home page: unified list + module quick-nav `[ ]`
+### P2-04 — Home page: unified list + module quick-nav `[x]`
 
 > Implement the Home page as specified in `docs/REQUIREMENTS.md §3.1` and `docs/UI_DESIGN.md §5`.
 >
