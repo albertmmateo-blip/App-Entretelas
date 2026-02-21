@@ -54,7 +54,7 @@ describe('normalizePDFBytes', () => {
       expect(Array.from(result)).toEqual(VALID_BYTES);
     });
 
-    it('should accept a plain object with type other than "Buffer" via generic handler', () => {
+    it('should accept an object with non-Buffer type via generic { data } handler', () => {
       const input = { type: 'other', data: VALID_BYTES };
       const result = normalizePDFBytes(input);
       expect(result).toBeInstanceOf(Uint8Array);

@@ -14,7 +14,7 @@
  *   - `{ type: 'Buffer', data: number[] }` – Node.js Buffer serialized form
  *   - `{ data: number[] }`               – generic serializer wrapper
  *
- * @param {ArrayBuffer|Uint8Array|number[]|{type:'Buffer',data:number[]}} input
+ * @param {ArrayBuffer|Uint8Array|number[]|{type:'Buffer',data:number[]}|{data:number[]}} input
  *   The raw value of `response.data` from `window.electronAPI.facturas.getPDFBytes`.
  * @returns {Uint8Array} A validated `Uint8Array` whose first five bytes decode to `%PDF-`.
  * @throws {Error} If the input cannot be converted or does not start with `%PDF-`.
