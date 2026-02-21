@@ -10,6 +10,7 @@ export default defineConfig({
   plugins: [react()],
   root: path.join(__dirname, 'src/renderer'),
   base: './',
+  publicDir: path.join(__dirname, 'public'),
   resolve: {
     alias: {
       'pdfjs-dist': path.join(__dirname, 'node_modules/pdfjs-dist'),
