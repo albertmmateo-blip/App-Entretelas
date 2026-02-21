@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { AppLayout } from '../../src/renderer/App';
 
 describe('App - Sidebar Navigation', () => {
-  it('renders all six navigation links in the correct order', () => {
+  it('renders all seven navigation links in the correct order', () => {
     render(
       <MemoryRouter>
         <AppLayout />
@@ -13,12 +13,13 @@ describe('App - Sidebar Navigation', () => {
 
     const links = screen.getAllByRole('link');
 
-    expect(links[0]).toHaveTextContent('URGENTE!');
-    expect(links[1]).toHaveTextContent('Notas');
-    expect(links[2]).toHaveTextContent('Llamar');
-    expect(links[3]).toHaveTextContent('Encargar');
-    expect(links[4]).toHaveTextContent('Facturas');
-    expect(links[5]).toHaveTextContent('E-mail');
+    expect(links[0]).toHaveTextContent('Home');
+    expect(links[1]).toHaveTextContent('URGENTE!');
+    expect(links[2]).toHaveTextContent('Notas');
+    expect(links[3]).toHaveTextContent('Llamar');
+    expect(links[4]).toHaveTextContent('Encargar');
+    expect(links[5]).toHaveTextContent('Facturas');
+    expect(links[6]).toHaveTextContent('E-mail');
   });
 
   it('highlights the active route with primary color', () => {
@@ -30,6 +31,28 @@ describe('App - Sidebar Navigation', () => {
 
     const notasLink = screen.getByRole('link', { name: /Notas/i });
     expect(notasLink).toHaveClass('text-primary');
+  });
+
+  it('highlights Home link when at root route', () => {
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <AppLayout />
+      </MemoryRouter>
+    );
+
+    const homeLink = screen.getByRole('link', { name: /Home/i });
+    expect(homeLink).toHaveClass('text-primary');
+  });
+
+  it('does not highlight Home link when at non-root route', () => {
+    render(
+      <MemoryRouter initialEntries={['/urgente']}>
+        <AppLayout />
+      </MemoryRouter>
+    );
+
+    const homeLink = screen.getByRole('link', { name: /Home/i });
+    expect(homeLink).not.toHaveClass('text-primary');
   });
 
   it('renders Home page at / route', () => {
