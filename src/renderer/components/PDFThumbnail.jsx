@@ -71,56 +71,70 @@ function PDFThumbnail({ pdfPath }) {
 
         // Create the actual rendering promise
         const renderPromise = (async () => {
-          // Get PDF bytes from main process
-          const response = await window.electronAPI.facturas.getPDFBytes(pdfPath);
+          let pdf = null;
+          try {
+            // Get PDF bytes from main process
+            const response = await window.electronAPI.facturas.getPDFBytes(pdfPath);
 
-          if (!response.success) {
-            throw new Error(response.error?.message || 'Failed to load PDF');
+            if (!response.success) {
+              throw new Error(response.error?.message || 'Failed to load PDF');
+            }
+
+            // Load PDF document
+            // Convert ArrayBuffer to Uint8Array for pdfjs-dist compatibility
+            const pdfData = new Uint8Array(response.data);
+
+            // Pass options explicitly to ensure proper initialization in Electron/Vite environment
+            const loadingTask = pdfjsLib.getDocument({
+              data: pdfData,
+              verbosity: 0, // Suppress warnings
+            });
+            pdf = await loadingTask.promise;
+
+            // Get first page
+            const page = await pdf.getPage(1);
+
+            // Get initial viewport to calculate dimensions
+            const viewport = page.getViewport({ scale: 1 });
+
+            // Check if the page dimensions exceed maximum canvas size
+            if (viewport.width > MAX_CANVAS_SIZE || viewport.height > MAX_CANVAS_SIZE) {
+              throw new Error(
+                `PDF page dimensions (${Math.floor(viewport.width)}x${Math.floor(viewport.height)}) exceed maximum canvas size (${MAX_CANVAS_SIZE}x${MAX_CANVAS_SIZE})`
+              );
+            }
+
+            // Calculate scale to fit thumbnail dimensions
+            const scale = THUMBNAIL_WIDTH / viewport.width;
+            const scaledViewport = page.getViewport({ scale });
+
+            // Verify scaled dimensions don't exceed canvas limits
+            if (scaledViewport.width > MAX_CANVAS_SIZE || scaledViewport.height > MAX_CANVAS_SIZE) {
+              throw new Error('Scaled PDF dimensions exceed maximum canvas size');
+            }
+
+            // Create canvas element
+            const canvas = document.createElement('canvas');
+            canvas.width = THUMBNAIL_WIDTH;
+            canvas.height = THUMBNAIL_HEIGHT;
+            const context = canvas.getContext('2d');
+
+            // Render PDF page to canvas
+            await page.render({
+              canvasContext: context,
+              viewport: scaledViewport,
+            }).promise;
+
+            // Convert canvas to data URL
+            const dataUrl = canvas.toDataURL('image/png');
+
+            return dataUrl;
+          } finally {
+            // Clean up PDF document to prevent memory leaks
+            if (pdf) {
+              pdf.destroy();
+            }
           }
-
-          // Load PDF document
-          // Convert ArrayBuffer to Uint8Array for pdfjs-dist compatibility
-          const pdfData = new Uint8Array(response.data);
-          const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
-
-          // Get first page
-          const page = await pdf.getPage(1);
-
-          // Get initial viewport to calculate dimensions
-          const viewport = page.getViewport({ scale: 1 });
-
-          // Check if the page dimensions exceed maximum canvas size
-          if (viewport.width > MAX_CANVAS_SIZE || viewport.height > MAX_CANVAS_SIZE) {
-            throw new Error(
-              `PDF page dimensions (${Math.floor(viewport.width)}x${Math.floor(viewport.height)}) exceed maximum canvas size (${MAX_CANVAS_SIZE}x${MAX_CANVAS_SIZE})`
-            );
-          }
-
-          // Calculate scale to fit thumbnail dimensions
-          const scale = THUMBNAIL_WIDTH / viewport.width;
-          const scaledViewport = page.getViewport({ scale });
-
-          // Verify scaled dimensions don't exceed canvas limits
-          if (scaledViewport.width > MAX_CANVAS_SIZE || scaledViewport.height > MAX_CANVAS_SIZE) {
-            throw new Error('Scaled PDF dimensions exceed maximum canvas size');
-          }
-
-          // Create canvas element
-          const canvas = document.createElement('canvas');
-          canvas.width = THUMBNAIL_WIDTH;
-          canvas.height = THUMBNAIL_HEIGHT;
-          const context = canvas.getContext('2d');
-
-          // Render PDF page to canvas
-          await page.render({
-            canvasContext: context,
-            viewport: scaledViewport,
-          }).promise;
-
-          // Convert canvas to data URL
-          const dataUrl = canvas.toDataURL('image/png');
-
-          return dataUrl;
         })();
 
         // Race between rendering and timeout
@@ -132,10 +146,10 @@ function PDFThumbnail({ pdfPath }) {
         }
       } catch (err) {
         // Ensure error is an Error object for consistent handling
-        const error = err instanceof Error ? err : new Error(String(err));
-        console.error('Error generating PDF thumbnail:', error);
+        const normalizedError = err instanceof Error ? err : new Error(String(err));
+        console.error('Error generating PDF thumbnail:', normalizedError);
         if (isMounted) {
-          setError(error);
+          setError(normalizedError);
           setLoading(false);
         }
       }
