@@ -131,9 +131,11 @@ function PDFThumbnail({ pdfPath }) {
           setLoading(false);
         }
       } catch (err) {
-        console.error('Error generating PDF thumbnail:', err);
+        // Ensure error is an Error object for consistent handling
+        const error = err instanceof Error ? err : new Error(String(err));
+        console.error('Error generating PDF thumbnail:', error);
         if (isMounted) {
-          setError(err);
+          setError(error);
           setLoading(false);
         }
       }
