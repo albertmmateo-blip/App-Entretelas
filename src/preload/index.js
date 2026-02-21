@@ -53,5 +53,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getAllForEntidad: (params) => ipcRenderer.invoke('facturas:getAllForEntidad', params),
     updatePDFMetadata: (id, data) => ipcRenderer.invoke('facturas:updatePDFMetadata', id, data),
     getPDFBytes: (pdfPath) => ipcRenderer.invoke('facturas:getPDFBytes', pdfPath),
+    openStoredFile: (relativePath) => ipcRenderer.invoke('facturas:openStoredFile', relativePath),
   },
 });

@@ -1,4 +1,4 @@
-const { ipcMain, app } = require('electron');
+const { ipcMain, app, shell } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { getDatabase } = require('../db/connection');
@@ -31,6 +31,7 @@ const WINDOWS_RESERVED_NAMES = [
 
 const MAX_STORED_FILENAME_LENGTH = 200;
 const MAX_COLLISION_ATTEMPTS = 9999;
+const FACTURAS_TYPES = new Set(['compra', 'venta', 'arreglos', 'contabilidad']);
 const ALLOWED_FILE_EXTENSIONS = new Set([
   '.pdf',
   '.doc',
@@ -46,6 +47,7 @@ const ALLOWED_FILE_EXTENSIONS = new Set([
   '.ods',
   '.odp',
 ]);
+const OFFICE_FILE_EXTENSIONS = new Set(['.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx']);
 
 function normalizeOptionalAmount(value, fieldName) {
   if (value === null || value === undefined || value === '') {
@@ -168,7 +170,7 @@ function sanitizeFileBaseName(name) {
 
 function buildStoredFilename(entityLabel, baseName, extension, suffixNumber = 0) {
   const suffix = suffixNumber > 0 ? ` (${suffixNumber})` : '';
-  const prefix = `${entityLabel} - `;
+  const prefix = entityLabel ? `${entityLabel} - ` : '';
   const maxBaseLength = Math.max(
     1,
     MAX_STORED_FILENAME_LENGTH - prefix.length - suffix.length - extension.length
@@ -187,11 +189,12 @@ function buildStoredFilename(entityLabel, baseName, extension, suffixNumber = 0)
 function getUniqueStorageName({
   db,
   tipo,
-  sanitizedEntidad,
+  sanitizedEntidad = null,
   entityLabel,
   sanitizedOriginalBaseName,
   extension,
   targetDir,
+  isTopLevelStorage = false,
 }) {
   const findExistingByRelativePath = db.prepare(
     'SELECT 1 FROM facturas_pdf WHERE ruta_relativa = ? LIMIT 1'
@@ -204,7 +207,9 @@ function getUniqueStorageName({
       extension,
       attempt
     );
-    const relativePath = path.join(tipo, sanitizedEntidad, targetFilename);
+    const relativePath = isTopLevelStorage
+      ? path.join(tipo, targetFilename)
+      : path.join(tipo, sanitizedEntidad, targetFilename);
     const targetPath = path.join(targetDir, targetFilename);
 
     const existsOnDisk = fs.existsSync(targetPath);
@@ -250,11 +255,12 @@ function registerFacturasHandlers(deps = {}) {
   const ipc = deps.ipcMain || ipcMain;
   const getDb = deps.getDatabase || getDatabase;
   const electronApp = deps.app || app;
+  const electronShell = deps.shell || shell;
   /**
    * Handler: facturas:uploadPDF
    * Uploads a file to the managed facturas directory.
    * @param {object} params - Upload parameters
-   * @param {string} params.tipo - 'compra' or 'venta'
+   * @param {string} params.tipo - 'compra', 'venta', 'arreglos', or 'contabilidad'
    * @param {number} params.entidadId - ID of the entidad (proveedor or cliente)
    * @param {string} params.entidadNombre - Name of the entidad
    * @param {string} params.filePath - Source file path
@@ -263,9 +269,11 @@ function registerFacturasHandlers(deps = {}) {
   ipc.handle('facturas:uploadPDF', async (event, params) => {
     try {
       const { tipo, entidadId, entidadNombre, filePath } = params;
+      const isTopLevelContabilidad = tipo === 'contabilidad';
+      const requiresEntidad = !isTopLevelContabilidad;
 
       // Validate required parameters
-      if (!tipo || !entidadId || !entidadNombre || !filePath) {
+      if (!tipo || !filePath || (requiresEntidad && (!entidadId || !entidadNombre))) {
         return {
           success: false,
           error: { code: 'INVALID_INPUT', message: 'Missing required parameters' },
@@ -273,12 +281,12 @@ function registerFacturasHandlers(deps = {}) {
       }
 
       // Validate tipo
-      if (tipo !== 'compra' && tipo !== 'venta' && tipo !== 'arreglos') {
+      if (!FACTURAS_TYPES.has(tipo)) {
         return {
           success: false,
           error: {
             code: 'INVALID_INPUT',
-            message: 'tipo must be "compra", "venta", or "arreglos"',
+            message: 'tipo must be "compra", "venta", "arreglos", or "contabilidad"',
           },
         };
       }
@@ -293,7 +301,10 @@ function registerFacturasHandlers(deps = {}) {
 
       // Check allowed file extension
       const fileExt = path.extname(filePath).toLowerCase();
-      if (!ALLOWED_FILE_EXTENSIONS.has(fileExt)) {
+      const allowedExtensions = isTopLevelContabilidad
+        ? OFFICE_FILE_EXTENSIONS
+        : ALLOWED_FILE_EXTENSIONS;
+      if (!allowedExtensions.has(fileExt)) {
         return {
           success: false,
           error: { code: 'FILE_INVALID', message: `Unsupported file extension: ${fileExt}` },
@@ -323,14 +334,16 @@ function registerFacturasHandlers(deps = {}) {
       }
 
       // Sanitize entidadNombre for directory usage and filename for stored display-style name
-      const sanitizedEntidad = sanitizeFilename(entidadNombre);
+      const sanitizedEntidad = requiresEntidad ? sanitizeFilename(entidadNombre) : null;
       const originalFilename = path.basename(filePath);
       const originalBaseName = path.basename(originalFilename, path.extname(originalFilename));
       const sanitizedOriginalBaseName = sanitizeFileBaseName(originalBaseName);
 
-      // Build target path: {userData}/facturas/${tipo}/${sanitizedEntidad}/
+      // Build target path: {userData}/facturas/${tipo}/[entidad]/
       const userDataPath = electronApp.getPath('userData');
-      const targetDir = path.join(userDataPath, 'facturas', tipo, sanitizedEntidad);
+      const targetDir = requiresEntidad
+        ? path.join(userDataPath, 'facturas', tipo, sanitizedEntidad)
+        : path.join(userDataPath, 'facturas', tipo);
 
       // Create directories if they don't exist
       fs.mkdirSync(targetDir, { recursive: true });
@@ -341,6 +354,8 @@ function registerFacturasHandlers(deps = {}) {
         entityLabel = 'Proveedor';
       } else if (tipo === 'venta') {
         entityLabel = 'Cliente';
+      } else if (tipo === 'contabilidad') {
+        entityLabel = '';
       }
       const db = getDb();
       const { targetFilename, targetPath, relativePath } = getUniqueStorageName({
@@ -351,6 +366,7 @@ function registerFacturasHandlers(deps = {}) {
         sanitizedOriginalBaseName,
         extension: fileExt,
         targetDir,
+        isTopLevelStorage: isTopLevelContabilidad,
       });
 
       // Copy file
@@ -358,6 +374,7 @@ function registerFacturasHandlers(deps = {}) {
 
       // Insert record into facturas_pdf table
       const entidadTipo = tipo === 'venta' ? 'cliente' : 'proveedor';
+      const resolvedEntidadId = isTopLevelContabilidad ? 0 : entidadId;
 
       const stmt = db.prepare(`
         INSERT INTO facturas_pdf (tipo, entidad_id, entidad_tipo, nombre_original, nombre_guardado, ruta_relativa)
@@ -366,7 +383,7 @@ function registerFacturasHandlers(deps = {}) {
 
       const result = stmt.run(
         tipo,
-        entidadId,
+        resolvedEntidadId,
         entidadTipo,
         originalFilename,
         targetFilename,
@@ -423,18 +440,9 @@ function registerFacturasHandlers(deps = {}) {
       const deleteStmt = db.prepare('DELETE FROM facturas_pdf WHERE id = ?');
       deleteStmt.run(id);
 
-      // Then delete file from disk
-      const userDataPath = electronApp.getPath('userData');
-      const filePath = path.join(userDataPath, 'facturas', record.ruta_relativa);
-
-      if (fs.existsSync(filePath)) {
-        try {
-          fs.unlinkSync(filePath);
-        } catch (fileError) {
-          // Log warning but return success (file may have been manually deleted)
-          console.warn(`Failed to delete file ${filePath}:`, fileError.message);
-        }
-      }
+      // Keep physical files on disk intentionally.
+      // Deleting from the app removes only the database association,
+      // so files stop appearing in the UI without deleting user files.
 
       return { success: true };
     } catch (error) {
@@ -453,39 +461,52 @@ function registerFacturasHandlers(deps = {}) {
    * Handler: facturas:getAllForEntidad
    * Gets all PDFs for a specific entidad.
    * @param {object} params - Query parameters
-   * @param {string} params.tipo - 'compra' or 'venta'
+   * @param {string} params.tipo - 'compra', 'venta', 'arreglos', or 'contabilidad'
    * @param {number} params.entidadId - ID of the entidad
    * @returns {Promise<{ success: boolean, data?: Array, error?: object }>}
    */
   ipc.handle('facturas:getAllForEntidad', async (event, params) => {
     try {
       const { tipo, entidadId } = params;
+      const isTopLevelContabilidad = tipo === 'contabilidad';
 
-      if (!tipo || !entidadId) {
+      if (!tipo || (!isTopLevelContabilidad && !entidadId)) {
         return {
           success: false,
           error: { code: 'INVALID_INPUT', message: 'tipo and entidadId are required' },
         };
       }
 
-      if (tipo !== 'compra' && tipo !== 'venta' && tipo !== 'arreglos') {
+      if (!FACTURAS_TYPES.has(tipo)) {
         return {
           success: false,
           error: {
             code: 'INVALID_INPUT',
-            message: 'tipo must be "compra", "venta", or "arreglos"',
+            message: 'tipo must be "compra", "venta", "arreglos", or "contabilidad"',
           },
         };
       }
 
       const db = getDb();
-      const stmt = db.prepare(`
+      const rows = isTopLevelContabilidad
+        ? db
+            .prepare(
+              `
+        SELECT * FROM facturas_pdf
+        WHERE tipo = ?
+        ORDER BY fecha_subida DESC
+      `
+            )
+            .all(tipo)
+        : db
+            .prepare(
+              `
         SELECT * FROM facturas_pdf
         WHERE tipo = ? AND entidad_id = ?
         ORDER BY fecha_subida DESC
-      `);
-
-      const rows = stmt.all(tipo, entidadId);
+      `
+            )
+            .all(tipo, entidadId);
 
       return {
         success: true,
@@ -626,6 +647,70 @@ function registerFacturasHandlers(deps = {}) {
         error: {
           code: 'INTERNAL_ERROR',
           message: error.message || 'Failed to read PDF file',
+        },
+      };
+    }
+  });
+
+  /**
+   * Handler: facturas:openStoredFile
+   * Opens a stored file from facturas directory using the OS default app.
+   * @param {string} relativePath - Relative path from facturas_pdf.ruta_relativa
+   * @returns {Promise<{ success: boolean, error?: { code: string, message: string } }>}
+   */
+  ipc.handle('facturas:openStoredFile', async (event, relativePath) => {
+    try {
+      const validation = validatePDFPath(relativePath);
+      if (!validation.valid) {
+        return { success: false, error: validation.error };
+      }
+
+      const userDataPath = electronApp.getPath('userData');
+      const facturasDir = path.join(userDataPath, 'facturas');
+      const absolutePath = path.join(facturasDir, relativePath);
+
+      const normalizedPath = path.normalize(absolutePath);
+      const normalizedFacturasDir = path.normalize(facturasDir);
+      if (!normalizedPath.startsWith(normalizedFacturasDir)) {
+        return {
+          success: false,
+          error: { code: 'INVALID_PATH', message: 'Path must be within facturas directory' },
+        };
+      }
+
+      if (!fs.existsSync(absolutePath)) {
+        return {
+          success: false,
+          error: { code: 'FILE_NOT_FOUND', message: 'Stored file not found' },
+        };
+      }
+
+      const openResult = await electronShell.openPath(absolutePath);
+      if (openResult) {
+        try {
+          electronShell.showItemInFolder(absolutePath);
+          return {
+            success: true,
+            data: {
+              revealedInFolder: true,
+            },
+          };
+        } catch (showError) {
+          return {
+            success: false,
+            error: { code: 'OPEN_FILE_FAILED', message: openResult || showError.message },
+          };
+        }
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error in facturas:openStoredFile:', error);
+      return {
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: error.message || 'Failed to open stored file',
         },
       };
     }

@@ -221,4 +221,60 @@ describe('PDFUploadSection', () => {
     });
     expect(showToastMock).toHaveBeenCalledWith('Factura actualizado correctamente', 'success');
   });
+
+  it('loads contabilidad files without entidadId and uploads office file without folder payload', async () => {
+    const { getAllForEntidad, uploadPDF } = setupMocks();
+    const user = userEvent.setup();
+
+    render(
+      <PDFUploadSection
+        tipo="contabilidad"
+        entidadNombre="Contabilidad"
+        officeOnly
+        fileLabel="Archivo"
+      />
+    );
+
+    await waitFor(() => {
+      expect(getAllForEntidad).toHaveBeenCalledWith({ tipo: 'contabilidad' });
+    });
+
+    const input = document.getElementById('pdf-upload');
+    const officeFile = createFile('resumen.docx', 1024, 'C:/temp/resumen.docx');
+
+    await user.upload(input, officeFile);
+
+    await waitFor(() => {
+      expect(uploadPDF).toHaveBeenCalledWith({
+        tipo: 'contabilidad',
+        filePath: 'C:/temp/resumen.docx',
+      });
+    });
+  });
+
+  it('rejects pdf files when officeOnly mode is enabled', async () => {
+    const { uploadPDF } = setupMocks();
+
+    render(
+      <PDFUploadSection
+        tipo="contabilidad"
+        entidadNombre="Contabilidad"
+        officeOnly
+        fileLabel="Archivo"
+      />
+    );
+
+    const input = document.getElementById('pdf-upload');
+    const pdfFile = createFile('factura.pdf', 1024, 'C:/temp/factura.pdf');
+
+    fireEvent.change(input, { target: { files: [pdfFile] } });
+
+    await waitFor(() => {
+      expect(showToastMock).toHaveBeenCalledWith(
+        '"factura.pdf" no es un tipo de archivo permitido',
+        'error'
+      );
+    });
+    expect(uploadPDF).not.toHaveBeenCalled();
+  });
 });

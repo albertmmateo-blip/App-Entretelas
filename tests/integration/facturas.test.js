@@ -151,16 +151,16 @@ describe('Facturas IPC Handlers', () => {
       expect(response.error.code).toBe('FILE_NOT_FOUND');
     });
 
-    it('should return FILE_INVALID for non-PDF file', async () => {
+    it('should return FILE_INVALID for unsupported file extension', async () => {
       const handler = mockHandlers['facturas:uploadPDF'];
-      const txtPath = path.join(mockUserDataPath, 'test.txt');
-      fs.writeFileSync(txtPath, 'Not a PDF');
+      const exePath = path.join(mockUserDataPath, 'test.exe');
+      fs.writeFileSync(exePath, 'not supported');
 
       const params = {
         tipo: 'compra',
         entidadId: testProviderId,
         entidadNombre: 'Test',
-        filePath: txtPath,
+        filePath: exePath,
       };
 
       const response = await handler(null, params);
@@ -229,6 +229,39 @@ describe('Facturas IPC Handlers', () => {
       expect(response.data.ruta_relativa).toContain('specialnametest');
       expect(response.data.ruta_relativa).not.toContain('*');
       expect(response.data.ruta_relativa).not.toContain(':');
+    });
+
+    it('should upload Office files to contabilidad without entidad folder', async () => {
+      const handler = mockHandlers['facturas:uploadPDF'];
+      const officePath = path.join(mockUserDataPath, 'resumen.xlsx');
+      fs.writeFileSync(officePath, 'excel-bytes');
+
+      const response = await handler(null, {
+        tipo: 'contabilidad',
+        filePath: officePath,
+      });
+
+      expect(response.success).toBe(true);
+      expect(response.data.ruta_relativa).toContain(path.join('contabilidad', 'resumen.xlsx'));
+      expect(response.data.ruta_relativa).not.toContain(
+        path.join('contabilidad', 'test_proveedor')
+      );
+
+      const record = db.prepare('SELECT * FROM facturas_pdf WHERE id = ?').get(response.data.id);
+      expect(record.tipo).toBe('contabilidad');
+      expect(record.entidad_id).toBe(0);
+    });
+
+    it('should reject PDF uploads in top-level contabilidad section', async () => {
+      const handler = mockHandlers['facturas:uploadPDF'];
+
+      const response = await handler(null, {
+        tipo: 'contabilidad',
+        filePath: testPDFPath,
+      });
+
+      expect(response.success).toBe(false);
+      expect(response.error.code).toBe('FILE_INVALID');
     });
   });
 
@@ -356,6 +389,24 @@ describe('Facturas IPC Handlers', () => {
 
       expect(response.success).toBe(false);
       expect(response.error.code).toBe('INVALID_INPUT');
+    });
+
+    it('should return top-level contabilidad files without entidadId', async () => {
+      const uploadHandler = mockHandlers['facturas:uploadPDF'];
+      const officePath = path.join(mockUserDataPath, 'presupuesto.docx');
+      fs.writeFileSync(officePath, 'docx-bytes');
+
+      await uploadHandler(null, {
+        tipo: 'contabilidad',
+        filePath: officePath,
+      });
+
+      const handler = mockHandlers['facturas:getAllForEntidad'];
+      const response = await handler(null, { tipo: 'contabilidad' });
+
+      expect(response.success).toBe(true);
+      expect(response.data).toHaveLength(1);
+      expect(response.data[0].tipo).toBe('contabilidad');
     });
   });
 

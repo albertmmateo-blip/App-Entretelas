@@ -20,6 +20,7 @@ const ALLOWED_EXTENSIONS = [
   '.ods',
   '.odp',
 ];
+const OFFICE_EXTENSIONS = ['.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx'];
 
 function getFileExtension(filename) {
   const lastDotIndex = filename.lastIndexOf('.');
@@ -82,10 +83,12 @@ function PDFUploadSection({
   entidadNombre,
   sectionLabel = 'Facturas',
   fileLabel = 'Factura',
+  officeOnly = false,
 }) {
   const [pdfs, setPdfs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [openingFileId, setOpeningFileId] = useState(null);
   const [savingMetadataId, setSavingMetadataId] = useState(null);
   const [editingPdfId, setEditingPdfId] = useState(null);
   const [metadataForm, setMetadataForm] = useState({
@@ -96,18 +99,18 @@ function PDFUploadSection({
   });
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const { showToast } = useToast();
+  const acceptedExtensions = officeOnly ? OFFICE_EXTENSIONS : ALLOWED_EXTENSIONS;
 
   const fetchPDFs = useCallback(async () => {
-    if (!entidadId) {
+    if (tipo !== 'contabilidad' && !entidadId) {
       return [];
     }
 
     try {
       setLoading(true);
-      const response = await window.electronAPI.facturas.getAllForEntidad({
-        tipo,
-        entidadId,
-      });
+      const response = await window.electronAPI.facturas.getAllForEntidad(
+        tipo === 'contabilidad' ? { tipo } : { tipo, entidadId }
+      );
 
       if (response.success) {
         const rows = response.data || [];
@@ -188,7 +191,7 @@ function PDFUploadSection({
     const validFiles = files.filter((file) => {
       const extension = getFileExtension(file.name);
 
-      if (!ALLOWED_EXTENSIONS.includes(extension)) {
+      if (!acceptedExtensions.includes(extension)) {
         showToast(`"${file.name}" no es un tipo de archivo permitido`, 'error');
         return false;
       }
@@ -211,12 +214,17 @@ function PDFUploadSection({
       const uploadedPdfIds = [];
       const uploadResponses = await Promise.all(
         validFiles.map(async (file) => {
-          const response = await window.electronAPI.facturas.uploadPDF({
+          const payload = {
             tipo,
-            entidadId,
-            entidadNombre,
             filePath: file.path,
-          });
+          };
+
+          if (tipo !== 'contabilidad') {
+            payload.entidadId = entidadId;
+            payload.entidadNombre = entidadNombre;
+          }
+
+          const response = await window.electronAPI.facturas.uploadPDF(payload);
 
           return { file, response };
         })
@@ -274,8 +282,42 @@ function PDFUploadSection({
     }
   };
 
+  const handleOpenFile = async (pdf) => {
+    try {
+      setOpeningFileId(pdf.id);
+
+      if (typeof window.electronAPI?.facturas?.openStoredFile !== 'function') {
+        showToast('Reinicia la aplicación para habilitar la apertura de archivos', 'info');
+        return;
+      }
+
+      const response = await window.electronAPI.facturas.openStoredFile(pdf.ruta_relativa);
+
+      if (!response.success) {
+        showToast(response.error?.message || 'No se pudo abrir el archivo', 'error');
+        return;
+      }
+
+      if (response.data?.revealedInFolder) {
+        showToast('No se pudo abrir directamente; se mostró en su carpeta', 'info');
+      }
+    } catch (error) {
+      console.error('Error opening file:', error);
+      const message = String(error?.message || '');
+
+      if (message.includes('No handler registered for')) {
+        showToast('Reinicia la aplicación para habilitar la apertura de archivos', 'info');
+        return;
+      }
+
+      showToast(message || 'No se pudo abrir el archivo', 'error');
+    } finally {
+      setOpeningFileId(null);
+    }
+  };
+
   // Only show section if entity is being edited (has an ID)
-  if (!entidadId) {
+  if (tipo !== 'contabilidad' && !entidadId) {
     return (
       <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-6">
         <p className="text-sm text-neutral-600 text-center">
@@ -301,7 +343,7 @@ function PDFUploadSection({
           <input
             id="pdf-upload"
             type="file"
-            accept={ALLOWED_EXTENSIONS.join(',')}
+            accept={acceptedExtensions.join(',')}
             multiple
             onChange={handleFileSelect}
             disabled={uploading}
@@ -327,13 +369,21 @@ function PDFUploadSection({
           {pdfs.map((pdf) => (
             <div key={pdf.id} className="relative group">
               <div className="border border-neutral-200 rounded-lg p-2 hover:border-primary transition-colors bg-neutral-50">
-                {isPdfFile(pdf.nombre_original) ? (
-                  <PDFThumbnail pdfPath={pdf.ruta_relativa} />
-                ) : (
-                  <div className="h-[180px] rounded bg-neutral-100 border border-neutral-200 flex items-center justify-center text-4xl text-neutral-500">
-                    📄
-                  </div>
-                )}
+                <button
+                  type="button"
+                  onClick={() => handleOpenFile(pdf)}
+                  disabled={openingFileId === pdf.id}
+                  className={`w-full text-left ${openingFileId === pdf.id ? 'opacity-75 cursor-wait' : ''}`}
+                  title="Clic para abrir"
+                >
+                  {isPdfFile(pdf.nombre_original) ? (
+                    <PDFThumbnail pdfPath={pdf.ruta_relativa} />
+                  ) : (
+                    <div className="h-[180px] rounded bg-neutral-100 border border-neutral-200 flex items-center justify-center text-4xl text-neutral-500">
+                      📄
+                    </div>
+                  )}
+                </button>
                 <div className="mt-2">
                   <p className="text-xs text-neutral-700 truncate" title={pdf.nombre_original}>
                     {pdf.nombre_original}
@@ -363,6 +413,9 @@ function PDFUploadSection({
                       {pdf.pagada ? 'Pagada' : 'Pendiente'}
                     </span>
                   </div>
+                  {openingFileId === pdf.id && (
+                    <p className="text-xs text-primary mt-1">Abriendo...</p>
+                  )}
 
                   {editingPdfId === pdf.id ? (
                     <div className="mt-2 space-y-2 border-t border-neutral-200 pt-2">
@@ -465,11 +518,12 @@ function PDFUploadSection({
 }
 
 PDFUploadSection.propTypes = {
-  tipo: PropTypes.oneOf(['compra', 'venta', 'arreglos']).isRequired,
+  tipo: PropTypes.oneOf(['compra', 'venta', 'arreglos', 'contabilidad']).isRequired,
   entidadId: PropTypes.number,
   entidadNombre: PropTypes.string.isRequired,
   sectionLabel: PropTypes.string,
   fileLabel: PropTypes.string,
+  officeOnly: PropTypes.bool,
 };
 
 export default PDFUploadSection;
