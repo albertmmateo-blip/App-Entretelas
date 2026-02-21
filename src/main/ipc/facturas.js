@@ -1,13 +1,32 @@
-const { ipcMain, app, shell } = require('electron');
+const { ipcMain, app } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { getDatabase } = require('../db/connection');
 
 // Windows reserved names that need special handling
 const WINDOWS_RESERVED_NAMES = [
-  'CON', 'PRN', 'AUX', 'NUL',
-  'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
-  'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'
+  'CON',
+  'PRN',
+  'AUX',
+  'NUL',
+  'COM1',
+  'COM2',
+  'COM3',
+  'COM4',
+  'COM5',
+  'COM6',
+  'COM7',
+  'COM8',
+  'COM9',
+  'LPT1',
+  'LPT2',
+  'LPT3',
+  'LPT4',
+  'LPT5',
+  'LPT6',
+  'LPT7',
+  'LPT8',
+  'LPT9',
 ];
 
 /**
@@ -22,9 +41,9 @@ function sanitizeFilename(filename) {
 
   let sanitized = filename;
 
-  // Remove ALL special characters \ / : * ? " < > | and control characters (ASCII 0-31)
+  // Remove ALL special characters \ / : * ? " < > | # ( ) and control characters (ASCII 0-31)
   // eslint-disable-next-line no-control-regex
-  sanitized = sanitized.replace(/[\x00-\x1F\\/:*?"<>|]/g, '');
+  sanitized = sanitized.replace(/[\x00-\x1F\\/:*?"<>|#()]/g, '');
 
   // Replace spaces with underscores
   sanitized = sanitized.replace(/\s+/g, '_');
@@ -179,7 +198,14 @@ function registerFacturasHandlers() {
         VALUES (?, ?, ?, ?, ?, ?)
       `);
 
-      const result = stmt.run(tipo, entidadId, entidadTipo, originalFilename, targetFilename, relativePath);
+      const result = stmt.run(
+        tipo,
+        entidadId,
+        entidadTipo,
+        originalFilename,
+        targetFilename,
+        relativePath
+      );
 
       return {
         success: true,
