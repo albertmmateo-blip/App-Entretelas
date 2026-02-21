@@ -21,7 +21,7 @@ class ErrorBoundary extends React.Component {
     if (hasError) {
       return (
         <div className="flex items-center justify-center h-screen bg-neutral-50">
-          <div className="text-center p-8 bg-white rounded-lg shadow-lg max-w-md">
+          <div className="text-center p-8 bg-neutral-100 rounded-lg shadow-lg max-w-md">
             <div className="text-6xl mb-4">⚠️</div>
             <h1 className="text-2xl font-bold text-neutral-900 mb-4">Algo salió mal</h1>
             <p className="text-neutral-600 mb-6">Por favor, recarga la aplicación.</p>

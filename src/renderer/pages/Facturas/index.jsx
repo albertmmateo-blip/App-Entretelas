@@ -27,7 +27,7 @@ function Facturas() {
         {/* Facturas Compra */}
         <button
           onClick={() => navigate('/facturas/compra')}
-          className="flex flex-col items-center justify-center p-8 bg-white rounded-lg border-2 border-neutral-200 hover:border-primary hover:bg-neutral-50 transition-colors"
+          className="flex flex-col items-center justify-center p-8 bg-neutral-100 rounded-lg border-2 border-neutral-200 hover:border-primary hover:bg-neutral-50 transition-colors"
           type="button"
         >
           <span className="text-6xl mb-4">📁</span>
@@ -38,7 +38,7 @@ function Facturas() {
         {/* Facturas Venta */}
         <button
           onClick={() => navigate('/facturas/venta')}
-          className="flex flex-col items-center justify-center p-8 bg-white rounded-lg border-2 border-neutral-200 hover:border-primary hover:bg-neutral-50 transition-colors"
+          className="flex flex-col items-center justify-center p-8 bg-neutral-100 rounded-lg border-2 border-neutral-200 hover:border-primary hover:bg-neutral-50 transition-colors"
           type="button"
         >
           <span className="text-6xl mb-4">📁</span>

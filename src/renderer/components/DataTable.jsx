@@ -85,7 +85,7 @@ function DataTable({ columns, data, onRowClick, renderActions, initialSort, rowC
   };
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
+    <div className="bg-neutral-100 rounded-lg shadow overflow-hidden">
       <table className="w-full">
         <thead className="bg-neutral-50 border-b border-neutral-200">
           <tr>
@@ -176,7 +176,7 @@ function DataTable({ columns, data, onRowClick, renderActions, initialSort, rowC
 
       {menuState && renderActions && (
         <div
-          className="fixed bg-white border border-neutral-200 rounded-lg shadow-lg py-1 z-50"
+          className="fixed bg-neutral-100 border border-neutral-200 rounded-lg shadow-lg py-1 z-50"
           style={{ top: menuState.y, left: menuState.x }}
         >
           {renderActions(menuState.row).map((action) => (

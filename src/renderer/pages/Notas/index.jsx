@@ -86,7 +86,7 @@ function NotasList() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           data-search-input
-          className="w-full px-4 py-2 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
+          className="w-full px-4 py-2 bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
         />
       </div>
 
@@ -133,7 +133,7 @@ function NotasList() {
       {/* Actions menu */}
       {menuState && (
         <div
-          className="fixed bg-white border border-neutral-200 rounded-lg shadow-lg py-1 z-50"
+          className="fixed bg-neutral-100 border border-neutral-200 rounded-lg shadow-lg py-1 z-50"
           style={{ top: menuState.y, left: menuState.x }}
         >
           <button

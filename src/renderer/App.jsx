@@ -20,17 +20,19 @@ export function AppLayout() {
   ];
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-neutral-50 text-neutral-700">
       {/* Sidebar */}
-      <nav className="w-[72px] bg-white border-r border-neutral-200 flex flex-col py-4">
+      <nav className="w-[78px] bg-primary border-r border-primary-700/25 flex flex-col py-4 shadow-sm">
         {navLinks.map(({ path, label, icon, end }) => (
           <NavLink
             key={path}
             to={path}
             end={end}
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center py-3 px-2 text-xs hover:bg-neutral-50 transition-colors ${
-                isActive ? 'text-primary' : 'text-neutral-700'
+              `mx-2 mb-1 rounded-md flex flex-col items-center justify-center py-3 px-2 text-xs transition-colors ${
+                isActive
+                  ? 'text-primary text-white bg-white/20 font-medium'
+                  : 'text-white/90 hover:bg-white/15 hover:text-white'
               }`
             }
           >

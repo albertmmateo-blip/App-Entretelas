@@ -146,7 +146,7 @@ function EntryForm({ fields, initialValues = {}, onSubmit, onCancel, showUrgente
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 space-y-6">
+    <form onSubmit={handleSubmit} className="bg-neutral-100 rounded-lg shadow p-6 space-y-6">
       {fields.map((field) => (
         <div key={field.name}>
           <label htmlFor={field.name} className="block text-sm font-medium text-neutral-700 mb-2">

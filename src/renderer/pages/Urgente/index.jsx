@@ -137,7 +137,7 @@ function Urgente() {
                 key={entry.id}
                 role="button"
                 tabIndex={0}
-                className="bg-white border border-neutral-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer flex items-start justify-between gap-4"
+                className="bg-neutral-100 border border-neutral-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer flex items-start justify-between gap-4"
                 onClick={() => navigate(`/notas/${entry.id}`)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -197,7 +197,7 @@ function Urgente() {
                 key={entry.id}
                 role="button"
                 tabIndex={0}
-                className="bg-white border border-neutral-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer flex items-start justify-between gap-4"
+                className="bg-neutral-100 border border-neutral-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer flex items-start justify-between gap-4"
                 onClick={() => navigate(`/llamar/${entry.id}`)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -257,7 +257,7 @@ function Urgente() {
                 key={entry.id}
                 role="button"
                 tabIndex={0}
-                className="bg-white border border-neutral-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer flex items-start justify-between gap-4"
+                className="bg-neutral-100 border border-neutral-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer flex items-start justify-between gap-4"
                 onClick={() => navigate(`/encargar/${entry.id}`)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {

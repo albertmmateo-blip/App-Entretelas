@@ -171,7 +171,7 @@ function Home() {
           <Link
             key={path}
             to={path}
-            className="flex flex-col items-center justify-center w-[120px] h-[120px] bg-white border border-neutral-200 rounded-xl shadow-sm hover:shadow-md hover:border-primary transition-all text-neutral-700 hover:text-primary"
+            className="flex flex-col items-center justify-center w-[120px] h-[120px] bg-neutral-100 border border-neutral-200 rounded-xl shadow-sm hover:shadow-md hover:border-primary transition-all text-neutral-700 hover:text-primary"
           >
             <span className="text-4xl mb-2">{icon}</span>
             <span className="text-sm font-medium">{label}</span>
@@ -187,7 +187,7 @@ function Home() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           data-search-input
-          className="flex-1 min-w-[200px] px-4 py-2 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
+          className="flex-1 min-w-[200px] px-4 py-2 bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
         />
 
         {/* Filter panel */}

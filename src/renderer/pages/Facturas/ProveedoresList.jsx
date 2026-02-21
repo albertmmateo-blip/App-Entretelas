@@ -56,23 +56,25 @@ function ProveedoresListView() {
 
   return (
     <div className="p-6">
-      {/* Header with back button */}
+      {/* Header with actions on the right */}
       <div className="flex items-center mb-4">
-        <button
-          type="button"
-          onClick={() => navigate('/facturas')}
-          className="mr-4 text-neutral-700 hover:text-neutral-900"
-        >
-          ← Volver
-        </button>
         <h1 className="text-2xl font-bold text-neutral-900 flex-1">Facturas Compra</h1>
-        <button
-          type="button"
-          onClick={() => navigate('/facturas/compra/nuevo')}
-          className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
-        >
-          + Nuevo Proveedor
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => navigate('/facturas/compra/nuevo')}
+            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+          >
+            + Nuevo Proveedor
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/facturas')}
+            className="px-3 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+          >
+            ← Volver
+          </button>
+        </div>
       </div>
 
       {/* Search bar */}
@@ -83,7 +85,7 @@ function ProveedoresListView() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           data-search-input
-          className="w-full px-4 py-2 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
+          className="w-full px-4 py-2 bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
         />
       </div>
 
@@ -147,7 +149,7 @@ function ProveedoresListView() {
       {/* Actions menu */}
       {menuState && (
         <div
-          className="fixed bg-white border border-neutral-200 rounded-lg shadow-lg py-1 z-50"
+          className="fixed bg-neutral-100 border border-neutral-200 rounded-lg shadow-lg py-1 z-50"
           style={{ top: menuState.y, left: menuState.x }}
         >
           <button

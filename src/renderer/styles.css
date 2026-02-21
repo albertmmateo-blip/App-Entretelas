@@ -1,14 +1,41 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-primary: #1d4ed8;
-  --color-danger: #dc2626;
-  --color-success: #16a34a;
-  --color-neutral-50: #f9fafb;
-  --color-neutral-200: #e5e7eb;
-  --color-neutral-400: #9ca3af;
-  --color-neutral-700: #374151;
-  --color-neutral-900: #111827;
+  --logo-brown: #542e26;
+  --logo-orange: #e87722;
+  --logo-red: #cb2c30;
+  --dark-brown: #3e221c;
+
+  --soft-tan: #f1e5d6;
+  --white: #ffffff;
+  --border-light: #decfbe;
+  --text-main: var(--logo-brown);
+  --text-secondary: #555;
+  --color-success: #28a745;
+  --color-error: #dc3545;
+
+  --color-primary: var(--logo-orange);
+  --color-primary-100: #fdf2e9;
+  --color-primary-200: #f9dfc5;
+  --color-primary-700: #9f4d15;
+
+  --color-danger: var(--logo-red);
+  --color-danger-100: #fbeaea;
+  --color-danger-200: #f4c3c5;
+  --color-danger-700: #8b1d20;
+
+  --color-success-100: #e8f5ed;
+  --color-success-200: #bfe3cb;
+  --color-success-700: #1d7034;
+
+  --color-neutral-50: var(--soft-tan);
+  --color-neutral-100: #fdf7ef;
+  --color-neutral-200: var(--border-light);
+  --color-neutral-300: #c7b7a9;
+  --color-neutral-400: #9d8577;
+  --color-neutral-500: var(--text-secondary);
+  --color-neutral-700: var(--text-main);
+  --color-neutral-900: #2f1813;
 }
 
 body {
@@ -20,8 +47,13 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--color-neutral-50);
   color: var(--color-neutral-700);
+  line-height: 1.5;
 }
 
 * {
   box-sizing: border-box;
+}
+
+#root {
+  min-height: 100vh;
 }

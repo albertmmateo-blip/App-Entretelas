@@ -37,7 +37,7 @@ function EntryCard({ urgente, onClick, children, onActionClick }) {
           onClick?.();
         }
       }}
-      className={`bg-white rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer p-4 relative text-left ${
+      className={`bg-neutral-100 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer p-4 relative text-left ${
         urgente ? 'border-2 border-danger' : 'border border-neutral-200'
       }`}
     >

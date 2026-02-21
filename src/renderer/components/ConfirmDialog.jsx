@@ -10,7 +10,7 @@ function ConfirmDialog({
 }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+      <div className="bg-neutral-100 rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
         <div className="flex items-start gap-3 mb-4">
           <span className="text-2xl">⚠️</span>
           <div>

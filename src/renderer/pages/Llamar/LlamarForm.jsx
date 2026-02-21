@@ -71,17 +71,19 @@ function LlamarForm() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <div className="mb-6">
-        <button
-          type="button"
-          onClick={handleCancel}
-          className="text-primary hover:text-primary/80 flex items-center gap-1 mb-2"
-        >
-          ← Volver
-        </button>
-        <h1 className="text-2xl font-bold text-neutral-900">
+      <div className="mb-6 flex items-center">
+        <h1 className="text-2xl font-bold text-neutral-900 flex-1">
           {isEdit ? 'Editar entrada' : 'Nueva entrada'}
         </h1>
+        <div className="ml-auto">
+          <button
+            type="button"
+            onClick={handleCancel}
+            className="px-3 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+          >
+            ← Volver
+          </button>
+        </div>
       </div>
 
       <EntryForm
