@@ -87,6 +87,25 @@ function ProveedoresListView() {
         />
       </div>
 
+      {/* Proveedor folder shortcuts */}
+      {sortedProveedores.length > 0 && (
+        <div className="mb-4">
+          <div className="flex flex-wrap gap-2">
+            {sortedProveedores.map((proveedor) => (
+              <button
+                key={`shortcut-${proveedor.id}`}
+                type="button"
+                onClick={() => navigate(`/facturas/compra/${proveedor.id}`)}
+                className="px-3 py-1.5 border border-neutral-200 rounded bg-white hover:border-primary hover:text-primary transition-colors text-sm text-neutral-700"
+                aria-label={`Abrir carpeta de ${proveedor.razon_social}`}
+              >
+                {`📁 ${proveedor.razon_social}`}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Empty state */}
       {sortedProveedores.length === 0 && !loading && (
         <EmptyState icon="📁" title="proveedores" hasSearchQuery={!!searchQuery} />
