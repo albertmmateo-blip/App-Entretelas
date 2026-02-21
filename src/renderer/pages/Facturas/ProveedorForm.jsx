@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import EntryForm from '../../components/EntryForm';
+import PDFUploadSection from '../../components/PDFUploadSection';
 import useCRUD from '../../hooks/useCRUD';
 
 function ProveedorForm() {
@@ -76,13 +77,23 @@ function ProveedorForm() {
         </h1>
       </div>
 
-      <EntryForm
-        fields={fields}
-        initialValues={{ ...initialValues, id: existingProveedor?.id }}
-        onSubmit={handleSubmit}
-        onCancel={handleCancel}
-        showUrgenteToggle={false}
-      />
+      <div className="space-y-6">
+        <EntryForm
+          fields={fields}
+          initialValues={{ ...initialValues, id: existingProveedor?.id }}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+          showUrgenteToggle={false}
+        />
+
+        {isEdit && existingProveedor && (
+          <PDFUploadSection
+            tipo="compra"
+            entidadId={existingProveedor.id}
+            entidadNombre={existingProveedor.razon_social}
+          />
+        )}
+      </div>
     </div>
   );
 }
