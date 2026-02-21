@@ -143,7 +143,7 @@ describe('App - Sidebar Navigation', () => {
     expect(within(main).getByRole('heading', { name: 'Encargar' })).toBeInTheDocument();
   });
 
-  it('renders Contabilidad page at /contabilidad route', () => {
+  it('renders Contabilidad page at /contabilidad route', async () => {
     render(
       <MemoryRouter initialEntries={['/contabilidad']}>
         <AppLayout />
@@ -151,7 +151,7 @@ describe('App - Sidebar Navigation', () => {
     );
 
     const main = screen.getByRole('main');
-    expect(within(main).getByRole('heading', { name: 'Contabilidad' })).toBeInTheDocument();
+    expect(await within(main).findByRole('heading', { name: 'Contabilidad' })).toBeInTheDocument();
   });
 
   it('renders E-mail page at /email route', () => {
@@ -198,7 +198,7 @@ describe('App - Sidebar Navigation', () => {
     expect(within(main).getByRole('heading', { name: 'Encargar' })).toBeInTheDocument();
   });
 
-  it('registers nested routes for contabilidad compra', () => {
+  it('registers nested routes for contabilidad compra', async () => {
     render(
       <MemoryRouter initialEntries={['/contabilidad/compra']}>
         <AppLayout />
@@ -206,10 +206,10 @@ describe('App - Sidebar Navigation', () => {
     );
 
     const main = screen.getByRole('main');
-    expect(within(main).getByRole('heading', { name: 'Contabilidad' })).toBeInTheDocument();
+    expect(await within(main).findByRole('heading', { name: 'Contabilidad' })).toBeInTheDocument();
   });
 
-  it('registers nested routes for contabilidad venta', () => {
+  it('registers nested routes for contabilidad venta', async () => {
     render(
       <MemoryRouter initialEntries={['/contabilidad/venta/456']}>
         <AppLayout />
@@ -217,10 +217,10 @@ describe('App - Sidebar Navigation', () => {
     );
 
     const main = screen.getByRole('main');
-    expect(within(main).getByRole('heading', { name: 'Contabilidad' })).toBeInTheDocument();
+    expect(await within(main).findByRole('heading', { name: 'Contabilidad' })).toBeInTheDocument();
   });
 
-  it('registers nested routes for contabilidad edit paths', () => {
+  it('registers nested routes for contabilidad edit paths', async () => {
     const { rerender } = render(
       <MemoryRouter initialEntries={['/contabilidad/compra/123/editar']}>
         <AppLayout />
@@ -229,7 +229,7 @@ describe('App - Sidebar Navigation', () => {
 
     let main = screen.getByRole('main');
     expect(
-      within(main).getByRole('heading', { name: 'Contabilidad Edit Route' })
+      await within(main).findByRole('heading', { name: 'Contabilidad Edit Route' })
     ).toBeInTheDocument();
 
     rerender(
@@ -240,7 +240,7 @@ describe('App - Sidebar Navigation', () => {
 
     main = screen.getByRole('main');
     expect(
-      within(main).getByRole('heading', { name: 'Contabilidad Edit Route' })
+      await within(main).findByRole('heading', { name: 'Contabilidad Edit Route' })
     ).toBeInTheDocument();
   });
 });

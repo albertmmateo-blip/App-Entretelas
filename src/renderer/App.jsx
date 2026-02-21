@@ -1,12 +1,21 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { HashRouter, Routes, Route, NavLink } from 'react-router-dom';
 import Home from './pages/Home';
 import Urgente from './pages/Urgente';
 import Notas from './pages/Notas';
 import Llamar from './pages/Llamar';
 import Encargar from './pages/Encargar';
-import Contabilidad from './pages/Facturas';
 import Email from './pages/Email';
+
+const Contabilidad = lazy(() => import('./pages/Facturas'));
+
+function ContabilidadRoute() {
+  return (
+    <Suspense fallback={<div className="p-4 text-sm text-neutral-600">Cargando módulo...</div>}>
+      <Contabilidad />
+    </Suspense>
+  );
+}
 
 export function AppLayout() {
   const navLinks = [
@@ -75,24 +84,27 @@ export function AppLayout() {
           <Route path="/encargar/proveedor/nuevo" element={<Encargar />} />
           <Route path="/encargar/proveedor/:proveedorId" element={<Encargar />} />
           <Route path="/encargar/proveedor/:proveedorId/editar" element={<Encargar />} />
-          <Route path="/contabilidad" element={<Contabilidad />} />
-          <Route path="/contabilidad/compra" element={<Contabilidad />} />
-          <Route path="/contabilidad/compra/:proveedorId" element={<Contabilidad />} />
-          <Route path="/contabilidad/compra/:proveedorId/editar" element={<Contabilidad />} />
-          <Route path="/contabilidad/venta" element={<Contabilidad />} />
-          <Route path="/contabilidad/venta/:clienteId" element={<Contabilidad />} />
-          <Route path="/contabilidad/venta/:clienteId/editar" element={<Contabilidad />} />
-          <Route path="/contabilidad/arreglos" element={<Contabilidad />} />
-          <Route path="/contabilidad/arreglos/:proveedorId" element={<Contabilidad />} />
-          <Route path="/contabilidad/arreglos/:proveedorId/editar" element={<Contabilidad />} />
+          <Route path="/contabilidad" element={<ContabilidadRoute />} />
+          <Route path="/contabilidad/compra" element={<ContabilidadRoute />} />
+          <Route path="/contabilidad/compra/:proveedorId" element={<ContabilidadRoute />} />
+          <Route path="/contabilidad/compra/:proveedorId/editar" element={<ContabilidadRoute />} />
+          <Route path="/contabilidad/venta" element={<ContabilidadRoute />} />
+          <Route path="/contabilidad/venta/:clienteId" element={<ContabilidadRoute />} />
+          <Route path="/contabilidad/venta/:clienteId/editar" element={<ContabilidadRoute />} />
+          <Route path="/contabilidad/arreglos" element={<ContabilidadRoute />} />
+          <Route path="/contabilidad/arreglos/:proveedorId" element={<ContabilidadRoute />} />
+          <Route
+            path="/contabilidad/arreglos/:proveedorId/editar"
+            element={<ContabilidadRoute />}
+          />
 
-          <Route path="/facturas" element={<Contabilidad />} />
-          <Route path="/facturas/compra" element={<Contabilidad />} />
-          <Route path="/facturas/compra/:proveedorId" element={<Contabilidad />} />
-          <Route path="/facturas/compra/:proveedorId/editar" element={<Contabilidad />} />
-          <Route path="/facturas/venta" element={<Contabilidad />} />
-          <Route path="/facturas/venta/:clienteId" element={<Contabilidad />} />
-          <Route path="/facturas/venta/:clienteId/editar" element={<Contabilidad />} />
+          <Route path="/facturas" element={<ContabilidadRoute />} />
+          <Route path="/facturas/compra" element={<ContabilidadRoute />} />
+          <Route path="/facturas/compra/:proveedorId" element={<ContabilidadRoute />} />
+          <Route path="/facturas/compra/:proveedorId/editar" element={<ContabilidadRoute />} />
+          <Route path="/facturas/venta" element={<ContabilidadRoute />} />
+          <Route path="/facturas/venta/:clienteId" element={<ContabilidadRoute />} />
+          <Route path="/facturas/venta/:clienteId/editar" element={<ContabilidadRoute />} />
           <Route path="/email" element={<Email />} />
         </Routes>
       </main>

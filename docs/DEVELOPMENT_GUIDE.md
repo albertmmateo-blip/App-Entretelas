@@ -156,11 +156,18 @@ Tests live in `tests/`:
 tests/
 ├── unit/           # Pure function tests (db helpers, path sanitisers, etc.)
 ├── component/      # React Testing Library tests for UI components
-├── e2e/            # End-to-end tests using Playwright (future)
+├── e2e/            # End-to-end tests using Playwright for Electron
+│   ├── helpers.js      # E2E helpers (launchApp, cleanDatabase, closeApp)
+│   ├── notas.spec.js
+│   ├── llamar.spec.js
+│   ├── encargar.spec.js
+│   ├── urgente.spec.js
+│   ├── facturas.spec.js
+│   └── gmail.spec.js
 ├── helpers/        # Shared test utilities
 │   ├── db.js       # Database helpers for testing
 │   ├── ipc-mock.js # IPC mocking utilities
-│   └── e2e.js      # E2E test helpers
+│   └── e2e.js      # Legacy E2E helpers
 └── fixtures/       # Test data and files
     ├── sample-data.js    # Factory functions for test entities
     └── test-invoice.pdf  # Sample PDF for testing
@@ -182,6 +189,30 @@ Generate a coverage report:
 
 ```powershell
 npm run test:coverage
+```
+
+Run Playwright E2E suite:
+
+```powershell
+npm run test:e2e
+```
+
+Run a single E2E test file:
+
+```powershell
+npx playwright test tests/e2e/notas.spec.js
+```
+
+Debug E2E tests with Playwright Inspector:
+
+```powershell
+npx playwright test tests/e2e/facturas.spec.js --debug
+```
+
+You can also step through headed mode and keep traces:
+
+```powershell
+npx playwright test tests/e2e/urgente.spec.js --headed --trace on
 ```
 
 ### Test Utilities

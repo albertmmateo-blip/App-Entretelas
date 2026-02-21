@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage } = require('electron');
 const path = require('path');
 const windowStateKeeper = require('electron-window-state');
 const { getDatabase } = require('./db/connection');
@@ -12,6 +12,16 @@ const { registerFacturasHandlers } = require('./ipc/facturas');
 const { registerSystemHandlers } = require('./ipc/system');
 
 let mainWindow;
+let tray;
+let isQuitting = false;
+
+function getTrayIconPath() {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, 'icon.ico');
+  }
+
+  return path.join(__dirname, '../renderer/assets/icon.ico');
+}
 
 function createWindow() {
   // Load window state (position, size)
@@ -50,6 +60,63 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+
+  mainWindow.on('close', (event) => {
+    if (!isQuitting) {
+      event.preventDefault();
+      mainWindow.hide();
+    }
+  });
+}
+
+function showMainWindow() {
+  if (!mainWindow) {
+    createWindow();
+    return;
+  }
+
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+
+  if (!mainWindow.isVisible()) {
+    mainWindow.show();
+  }
+
+  mainWindow.focus();
+}
+
+function createTray() {
+  if (tray) {
+    return;
+  }
+
+  const trayIcon = nativeImage.createFromPath(getTrayIconPath());
+  tray = new Tray(trayIcon);
+  tray.setToolTip('App-Entretelas');
+
+  tray.on('click', () => {
+    showMainWindow();
+  });
+
+  const trayMenu = Menu.buildFromTemplate([
+    {
+      label: 'Abrir App-Entretelas',
+      click: () => {
+        showMainWindow();
+      },
+    },
+    { type: 'separator' },
+    {
+      label: 'Salir',
+      click: () => {
+        isQuitting = true;
+        app.quit();
+      },
+    },
+  ]);
+
+  tray.setContextMenu(trayMenu);
 }
 
 // Prevent multiple instances
@@ -60,12 +127,7 @@ if (!gotTheLock) {
 } else {
   app.on('second-instance', () => {
     // Someone tried to run a second instance, focus our window instead
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) {
-        mainWindow.restore();
-      }
-      mainWindow.focus();
-    }
+    showMainWindow();
   });
 
   app.whenReady().then(() => {
@@ -79,27 +141,31 @@ if (!gotTheLock) {
     registerFacturasHandlers();
     registerSystemHandlers();
 
+    createTray();
     createWindow();
 
     app.on('activate', () => {
-      // On macOS it's common to re-create a window in the app when the
-      // dock icon is clicked and there are no other windows open.
-      if (BrowserWindow.getAllWindows().length === 0) {
-        createWindow();
-      }
+      showMainWindow();
     });
   });
 }
 
-// Quit when all windows are closed (Windows behavior)
+// Keep process running for tray behavior unless quitting explicitly
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+  if (process.platform !== 'darwin' && isQuitting) {
     app.quit();
   }
 });
 
 // Close database connection cleanly before quitting
 app.on('before-quit', () => {
+  isQuitting = true;
+
+  if (tray) {
+    tray.destroy();
+    tray = null;
+  }
+
   const db = getDatabase();
   if (db) {
     db.close();

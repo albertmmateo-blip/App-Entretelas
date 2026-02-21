@@ -20,6 +20,7 @@
     "test:coverage": "vitest run --coverage",
     "pretest:ui": "npm run rebuild-natives:node",
     "test:ui": "vitest --ui",
+    "test:e2e": "playwright test tests/e2e/",
     "lint": "eslint . --ext .js,.jsx",
     "lint:fix": "eslint . --ext .js,.jsx --fix && prettier --write \"**/*.{js,jsx,json,css,md}\"",
     "format": "prettier --write \"**/*.{js,jsx,json,css,md}\"",
@@ -31,7 +32,7 @@
   },
   "lint-staged": {
     "*.{js,jsx}": [
-      "eslint --fix",
+      "eslint --fix --quiet",
       "prettier --write"
     ],
     "*.{json,css,md}": [
@@ -63,6 +64,12 @@
       "src/preload/**/*",
       "package.json"
     ],
+    "extraResources": [
+      {
+        "from": "src/renderer/assets/icon.ico",
+        "to": "icon.ico"
+      }
+    ],
     "win": {
       "target": "nsis",
       "icon": "src/renderer/assets/icon.ico"
@@ -85,6 +92,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.2.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -107,6 +115,7 @@
     "husky": "^9.1.7",
     "jsdom": "^28.1.0",
     "lint-staged": "^16.2.7",
+    "playwright": "^1.58.2",
     "postcss": "^8.5.6",
     "prettier": "^3.8.1",
     "tailwindcss": "^4.2.0",
