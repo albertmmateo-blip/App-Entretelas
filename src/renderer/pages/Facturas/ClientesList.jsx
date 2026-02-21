@@ -12,6 +12,7 @@ function ClientesListView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [menuState, setMenuState] = useState(null);
+  const [folderCounts, setFolderCounts] = useState({});
 
   useEffect(() => {
     fetchAll();
@@ -25,6 +26,60 @@ function ClientesListView() {
     }
     return undefined;
   }, [menuState]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadFolderCounts = async () => {
+      const facturasApi = window.electronAPI?.facturas;
+
+      if (!entries.length) {
+        if (!cancelled) {
+          setFolderCounts({});
+        }
+        return;
+      }
+
+      if (!facturasApi?.getAllForEntidad) {
+        if (!cancelled) {
+          setFolderCounts(
+            Object.fromEntries(entries.map((cliente) => [cliente.id, cliente.facturas_count ?? 0]))
+          );
+        }
+        return;
+      }
+
+      const countPairs = await Promise.all(
+        entries.map(async (cliente) => {
+          const fallbackCount = cliente.facturas_count ?? 0;
+          try {
+            const response = await facturasApi.getAllForEntidad({
+              tipo: 'venta',
+              entidadId: cliente.id,
+            });
+
+            if (response.success) {
+              return [cliente.id, (response.data || []).length];
+            }
+          } catch (error) {
+            return [cliente.id, fallbackCount];
+          }
+
+          return [cliente.id, fallbackCount];
+        })
+      );
+
+      if (!cancelled) {
+        setFolderCounts(Object.fromEntries(countPairs));
+      }
+    };
+
+    loadFolderCounts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [entries]);
 
   const filteredClientes = useMemo(() => {
     if (!searchQuery.trim()) return entries;
@@ -124,7 +179,7 @@ function ClientesListView() {
                 )}
                 <div>
                   <span className="font-medium">Facturas subidas:</span>{' '}
-                  {cliente.facturas_count ?? 0}
+                  {folderCounts[cliente.id] ?? cliente.facturas_count ?? 0}
                 </div>
                 <div className="text-neutral-500">
                   {new Date(cliente.fecha_creacion).toLocaleDateString('es-ES')}

@@ -12,6 +12,7 @@ function ProveedoresListView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [menuState, setMenuState] = useState(null);
+  const [folderCounts, setFolderCounts] = useState({});
 
   useEffect(() => {
     fetchAll();
@@ -25,6 +26,62 @@ function ProveedoresListView() {
     }
     return undefined;
   }, [menuState]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadFolderCounts = async () => {
+      const facturasApi = window.electronAPI?.facturas;
+
+      if (!entries.length) {
+        if (!cancelled) {
+          setFolderCounts({});
+        }
+        return;
+      }
+
+      if (!facturasApi?.getAllForEntidad) {
+        if (!cancelled) {
+          setFolderCounts(
+            Object.fromEntries(
+              entries.map((proveedor) => [proveedor.id, proveedor.facturas_count ?? 0])
+            )
+          );
+        }
+        return;
+      }
+
+      const countPairs = await Promise.all(
+        entries.map(async (proveedor) => {
+          const fallbackCount = proveedor.facturas_count ?? 0;
+          try {
+            const response = await facturasApi.getAllForEntidad({
+              tipo: 'compra',
+              entidadId: proveedor.id,
+            });
+
+            if (response.success) {
+              return [proveedor.id, (response.data || []).length];
+            }
+          } catch (error) {
+            return [proveedor.id, fallbackCount];
+          }
+
+          return [proveedor.id, fallbackCount];
+        })
+      );
+
+      if (!cancelled) {
+        setFolderCounts(Object.fromEntries(countPairs));
+      }
+    };
+
+    loadFolderCounts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [entries]);
 
   const filteredProveedores = useMemo(() => {
     if (!searchQuery.trim()) return entries;
@@ -139,7 +196,7 @@ function ProveedoresListView() {
                 )}
                 <div>
                   <span className="font-medium">Facturas subidas:</span>{' '}
-                  {proveedor.facturas_count ?? 0}
+                  {folderCounts[proveedor.id] ?? proveedor.facturas_count ?? 0}
                 </div>
                 <div className="text-neutral-500">
                   {new Date(proveedor.fecha_creacion).toLocaleDateString('es-ES')}

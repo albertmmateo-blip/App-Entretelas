@@ -118,6 +118,38 @@ describe('Proveedores IPC Handlers', () => {
       expect(response.data[1].facturas_count).toBe(0);
     });
 
+    it('should ignore proveedor PDFs with wrong tipo when counting facturas', async () => {
+      seedTestData(db, 'proveedores', [createProveedor({ razon_social: 'Proveedor Uno' })]);
+
+      const proveedor = db.prepare('SELECT id FROM proveedores LIMIT 1').get();
+
+      seedTestData(db, 'facturas_pdf', [
+        {
+          tipo: 'compra',
+          entidad_id: proveedor.id,
+          entidad_tipo: 'proveedor',
+          nombre_original: 'factura-ok.pdf',
+          nombre_guardado: 'Proveedor - factura-ok.pdf',
+          ruta_relativa: `compra/proveedor-uno/factura-ok-${proveedor.id}.pdf`,
+        },
+        {
+          tipo: 'venta',
+          entidad_id: proveedor.id,
+          entidad_tipo: 'proveedor',
+          nombre_original: 'factura-wrong-type.pdf',
+          nombre_guardado: 'Proveedor - factura-wrong-type.pdf',
+          ruta_relativa: `venta/proveedor-uno/factura-wrong-type-${proveedor.id}.pdf`,
+        },
+      ]);
+
+      const handler = mockHandlers['proveedores:getAll'];
+      const response = await handler();
+
+      expect(response.success).toBe(true);
+      expect(response.data).toHaveLength(1);
+      expect(response.data[0].facturas_count).toBe(1);
+    });
+
     it('should return empty array when no proveedores exist', async () => {
       const handler = mockHandlers['proveedores:getAll'];
       const response = await handler();

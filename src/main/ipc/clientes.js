@@ -124,6 +124,7 @@ function registerClientesHandlers() {
           LEFT JOIN facturas_pdf f
             ON f.entidad_id = c.id
            AND f.entidad_tipo = 'cliente'
+           AND f.tipo = 'venta'
           GROUP BY c.id
           ORDER BY c.razon_social ASC
         `

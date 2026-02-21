@@ -119,6 +119,40 @@ describe('Clientes IPC Handlers', () => {
       expect(response.data[1].facturas_count).toBe(0);
     });
 
+    it('should ignore cliente PDFs with wrong tipo when counting facturas', async () => {
+      seedTestData(db, 'clientes', [
+        createCliente({ razon_social: 'Cliente Uno', numero_cliente: 'CLI-001' }),
+      ]);
+
+      const cliente = db.prepare('SELECT id FROM clientes LIMIT 1').get();
+
+      seedTestData(db, 'facturas_pdf', [
+        {
+          tipo: 'venta',
+          entidad_id: cliente.id,
+          entidad_tipo: 'cliente',
+          nombre_original: 'factura-ok.pdf',
+          nombre_guardado: 'Client - factura-ok.pdf',
+          ruta_relativa: `venta/cliente-uno/factura-ok-${cliente.id}.pdf`,
+        },
+        {
+          tipo: 'compra',
+          entidad_id: cliente.id,
+          entidad_tipo: 'cliente',
+          nombre_original: 'factura-wrong-type.pdf',
+          nombre_guardado: 'Client - factura-wrong-type.pdf',
+          ruta_relativa: `compra/cliente-uno/factura-wrong-type-${cliente.id}.pdf`,
+        },
+      ]);
+
+      const handler = mockHandlers['clientes:getAll'];
+      const response = await handler();
+
+      expect(response.success).toBe(true);
+      expect(response.data).toHaveLength(1);
+      expect(response.data[0].facturas_count).toBe(1);
+    });
+
     it('should return empty array when no clientes exist', async () => {
       const handler = mockHandlers['clientes:getAll'];
       const response = await handler();

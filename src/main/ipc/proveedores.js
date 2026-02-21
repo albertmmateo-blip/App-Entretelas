@@ -96,6 +96,7 @@ function registerProveedoresHandlers() {
           LEFT JOIN facturas_pdf f
             ON f.entidad_id = p.id
            AND f.entidad_tipo = 'proveedor'
+           AND f.tipo = 'compra'
           GROUP BY p.id
           ORDER BY p.razon_social ASC
         `
