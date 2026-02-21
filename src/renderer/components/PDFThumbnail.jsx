@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import pdfjsLib from '../utils/pdfjs-setup';
+import { normalizePDFBytes } from '../utils/normalizePDFBytes';
 
 // Constants
 const THUMBNAIL_WIDTH = 160;
@@ -80,9 +81,16 @@ function PDFThumbnail({ pdfPath }) {
               throw new Error(response.error?.message || 'Failed to load PDF');
             }
 
-            // Load PDF document
-            // Convert ArrayBuffer to Uint8Array for pdfjs-dist compatibility
-            const pdfData = new Uint8Array(response.data);
+            // Normalize the IPC response payload into a Uint8Array that PDF.js can
+            // consume.  The main process returns a plain number[] to avoid any
+            // Buffer/ArrayBuffer structured-clone ambiguity, but we handle all
+            // possible shapes here defensively.
+            const pdfData = normalizePDFBytes(response.data);
+
+            if (import.meta.env.DEV) {
+              // eslint-disable-next-line no-console
+              console.debug(`[PDFThumbnail] Loaded ${pdfData.byteLength} bytes for "${pdfPath}"`);
+            }
 
             // Pass options explicitly to ensure proper initialization in Electron/Vite environment
             const loadingTask = pdfjsLib.getDocument({

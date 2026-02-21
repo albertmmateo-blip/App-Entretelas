@@ -336,9 +336,17 @@ function registerFacturasHandlers() {
 
   /**
    * Handler: facturas:getPDFBytes
-   * Gets PDF file bytes as ArrayBuffer for rendering thumbnails.
+   * Gets PDF file bytes for rendering thumbnails in the renderer process.
+   *
+   * The file content is returned as a plain `number[]` (array of byte values)
+   * rather than a Node.js `Buffer` or `ArrayBuffer`.  Electron's structured-clone
+   * algorithm serializes `Buffer` objects as `{ type: 'Buffer', data: number[] }`
+   * which the renderer cannot use directly with `pdfjsLib.getDocument`.  A plain
+   * `number[]` is always faithfully reproduced on the renderer side and can be
+   * trivially wrapped with `new Uint8Array(data)`.
+   *
    * @param {string} pdfPath - Relative path from facturas_pdf.ruta_relativa
-   * @returns {Promise<{ success: boolean, data?: ArrayBuffer, error?: object }>}
+   * @returns {Promise<{ success: boolean, data?: number[], error?: { code: string, message: string } }>}
    */
   ipcMain.handle('facturas:getPDFBytes', async (event, pdfPath) => {
     try {
@@ -371,16 +379,13 @@ function registerFacturasHandlers() {
         };
       }
 
-      // Read file as Buffer and convert to ArrayBuffer
+      // Read file and return as a plain number array so that Electron's
+      // structured-clone algorithm does not inadvertently wrap it in
+      // { type: 'Buffer', data: [...] } when crossing the IPC boundary.
       const fileBuffer = fs.readFileSync(absolutePath);
-      const arrayBuffer = fileBuffer.buffer.slice(
-        fileBuffer.byteOffset,
-        fileBuffer.byteOffset + fileBuffer.byteLength
-      );
-
       return {
         success: true,
-        data: arrayBuffer,
+        data: Array.from(fileBuffer),
       };
     } catch (error) {
       console.error('Error in facturas:getPDFBytes:', error);
