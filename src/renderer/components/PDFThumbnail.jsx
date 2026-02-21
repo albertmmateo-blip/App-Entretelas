@@ -79,7 +79,9 @@ function PDFThumbnail({ pdfPath }) {
           }
 
           // Load PDF document
-          const pdf = await pdfjsLib.getDocument({ data: response.data }).promise;
+          // Convert ArrayBuffer to Uint8Array for pdfjs-dist compatibility
+          const pdfData = new Uint8Array(response.data);
+          const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
 
           // Get first page
           const page = await pdf.getPage(1);
