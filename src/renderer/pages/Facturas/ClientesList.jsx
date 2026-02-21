@@ -122,6 +122,10 @@ function ClientesListView() {
                     <span className="font-medium">Dirección:</span> {cliente.direccion}
                   </div>
                 )}
+                <div>
+                  <span className="font-medium">Facturas subidas:</span>{' '}
+                  {cliente.facturas_count ?? 0}
+                </div>
                 <div className="text-neutral-500">
                   {new Date(cliente.fecha_creacion).toLocaleDateString('es-ES')}
                 </div>

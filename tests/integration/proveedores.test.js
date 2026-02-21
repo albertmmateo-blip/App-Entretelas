@@ -66,6 +66,56 @@ describe('Proveedores IPC Handlers', () => {
       expect(response.data[2].razon_social).toBe('Proveedor C');
       expect(response.data[0]).toHaveProperty('id');
       expect(response.data[0]).toHaveProperty('fecha_creacion');
+      expect(response.data[0]).toHaveProperty('facturas_count');
+      expect(response.data[0].facturas_count).toBe(0);
+    });
+
+    it('should include uploaded facturas count per proveedor', async () => {
+      seedTestData(db, 'proveedores', [
+        createProveedor({ razon_social: 'Proveedor Uno' }),
+        createProveedor({ razon_social: 'Proveedor Dos' }),
+      ]);
+
+      const proveedores = db
+        .prepare('SELECT id, razon_social FROM proveedores ORDER BY razon_social ASC')
+        .all();
+
+      seedTestData(db, 'facturas_pdf', [
+        {
+          tipo: 'compra',
+          entidad_id: proveedores[1].id,
+          entidad_tipo: 'proveedor',
+          nombre_original: 'factura-1.pdf',
+          nombre_guardado: 'Proveedor - factura-1.pdf',
+          ruta_relativa: `compra/proveedor-dos/factura-1-${proveedores[1].id}.pdf`,
+        },
+        {
+          tipo: 'compra',
+          entidad_id: proveedores[1].id,
+          entidad_tipo: 'proveedor',
+          nombre_original: 'factura-2.pdf',
+          nombre_guardado: 'Proveedor - factura-2.pdf',
+          ruta_relativa: `compra/proveedor-dos/factura-2-${proveedores[1].id}.pdf`,
+        },
+        {
+          tipo: 'venta',
+          entidad_id: proveedores[1].id,
+          entidad_tipo: 'cliente',
+          nombre_original: 'cliente-factura.pdf',
+          nombre_guardado: 'Client - cliente-factura.pdf',
+          ruta_relativa: `venta/cliente/factura-${proveedores[1].id}.pdf`,
+        },
+      ]);
+
+      const handler = mockHandlers['proveedores:getAll'];
+      const response = await handler();
+
+      expect(response.success).toBe(true);
+      expect(response.data).toHaveLength(2);
+      expect(response.data[0].razon_social).toBe('Proveedor Dos');
+      expect(response.data[0].facturas_count).toBe(2);
+      expect(response.data[1].razon_social).toBe('Proveedor Uno');
+      expect(response.data[1].facturas_count).toBe(0);
     });
 
     it('should return empty array when no proveedores exist', async () => {

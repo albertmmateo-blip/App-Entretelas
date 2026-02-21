@@ -116,7 +116,19 @@ function registerClientesHandlers() {
   ipcMain.handle('clientes:getAll', async () => {
     try {
       const db = getDatabase();
-      const clientes = db.prepare('SELECT * FROM clientes ORDER BY razon_social ASC').all();
+      const clientes = db
+        .prepare(
+          `
+          SELECT c.*, COUNT(f.id) AS facturas_count
+          FROM clientes c
+          LEFT JOIN facturas_pdf f
+            ON f.entidad_id = c.id
+           AND f.entidad_tipo = 'cliente'
+          GROUP BY c.id
+          ORDER BY c.razon_social ASC
+        `
+        )
+        .all();
 
       return {
         success: true,

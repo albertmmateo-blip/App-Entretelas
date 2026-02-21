@@ -88,7 +88,19 @@ function registerProveedoresHandlers() {
   ipcMain.handle('proveedores:getAll', async () => {
     try {
       const db = getDatabase();
-      const proveedores = db.prepare('SELECT * FROM proveedores ORDER BY razon_social ASC').all();
+      const proveedores = db
+        .prepare(
+          `
+          SELECT p.*, COUNT(f.id) AS facturas_count
+          FROM proveedores p
+          LEFT JOIN facturas_pdf f
+            ON f.entidad_id = p.id
+           AND f.entidad_tipo = 'proveedor'
+          GROUP BY p.id
+          ORDER BY p.razon_social ASC
+        `
+        )
+        .all();
 
       return {
         success: true,

@@ -137,6 +137,10 @@ function ProveedoresListView() {
                     <span className="font-medium">Dirección:</span> {proveedor.direccion}
                   </div>
                 )}
+                <div>
+                  <span className="font-medium">Facturas subidas:</span>{' '}
+                  {proveedor.facturas_count ?? 0}
+                </div>
                 <div className="text-neutral-500">
                   {new Date(proveedor.fecha_creacion).toLocaleDateString('es-ES')}
                 </div>

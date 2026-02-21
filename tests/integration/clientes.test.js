@@ -67,6 +67,56 @@ describe('Clientes IPC Handlers', () => {
       expect(response.data[0]).toHaveProperty('id');
       expect(response.data[0]).toHaveProperty('numero_cliente');
       expect(response.data[0]).toHaveProperty('fecha_creacion');
+      expect(response.data[0]).toHaveProperty('facturas_count');
+      expect(response.data[0].facturas_count).toBe(0);
+    });
+
+    it('should include uploaded facturas count per cliente', async () => {
+      seedTestData(db, 'clientes', [
+        createCliente({ razon_social: 'Cliente Uno', numero_cliente: 'CLI-001' }),
+        createCliente({ razon_social: 'Cliente Dos', numero_cliente: 'CLI-002' }),
+      ]);
+
+      const clientes = db
+        .prepare('SELECT id, razon_social FROM clientes ORDER BY razon_social ASC')
+        .all();
+
+      seedTestData(db, 'facturas_pdf', [
+        {
+          tipo: 'venta',
+          entidad_id: clientes[0].id,
+          entidad_tipo: 'cliente',
+          nombre_original: 'factura-1.pdf',
+          nombre_guardado: 'Client - factura-1.pdf',
+          ruta_relativa: `venta/cliente-dos/factura-1-${clientes[0].id}.pdf`,
+        },
+        {
+          tipo: 'venta',
+          entidad_id: clientes[0].id,
+          entidad_tipo: 'cliente',
+          nombre_original: 'factura-2.pdf',
+          nombre_guardado: 'Client - factura-2.pdf',
+          ruta_relativa: `venta/cliente-dos/factura-2-${clientes[0].id}.pdf`,
+        },
+        {
+          tipo: 'compra',
+          entidad_id: clientes[0].id,
+          entidad_tipo: 'proveedor',
+          nombre_original: 'proveedor-factura.pdf',
+          nombre_guardado: 'Proveedor - proveedor-factura.pdf',
+          ruta_relativa: `compra/proveedor/factura-${clientes[0].id}.pdf`,
+        },
+      ]);
+
+      const handler = mockHandlers['clientes:getAll'];
+      const response = await handler();
+
+      expect(response.success).toBe(true);
+      expect(response.data).toHaveLength(2);
+      expect(response.data[0].razon_social).toBe('Cliente Dos');
+      expect(response.data[0].facturas_count).toBe(2);
+      expect(response.data[1].razon_social).toBe('Cliente Uno');
+      expect(response.data[1].facturas_count).toBe(0);
     });
 
     it('should return empty array when no clientes exist', async () => {
