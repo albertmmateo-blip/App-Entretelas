@@ -10,7 +10,7 @@ const NAV_ITEMS = [
   { path: '/notas', icon: '📝', label: 'Notas' },
   { path: '/llamar', icon: '📞', label: 'Llamar' },
   { path: '/encargar', icon: '📦', label: 'Encargar' },
-  { path: '/facturas', icon: '📄', label: 'Facturas' },
+  { path: '/contabilidad', icon: '📄', label: 'Contabilidad' },
   { path: '/email', icon: '📧', label: 'E-mail' },
 ];
 

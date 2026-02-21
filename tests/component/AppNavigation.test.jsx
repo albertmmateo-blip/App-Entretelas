@@ -32,7 +32,7 @@ vi.mock('../../src/renderer/pages/Facturas', () => ({
   default: function FacturasPageMock() {
     const location = useLocation();
     const isEditRoute = location.pathname.endsWith('/editar');
-    return <h1>{isEditRoute ? 'Facturas Edit Route' : 'Facturas'}</h1>;
+    return <h1>{isEditRoute ? 'Contabilidad Edit Route' : 'Contabilidad'}</h1>;
   },
 }));
 
@@ -51,7 +51,7 @@ describe('App - Sidebar Navigation', () => {
     expect(links[2]).toHaveTextContent('Notas');
     expect(links[3]).toHaveTextContent('Llamar');
     expect(links[4]).toHaveTextContent('Encargar');
-    expect(links[5]).toHaveTextContent('Facturas');
+    expect(links[5]).toHaveTextContent('Contabilidad');
     expect(links[6]).toHaveTextContent('E-mail');
   });
 
@@ -143,15 +143,15 @@ describe('App - Sidebar Navigation', () => {
     expect(within(main).getByRole('heading', { name: 'Encargar' })).toBeInTheDocument();
   });
 
-  it('renders Facturas page at /facturas route', () => {
+  it('renders Contabilidad page at /contabilidad route', () => {
     render(
-      <MemoryRouter initialEntries={['/facturas']}>
+      <MemoryRouter initialEntries={['/contabilidad']}>
         <AppLayout />
       </MemoryRouter>
     );
 
     const main = screen.getByRole('main');
-    expect(within(main).getByRole('heading', { name: 'Facturas' })).toBeInTheDocument();
+    expect(within(main).getByRole('heading', { name: 'Contabilidad' })).toBeInTheDocument();
   });
 
   it('renders E-mail page at /email route', () => {
@@ -198,45 +198,49 @@ describe('App - Sidebar Navigation', () => {
     expect(within(main).getByRole('heading', { name: 'Encargar' })).toBeInTheDocument();
   });
 
-  it('registers nested routes for facturas compra', () => {
+  it('registers nested routes for contabilidad compra', () => {
     render(
-      <MemoryRouter initialEntries={['/facturas/compra']}>
+      <MemoryRouter initialEntries={['/contabilidad/compra']}>
         <AppLayout />
       </MemoryRouter>
     );
 
     const main = screen.getByRole('main');
-    expect(within(main).getByRole('heading', { name: 'Facturas' })).toBeInTheDocument();
+    expect(within(main).getByRole('heading', { name: 'Contabilidad' })).toBeInTheDocument();
   });
 
-  it('registers nested routes for facturas venta', () => {
+  it('registers nested routes for contabilidad venta', () => {
     render(
-      <MemoryRouter initialEntries={['/facturas/venta/456']}>
+      <MemoryRouter initialEntries={['/contabilidad/venta/456']}>
         <AppLayout />
       </MemoryRouter>
     );
 
     const main = screen.getByRole('main');
-    expect(within(main).getByRole('heading', { name: 'Facturas' })).toBeInTheDocument();
+    expect(within(main).getByRole('heading', { name: 'Contabilidad' })).toBeInTheDocument();
   });
 
-  it('registers nested routes for facturas edit paths', () => {
+  it('registers nested routes for contabilidad edit paths', () => {
     const { rerender } = render(
-      <MemoryRouter initialEntries={['/facturas/compra/123/editar']}>
+      <MemoryRouter initialEntries={['/contabilidad/compra/123/editar']}>
         <AppLayout />
       </MemoryRouter>
     );
 
     let main = screen.getByRole('main');
-    expect(within(main).getByRole('heading', { name: 'Facturas Edit Route' })).toBeInTheDocument();
+    expect(
+      within(main).getByRole('heading', { name: 'Contabilidad Edit Route' })
+    ).toBeInTheDocument();
 
     rerender(
-      <MemoryRouter initialEntries={['/facturas/venta/456/editar']}>
+      <MemoryRouter initialEntries={['/contabilidad/venta/456/editar']}>
         <AppLayout />
       </MemoryRouter>
     );
 
     main = screen.getByRole('main');
-    expect(within(main).getByRole('heading', { name: 'Facturas Edit Route' })).toBeInTheDocument();
+    expect(
+      within(main).getByRole('heading', { name: 'Contabilidad Edit Route' })
+    ).toBeInTheDocument();
   });
 });

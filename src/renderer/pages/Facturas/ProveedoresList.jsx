@@ -6,13 +6,16 @@ import { EntriesGrid, EntryCard, EmptyState, LoadingState } from '../../componen
 import useCRUD from '../../hooks/useCRUD';
 import ProveedorForm from './ProveedorForm';
 
-function ProveedoresListView() {
+function ProveedoresListView({ tipo = 'compra' }) {
   const navigate = useNavigate();
   const { entries, loading, fetchAll, delete: deleteProveedor } = useCRUD('proveedores');
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [menuState, setMenuState] = useState(null);
   const [folderCounts, setFolderCounts] = useState({});
+  const basePath = `/contabilidad/${tipo}`;
+  const sectionTitle = tipo === 'arreglos' ? 'Contabilidad Arreglos' : 'Contabilidad Compra';
+  const uploadedLabel = tipo === 'arreglos' ? 'Archivos subidos' : 'Facturas subidas';
 
   useEffect(() => {
     fetchAll();
@@ -56,7 +59,7 @@ function ProveedoresListView() {
           const fallbackCount = proveedor.facturas_count ?? 0;
           try {
             const response = await facturasApi.getAllForEntidad({
-              tipo: 'compra',
+              tipo,
               entidadId: proveedor.id,
             });
 
@@ -81,7 +84,7 @@ function ProveedoresListView() {
     return () => {
       cancelled = true;
     };
-  }, [entries]);
+  }, [entries, tipo]);
 
   const filteredProveedores = useMemo(() => {
     if (!searchQuery.trim()) return entries;
@@ -115,18 +118,18 @@ function ProveedoresListView() {
     <div className="p-6">
       {/* Header with actions on the right */}
       <div className="flex items-center mb-4">
-        <h1 className="text-2xl font-bold text-neutral-900 flex-1">Facturas Compra</h1>
+        <h1 className="text-2xl font-bold text-neutral-900 flex-1">{sectionTitle}</h1>
         <div className="ml-auto flex items-center gap-2">
           <button
             type="button"
-            onClick={() => navigate('/facturas/compra/nuevo')}
+            onClick={() => navigate(`${basePath}/nuevo`)}
             className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
           >
             + Nuevo Proveedor
           </button>
           <button
             type="button"
-            onClick={() => navigate('/facturas')}
+            onClick={() => navigate('/contabilidad')}
             className="px-3 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
           >
             ← Volver
@@ -154,7 +157,7 @@ function ProveedoresListView() {
               <button
                 key={`shortcut-${proveedor.id}`}
                 type="button"
-                onClick={() => navigate(`/facturas/compra/${proveedor.id}`)}
+                onClick={() => navigate(`${basePath}/${proveedor.id}`)}
                 className="px-3 py-1.5 border border-neutral-200 rounded bg-white hover:border-primary hover:text-primary transition-colors text-sm text-neutral-700"
                 aria-label={`Abrir carpeta de ${proveedor.razon_social}`}
               >
@@ -177,7 +180,7 @@ function ProveedoresListView() {
             <EntryCard
               key={proveedor.id}
               urgente={false}
-              onClick={() => navigate(`/facturas/compra/${proveedor.id}`)}
+              onClick={() => navigate(`${basePath}/${proveedor.id}`)}
               onActionClick={(e) => setMenuState({ proveedor, x: e.clientX, y: e.clientY })}
             >
               <h3 className="text-lg font-semibold mb-2 text-neutral-900">
@@ -195,7 +198,7 @@ function ProveedoresListView() {
                   </div>
                 )}
                 <div>
-                  <span className="font-medium">Facturas subidas:</span>{' '}
+                  <span className="font-medium">{uploadedLabel}:</span>{' '}
                   {folderCounts[proveedor.id] ?? proveedor.facturas_count ?? 0}
                 </div>
                 <div className="text-neutral-500">
@@ -216,7 +219,7 @@ function ProveedoresListView() {
           <button
             type="button"
             onClick={() => {
-              navigate(`/facturas/compra/${menuState.proveedor.id}/editar`);
+              navigate(`${basePath}/${menuState.proveedor.id}/editar`);
               setMenuState(null);
             }}
             className="block w-full text-left px-4 py-2 text-sm hover:bg-neutral-50 text-neutral-700"
@@ -251,7 +254,7 @@ function ProveedoresListView() {
   );
 }
 
-function ProveedorPDFView() {
+function ProveedorPDFView({ tipo = 'compra' }) {
   const navigate = useNavigate();
   const { proveedorId } = useParams();
   const parsedId = parseInt(proveedorId, 10);
@@ -268,6 +271,9 @@ function ProveedorPDFView() {
     () => (entidadId ? entries.find((item) => item.id === entidadId) : null),
     [entidadId, entries]
   );
+  const basePath = `/contabilidad/${tipo}`;
+  const titleLabel = tipo === 'arreglos' ? 'Arreglos' : 'Facturas';
+  const entityLabel = tipo === 'arreglos' ? 'Archivo' : 'Factura';
 
   if (!entidadId) {
     return null;
@@ -279,7 +285,7 @@ function ProveedorPDFView() {
         <div>
           <button
             type="button"
-            onClick={() => navigate('/facturas/compra')}
+            onClick={() => navigate(basePath)}
             className="text-primary hover:text-primary/80 flex items-center gap-1 mb-2"
           >
             ← Volver
@@ -290,10 +296,10 @@ function ProveedorPDFView() {
         </div>
         <button
           type="button"
-          onClick={() => navigate(`/facturas/compra/${entidadId}/editar`)}
+          onClick={() => navigate(`${basePath}/${entidadId}/editar`)}
           className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
         >
-          Editar proveedor
+          {`Editar proveedor (${titleLabel.toLowerCase()})`}
         </button>
       </div>
 
@@ -301,29 +307,38 @@ function ProveedorPDFView() {
         <LoadingState />
       ) : (
         <PDFUploadSection
-          tipo="compra"
+          tipo={tipo}
           entidadId={entidadId}
           entidadNombre={proveedor?.razon_social || `Proveedor ${entidadId}`}
+          sectionLabel={titleLabel}
+          fileLabel={entityLabel}
         />
       )}
     </div>
   );
 }
 
-function ProveedoresList() {
+function ProveedoresList({ tipo = 'compra' }) {
   const location = useLocation();
   const { proveedorId } = useParams();
   const isEditRoute = location.pathname.endsWith('/editar');
+  const basePath = `/contabilidad/${tipo}`;
 
   if (proveedorId === 'nuevo' || (proveedorId && isEditRoute)) {
-    return <ProveedorForm />;
+    return (
+      <ProveedorForm
+        basePath={basePath}
+        uploadTipo={tipo}
+        sectionLabel={tipo === 'arreglos' ? 'Arreglos' : 'Facturas'}
+      />
+    );
   }
 
   if (proveedorId) {
-    return <ProveedorPDFView />;
+    return <ProveedorPDFView tipo={tipo} />;
   }
 
-  return <ProveedoresListView />;
+  return <ProveedoresListView tipo={tipo} />;
 }
 
 export default ProveedoresList;

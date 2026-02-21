@@ -4,6 +4,32 @@ import PDFThumbnail from './PDFThumbnail';
 import ConfirmDialog from './ConfirmDialog';
 import useToast from '../hooks/useToast';
 
+const MAX_UPLOAD_SIZE_BYTES = 52428800;
+const ALLOWED_EXTENSIONS = [
+  '.pdf',
+  '.doc',
+  '.docx',
+  '.xls',
+  '.xlsx',
+  '.ppt',
+  '.pptx',
+  '.csv',
+  '.txt',
+  '.rtf',
+  '.odt',
+  '.ods',
+  '.odp',
+];
+
+function getFileExtension(filename) {
+  const lastDotIndex = filename.lastIndexOf('.');
+  if (lastDotIndex === -1) {
+    return '';
+  }
+
+  return filename.slice(lastDotIndex).toLowerCase();
+}
+
 function normalizeDateForInput(value) {
   if (!value) {
     return '';
@@ -37,6 +63,10 @@ function formatAmount(value) {
   });
 }
 
+function isPdfFile(filename) {
+  return getFileExtension(filename) === '.pdf';
+}
+
 /**
  * PDFUploadSection component
  * Manages PDF uploads and displays thumbnails for an entity (proveedor or cliente)
@@ -46,7 +76,13 @@ function formatAmount(value) {
  * @param {number} props.entidadId - ID of the entity (proveedor or cliente)
  * @param {string} props.entidadNombre - Name of the entity
  */
-function PDFUploadSection({ tipo, entidadId = null, entidadNombre }) {
+function PDFUploadSection({
+  tipo,
+  entidadId = null,
+  entidadNombre,
+  sectionLabel = 'Facturas',
+  fileLabel = 'Factura',
+}) {
   const [pdfs, setPdfs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -79,10 +115,10 @@ function PDFUploadSection({ tipo, entidadId = null, entidadNombre }) {
         return rows;
       }
 
-      showToast(response.error?.message || 'Error al cargar PDFs', 'error');
+      showToast(response.error?.message || 'Error al cargar archivos', 'error');
     } catch (error) {
       console.error('Error fetching PDFs:', error);
-      showToast('Error al cargar PDFs', 'error');
+      showToast('Error al cargar archivos', 'error');
     } finally {
       setLoading(false);
     }
@@ -126,16 +162,19 @@ function PDFUploadSection({ tipo, entidadId = null, entidadNombre }) {
       });
 
       if (!response.success) {
-        showToast(response.error?.message || 'Error al actualizar factura', 'error');
+        showToast(
+          response.error?.message || `Error al actualizar ${fileLabel.toLowerCase()}`,
+          'error'
+        );
         return;
       }
 
-      showToast('Factura actualizada correctamente', 'success');
+      showToast(`${fileLabel} actualizado correctamente`, 'success');
       await fetchPDFs();
       cancelEditing();
     } catch (error) {
       console.error('Error updating PDF metadata:', error);
-      showToast('Error al actualizar factura', 'error');
+      showToast(`Error al actualizar ${fileLabel.toLowerCase()}`, 'error');
     } finally {
       setSavingMetadataId(null);
     }
@@ -146,14 +185,15 @@ function PDFUploadSection({ tipo, entidadId = null, entidadNombre }) {
     const files = Array.from(target.files || []);
     if (files.length === 0) return;
 
-    const maxSize = 52428800;
     const validFiles = files.filter((file) => {
-      if (!file.name.toLowerCase().endsWith('.pdf')) {
-        showToast(`"${file.name}" no es un PDF válido`, 'error');
+      const extension = getFileExtension(file.name);
+
+      if (!ALLOWED_EXTENSIONS.includes(extension)) {
+        showToast(`"${file.name}" no es un tipo de archivo permitido`, 'error');
         return false;
       }
 
-      if (file.size > maxSize) {
+      if (file.size > MAX_UPLOAD_SIZE_BYTES) {
         showToast(`"${file.name}" supera los 50 MB`, 'error');
         return false;
       }
@@ -197,8 +237,8 @@ function PDFUploadSection({ tipo, entidadId = null, entidadNombre }) {
       if (successCount > 0) {
         showToast(
           successCount === 1
-            ? '1 PDF subido correctamente'
-            : `${successCount} PDFs subidos correctamente`,
+            ? `1 ${fileLabel.toLowerCase()} subido correctamente`
+            : `${successCount} archivos subidos correctamente`,
           'success'
         );
         const refreshedPdfs = await fetchPDFs();
@@ -210,7 +250,7 @@ function PDFUploadSection({ tipo, entidadId = null, entidadNombre }) {
       }
     } catch (error) {
       console.error('Error uploading PDF:', error);
-      showToast('Error al subir PDF', 'error');
+      showToast('Error al subir archivo', 'error');
     } finally {
       setUploading(false);
       target.value = '';
@@ -222,15 +262,15 @@ function PDFUploadSection({ tipo, entidadId = null, entidadNombre }) {
       const response = await window.electronAPI.facturas.deletePDF(pdf.id);
 
       if (response.success) {
-        showToast('PDF eliminado correctamente', 'success');
+        showToast('Archivo eliminado correctamente', 'success');
         await fetchPDFs();
         setDeleteConfirm(null);
       } else {
-        showToast(response.error?.message || 'Error al eliminar PDF', 'error');
+        showToast(response.error?.message || 'Error al eliminar archivo', 'error');
       }
     } catch (error) {
       console.error('Error deleting PDF:', error);
-      showToast('Error al eliminar PDF', 'error');
+      showToast('Error al eliminar archivo', 'error');
     }
   };
 
@@ -239,7 +279,7 @@ function PDFUploadSection({ tipo, entidadId = null, entidadNombre }) {
     return (
       <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-6">
         <p className="text-sm text-neutral-600 text-center">
-          Guarda el {tipo === 'compra' ? 'proveedor' : 'cliente'} primero para poder subir PDFs
+          Guarda el {tipo === 'venta' ? 'cliente' : 'proveedor'} primero para poder subir archivos
         </p>
       </div>
     );
@@ -248,18 +288,20 @@ function PDFUploadSection({ tipo, entidadId = null, entidadNombre }) {
   return (
     <div className="bg-neutral-100 border border-neutral-200 rounded-lg p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-neutral-900">Facturas PDF ({pdfs.length})</h3>
+        <h3 className="text-lg font-semibold text-neutral-900">
+          {sectionLabel} ({pdfs.length})
+        </h3>
         <label
           htmlFor="pdf-upload"
           className={`px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors cursor-pointer ${
             uploading ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         >
-          {uploading ? 'Subiendo...' : '+ Subir PDF'}
+          {uploading ? 'Subiendo...' : '+ Subir archivo'}
           <input
             id="pdf-upload"
             type="file"
-            accept=".pdf"
+            accept={ALLOWED_EXTENSIONS.join(',')}
             multiple
             onChange={handleFileSelect}
             disabled={uploading}
@@ -270,13 +312,13 @@ function PDFUploadSection({ tipo, entidadId = null, entidadNombre }) {
 
       {loading && (
         <div className="text-center py-8">
-          <p className="text-neutral-500">Cargando PDFs...</p>
+          <p className="text-neutral-500">Cargando archivos...</p>
         </div>
       )}
 
       {!loading && pdfs.length === 0 && (
         <div className="text-center py-8">
-          <p className="text-neutral-500">No hay PDFs subidos</p>
+          <p className="text-neutral-500">No hay archivos subidos</p>
         </div>
       )}
 
@@ -285,7 +327,13 @@ function PDFUploadSection({ tipo, entidadId = null, entidadNombre }) {
           {pdfs.map((pdf) => (
             <div key={pdf.id} className="relative group">
               <div className="border border-neutral-200 rounded-lg p-2 hover:border-primary transition-colors bg-neutral-50">
-                <PDFThumbnail pdfPath={pdf.ruta_relativa} />
+                {isPdfFile(pdf.nombre_original) ? (
+                  <PDFThumbnail pdfPath={pdf.ruta_relativa} />
+                ) : (
+                  <div className="h-[180px] rounded bg-neutral-100 border border-neutral-200 flex items-center justify-center text-4xl text-neutral-500">
+                    📄
+                  </div>
+                )}
                 <div className="mt-2">
                   <p className="text-xs text-neutral-700 truncate" title={pdf.nombre_original}>
                     {pdf.nombre_original}
@@ -393,7 +441,7 @@ function PDFUploadSection({ tipo, entidadId = null, entidadNombre }) {
                 type="button"
                 onClick={() => setDeleteConfirm(pdf)}
                 className="absolute top-1 right-1 bg-danger text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-danger/90"
-                title="Eliminar PDF"
+                title="Eliminar archivo"
               >
                 ×
               </button>
@@ -404,7 +452,7 @@ function PDFUploadSection({ tipo, entidadId = null, entidadNombre }) {
 
       {deleteConfirm && (
         <ConfirmDialog
-          title="¿Eliminar este PDF?"
+          title="¿Eliminar este archivo?"
           message="Esta acción no se puede deshacer."
           onConfirm={() => handleDelete(deleteConfirm)}
           onCancel={() => setDeleteConfirm(null)}
@@ -417,9 +465,11 @@ function PDFUploadSection({ tipo, entidadId = null, entidadNombre }) {
 }
 
 PDFUploadSection.propTypes = {
-  tipo: PropTypes.oneOf(['compra', 'venta']).isRequired,
+  tipo: PropTypes.oneOf(['compra', 'venta', 'arreglos']).isRequired,
   entidadId: PropTypes.number,
   entidadNombre: PropTypes.string.isRequired,
+  sectionLabel: PropTypes.string,
+  fileLabel: PropTypes.string,
 };
 
 export default PDFUploadSection;

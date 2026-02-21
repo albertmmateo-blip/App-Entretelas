@@ -58,17 +58,17 @@ function ClienteForm() {
 
     if (isEdit) {
       const result = await update(parseInt(clienteId, 10), payload);
-      if (result) navigate(`/facturas/venta/${clienteId}`);
+      if (result) navigate(`/contabilidad/venta/${clienteId}`);
       return result;
     }
 
     const result = await create(payload);
-    if (result) navigate('/facturas/venta');
+    if (result) navigate('/contabilidad/venta');
     return result;
   };
 
   const handleCancel = () => {
-    navigate(isEdit ? `/facturas/venta/${clienteId}` : '/facturas/venta');
+    navigate(isEdit ? `/contabilidad/venta/${clienteId}` : '/contabilidad/venta');
   };
 
   return (
@@ -100,6 +100,8 @@ function ClienteForm() {
             tipo="venta"
             entidadId={existingCliente.id}
             entidadNombre={existingCliente.razon_social}
+            sectionLabel="Facturas"
+            fileLabel="Factura"
           />
         )}
       </div>

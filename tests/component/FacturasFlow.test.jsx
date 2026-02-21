@@ -24,26 +24,26 @@ function LocationDisplay() {
   return <div data-testid="location-display">{location.pathname}</div>;
 }
 
-function renderProveedores(initialEntry = '/facturas/compra') {
+function renderProveedores(initialEntry = '/contabilidad/compra') {
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
-        <Route path="/facturas/compra" element={<ProveedoresList />} />
-        <Route path="/facturas/compra/:proveedorId" element={<ProveedoresList />} />
-        <Route path="/facturas/compra/:proveedorId/editar" element={<ProveedoresList />} />
+        <Route path="/contabilidad/compra" element={<ProveedoresList />} />
+        <Route path="/contabilidad/compra/:proveedorId" element={<ProveedoresList />} />
+        <Route path="/contabilidad/compra/:proveedorId/editar" element={<ProveedoresList />} />
       </Routes>
       <LocationDisplay />
     </MemoryRouter>
   );
 }
 
-function renderClientes(initialEntry = '/facturas/venta') {
+function renderClientes(initialEntry = '/contabilidad/venta') {
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
-        <Route path="/facturas/venta" element={<ClientesList />} />
-        <Route path="/facturas/venta/:clienteId" element={<ClientesList />} />
-        <Route path="/facturas/venta/:clienteId/editar" element={<ClientesList />} />
+        <Route path="/contabilidad/venta" element={<ClientesList />} />
+        <Route path="/contabilidad/venta/:clienteId" element={<ClientesList />} />
+        <Route path="/contabilidad/venta/:clienteId/editar" element={<ClientesList />} />
       </Routes>
       <LocationDisplay />
     </MemoryRouter>
@@ -114,11 +114,11 @@ describe('Facturas flow routing', () => {
   it('opens proveedor PDF folder on card click and not edit form', () => {
     setupCRUDMock({ proveedores: proveedoresFixture(1) });
 
-    renderProveedores('/facturas/compra');
+    renderProveedores('/contabilidad/compra');
 
     fireEvent.click(screen.getByText('Proveedor 0001'));
 
-    expect(screen.getByTestId('location-display')).toHaveTextContent('/facturas/compra/1');
+    expect(screen.getByTestId('location-display')).toHaveTextContent('/contabilidad/compra/1');
     expect(screen.getByTestId('pdf-upload-section')).toHaveTextContent('compra:1:Proveedor 0001');
     expect(screen.queryByRole('button', { name: 'Guardar' })).not.toBeInTheDocument();
   });
@@ -126,12 +126,14 @@ describe('Facturas flow routing', () => {
   it('opens proveedor edit form only from Editar action', () => {
     setupCRUDMock({ proveedores: proveedoresFixture(1) });
 
-    renderProveedores('/facturas/compra');
+    renderProveedores('/contabilidad/compra');
 
     fireEvent.click(screen.getByLabelText('Abrir menú de acciones'));
     fireEvent.click(screen.getByRole('button', { name: 'Editar' }));
 
-    expect(screen.getByTestId('location-display')).toHaveTextContent('/facturas/compra/1/editar');
+    expect(screen.getByTestId('location-display')).toHaveTextContent(
+      '/contabilidad/compra/1/editar'
+    );
     expect(screen.getByRole('heading', { name: 'Editar proveedor' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Guardar' })).toBeInTheDocument();
   });
@@ -139,38 +141,38 @@ describe('Facturas flow routing', () => {
   it('handles invalid proveedor id route gracefully', () => {
     setupCRUDMock({ proveedores: proveedoresFixture(2) });
 
-    renderProveedores('/facturas/compra/not-a-number');
+    renderProveedores('/contabilidad/compra/not-a-number');
 
     expect(screen.getByTestId('location-display')).toHaveTextContent(
-      '/facturas/compra/not-a-number'
+      '/contabilidad/compra/not-a-number'
     );
     expect(screen.queryByTestId('pdf-upload-section')).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Editar proveedor' })).not.toBeInTheDocument();
-    expect(screen.queryByText('Facturas Compra')).not.toBeInTheDocument();
+    expect(screen.queryByText('Contabilidad Compra')).not.toBeInTheDocument();
   });
 
   it('renders and navigates correctly with heavy proveedores dataset', () => {
     setupCRUDMock({ proveedores: proveedoresFixture(500) });
 
-    renderProveedores('/facturas/compra');
+    renderProveedores('/contabilidad/compra');
 
     expect(screen.getByText('Proveedor 0001')).toBeInTheDocument();
     expect(screen.getByText('Proveedor 0500')).toBeInTheDocument();
 
     fireEvent.click(screen.getByText('Proveedor 0500'));
 
-    expect(screen.getByTestId('location-display')).toHaveTextContent('/facturas/compra/500');
+    expect(screen.getByTestId('location-display')).toHaveTextContent('/contabilidad/compra/500');
     expect(screen.getByTestId('pdf-upload-section')).toHaveTextContent('compra:500:Proveedor 0500');
   });
 
   it('opens cliente PDF folder on card click and not edit form', () => {
     setupCRUDMock({ clientes: clientesFixture(1) });
 
-    renderClientes('/facturas/venta');
+    renderClientes('/contabilidad/venta');
 
     fireEvent.click(screen.getByText('Cliente 0001'));
 
-    expect(screen.getByTestId('location-display')).toHaveTextContent('/facturas/venta/1');
+    expect(screen.getByTestId('location-display')).toHaveTextContent('/contabilidad/venta/1');
     expect(screen.getByTestId('pdf-upload-section')).toHaveTextContent('venta:1:Cliente 0001');
     expect(screen.queryByRole('button', { name: 'Guardar' })).not.toBeInTheDocument();
   });
@@ -178,12 +180,14 @@ describe('Facturas flow routing', () => {
   it('opens cliente edit form only from Editar action', () => {
     setupCRUDMock({ clientes: clientesFixture(1) });
 
-    renderClientes('/facturas/venta');
+    renderClientes('/contabilidad/venta');
 
     fireEvent.click(screen.getByLabelText('Abrir menú de acciones'));
     fireEvent.click(screen.getByRole('button', { name: 'Editar' }));
 
-    expect(screen.getByTestId('location-display')).toHaveTextContent('/facturas/venta/1/editar');
+    expect(screen.getByTestId('location-display')).toHaveTextContent(
+      '/contabilidad/venta/1/editar'
+    );
     expect(screen.getByRole('heading', { name: 'Editar cliente' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Guardar' })).toBeInTheDocument();
   });
@@ -191,13 +195,13 @@ describe('Facturas flow routing', () => {
   it('handles invalid cliente id route gracefully', () => {
     setupCRUDMock({ clientes: clientesFixture(2) });
 
-    renderClientes('/facturas/venta/not-a-number');
+    renderClientes('/contabilidad/venta/not-a-number');
 
     expect(screen.getByTestId('location-display')).toHaveTextContent(
-      '/facturas/venta/not-a-number'
+      '/contabilidad/venta/not-a-number'
     );
     expect(screen.queryByTestId('pdf-upload-section')).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Editar cliente' })).not.toBeInTheDocument();
-    expect(screen.queryByText('Facturas Venta')).not.toBeInTheDocument();
+    expect(screen.queryByText('Contabilidad Venta')).not.toBeInTheDocument();
   });
 });

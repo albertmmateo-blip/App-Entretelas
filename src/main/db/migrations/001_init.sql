@@ -119,7 +119,7 @@ END;
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS facturas_pdf (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    tipo            TEXT    NOT NULL CHECK (tipo IN ('compra', 'venta')),
+    tipo            TEXT    NOT NULL CHECK (tipo IN ('compra', 'venta', 'arreglos')),
     entidad_id      INTEGER NOT NULL,
     entidad_tipo    TEXT    NOT NULL CHECK (entidad_tipo IN ('proveedor', 'cliente')),
     nombre_original TEXT    NOT NULL,

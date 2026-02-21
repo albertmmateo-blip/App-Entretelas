@@ -64,6 +64,16 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full folder tree. Key entry point
 | `src/renderer/App.jsx`      | Router + sidebar layout              |
 | `src/main/db/connection.js` | SQLite connection + migration runner |
 
+### Naming convention (important)
+
+- The user-facing label for the module is **Contabilidad**.
+- The technical namespace remains **Facturas** and must stay as `facturas` in:
+  - file/folder names,
+  - IPC channel names,
+  - database objects (for example `facturas_pdf`),
+  - on-disk storage paths (for example `{userData}/facturas/...`).
+- This is intentional for backward compatibility; do not migrate technical identifiers to `contabilidad`.
+
 ---
 
 ## 5. Environment Variables

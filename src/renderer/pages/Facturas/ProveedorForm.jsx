@@ -4,7 +4,12 @@ import EntryForm from '../../components/EntryForm';
 import PDFUploadSection from '../../components/PDFUploadSection';
 import useCRUD from '../../hooks/useCRUD';
 
-function ProveedorForm({ basePath = '/facturas/compra', showPDFSection = true }) {
+function ProveedorForm({
+  basePath = '/contabilidad/compra',
+  showPDFSection = true,
+  uploadTipo = 'compra',
+  sectionLabel = 'Facturas',
+}) {
   const navigate = useNavigate();
   const { proveedorId } = useParams();
   const isEdit = proveedorId && proveedorId !== 'nuevo';
@@ -88,9 +93,11 @@ function ProveedorForm({ basePath = '/facturas/compra', showPDFSection = true })
 
         {showPDFSection && isEdit && existingProveedor && (
           <PDFUploadSection
-            tipo="compra"
+            tipo={uploadTipo}
             entidadId={existingProveedor.id}
             entidadNombre={existingProveedor.razon_social}
+            sectionLabel={sectionLabel}
+            fileLabel={sectionLabel === 'Arreglos' ? 'Archivo' : 'Factura'}
           />
         )}
       </div>

@@ -15,6 +15,12 @@ App-Entretelas is an internal tool for managing day-to-day business operations. 
 | **Facturas** | Purchase/sales invoice folders with PDF upload, thumbnail preview, and payment metadata tracking |
 | **E-mail**   | Embedded Gmail access                                                                            |
 
+### Naming convention note
+
+- In the UI, this module is shown as **Contabilidad**.
+- In code and technical artifacts, keep the original **Facturas** namespace (`facturas`): identifiers, files/folders, IPC channels, DB tables, and storage paths.
+- Do not rename technical paths from `facturas` to `contabilidad`.
+
 ## Quick Start
 
 ```bash

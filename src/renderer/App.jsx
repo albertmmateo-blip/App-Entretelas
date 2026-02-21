@@ -5,7 +5,7 @@ import Urgente from './pages/Urgente';
 import Notas from './pages/Notas';
 import Llamar from './pages/Llamar';
 import Encargar from './pages/Encargar';
-import Facturas from './pages/Facturas';
+import Contabilidad from './pages/Facturas';
 import Email from './pages/Email';
 
 export function AppLayout() {
@@ -15,7 +15,7 @@ export function AppLayout() {
     { path: '/notas', label: 'Notas', icon: '📝' },
     { path: '/llamar', label: 'Llamar', icon: '📞' },
     { path: '/encargar', label: 'Encargar', icon: '📦' },
-    { path: '/facturas', label: 'Facturas', icon: '📄' },
+    { path: '/contabilidad', label: 'Contabilidad', icon: '📄' },
     { path: '/email', label: 'E-mail', icon: '📧' },
   ];
 
@@ -57,13 +57,24 @@ export function AppLayout() {
           <Route path="/encargar/proveedor/nuevo" element={<Encargar />} />
           <Route path="/encargar/proveedor/:proveedorId" element={<Encargar />} />
           <Route path="/encargar/proveedor/:proveedorId/editar" element={<Encargar />} />
-          <Route path="/facturas" element={<Facturas />} />
-          <Route path="/facturas/compra" element={<Facturas />} />
-          <Route path="/facturas/compra/:proveedorId" element={<Facturas />} />
-          <Route path="/facturas/compra/:proveedorId/editar" element={<Facturas />} />
-          <Route path="/facturas/venta" element={<Facturas />} />
-          <Route path="/facturas/venta/:clienteId" element={<Facturas />} />
-          <Route path="/facturas/venta/:clienteId/editar" element={<Facturas />} />
+          <Route path="/contabilidad" element={<Contabilidad />} />
+          <Route path="/contabilidad/compra" element={<Contabilidad />} />
+          <Route path="/contabilidad/compra/:proveedorId" element={<Contabilidad />} />
+          <Route path="/contabilidad/compra/:proveedorId/editar" element={<Contabilidad />} />
+          <Route path="/contabilidad/venta" element={<Contabilidad />} />
+          <Route path="/contabilidad/venta/:clienteId" element={<Contabilidad />} />
+          <Route path="/contabilidad/venta/:clienteId/editar" element={<Contabilidad />} />
+          <Route path="/contabilidad/arreglos" element={<Contabilidad />} />
+          <Route path="/contabilidad/arreglos/:proveedorId" element={<Contabilidad />} />
+          <Route path="/contabilidad/arreglos/:proveedorId/editar" element={<Contabilidad />} />
+
+          <Route path="/facturas" element={<Contabilidad />} />
+          <Route path="/facturas/compra" element={<Contabilidad />} />
+          <Route path="/facturas/compra/:proveedorId" element={<Contabilidad />} />
+          <Route path="/facturas/compra/:proveedorId/editar" element={<Contabilidad />} />
+          <Route path="/facturas/venta" element={<Contabilidad />} />
+          <Route path="/facturas/venta/:clienteId" element={<Contabilidad />} />
+          <Route path="/facturas/venta/:clienteId/editar" element={<Contabilidad />} />
           <Route path="/email" element={<Email />} />
         </Routes>
       </main>

@@ -89,20 +89,20 @@ describe('PDFUploadSection', () => {
       filePath: 'C:/temp/factura-b.pdf',
     });
 
-    expect(showToastMock).toHaveBeenCalledWith('2 PDFs subidos correctamente', 'success');
+    expect(showToastMock).toHaveBeenCalledWith('2 archivos subidos correctamente', 'success');
     expect(getAllForEntidad).toHaveBeenCalledTimes(2);
   });
 
-  it('skips non-PDF files and uploads valid PDFs from mixed selection', async () => {
+  it('skips unsupported files and uploads valid files from mixed selection', async () => {
     const { uploadPDF } = setupMocks();
 
     render(<PDFUploadSection tipo="venta" entidadId={7} entidadNombre="Cliente 7" />);
 
     const input = document.getElementById('pdf-upload');
-    const txtFile = createFile('nota.txt', 1024, 'C:/temp/nota.txt');
+    const invalidFile = createFile('nota.exe', 1024, 'C:/temp/nota.exe');
     const validPdf = createFile('ok.pdf', 1024, 'C:/temp/ok.pdf');
 
-    fireEvent.change(input, { target: { files: [txtFile, validPdf] } });
+    fireEvent.change(input, { target: { files: [invalidFile, validPdf] } });
 
     await waitFor(() => {
       expect(uploadPDF).toHaveBeenCalledTimes(1);
@@ -114,11 +114,14 @@ describe('PDFUploadSection', () => {
       entidadNombre: 'Cliente 7',
       filePath: 'C:/temp/ok.pdf',
     });
-    expect(showToastMock).toHaveBeenCalledWith('"nota.txt" no es un PDF válido', 'error');
-    expect(showToastMock).toHaveBeenCalledWith('1 PDF subido correctamente', 'success');
+    expect(showToastMock).toHaveBeenCalledWith(
+      '"nota.exe" no es un tipo de archivo permitido',
+      'error'
+    );
+    expect(showToastMock).toHaveBeenCalledWith('1 factura subido correctamente', 'success');
   });
 
-  it('rejects oversized PDFs and does not upload when all selected files are invalid', async () => {
+  it('rejects oversized files and does not upload when all selected files are invalid', async () => {
     const { uploadPDF } = setupMocks();
 
     render(<PDFUploadSection tipo="compra" entidadId={3} entidadNombre="Proveedor 3" />);
@@ -132,7 +135,10 @@ describe('PDFUploadSection', () => {
     await waitFor(() => {
       expect(showToastMock).toHaveBeenCalledWith('"enorme.pdf" supera los 50 MB', 'error');
     });
-    expect(showToastMock).toHaveBeenCalledWith('"imagen.png" no es un PDF válido', 'error');
+    expect(showToastMock).toHaveBeenCalledWith(
+      '"imagen.png" no es un tipo de archivo permitido',
+      'error'
+    );
     expect(uploadPDF).not.toHaveBeenCalled();
   });
 
@@ -160,7 +166,7 @@ describe('PDFUploadSection', () => {
     });
 
     expect(showToastMock).toHaveBeenCalledWith('Fallo archivo 2', 'error');
-    expect(showToastMock).toHaveBeenCalledWith('2 PDFs subidos correctamente', 'success');
+    expect(showToastMock).toHaveBeenCalledWith('2 archivos subidos correctamente', 'success');
   });
 
   it('shows fetch error when initial list load fails', async () => {
@@ -213,6 +219,6 @@ describe('PDFUploadSection', () => {
         pagada: true,
       });
     });
-    expect(showToastMock).toHaveBeenCalledWith('Factura actualizada correctamente', 'success');
+    expect(showToastMock).toHaveBeenCalledWith('Factura actualizado correctamente', 'success');
   });
 });

@@ -31,6 +31,21 @@ const WINDOWS_RESERVED_NAMES = [
 
 const MAX_STORED_FILENAME_LENGTH = 200;
 const MAX_COLLISION_ATTEMPTS = 9999;
+const ALLOWED_FILE_EXTENSIONS = new Set([
+  '.pdf',
+  '.doc',
+  '.docx',
+  '.xls',
+  '.xlsx',
+  '.ppt',
+  '.pptx',
+  '.csv',
+  '.txt',
+  '.rtf',
+  '.odt',
+  '.ods',
+  '.odp',
+]);
 
 function normalizeOptionalAmount(value, fieldName) {
   if (value === null || value === undefined || value === '') {
@@ -151,10 +166,9 @@ function sanitizeFileBaseName(name) {
   return sanitized;
 }
 
-function buildStoredPdfFilename(entityLabel, baseName, suffixNumber = 0) {
+function buildStoredFilename(entityLabel, baseName, extension, suffixNumber = 0) {
   const suffix = suffixNumber > 0 ? ` (${suffixNumber})` : '';
   const prefix = `${entityLabel} - `;
-  const extension = '.pdf';
   const maxBaseLength = Math.max(
     1,
     MAX_STORED_FILENAME_LENGTH - prefix.length - suffix.length - extension.length
@@ -170,12 +184,13 @@ function buildStoredPdfFilename(entityLabel, baseName, suffixNumber = 0) {
   return `${prefix}${truncatedBase}${suffix}${extension}`;
 }
 
-function getUniquePdfStorageName({
+function getUniqueStorageName({
   db,
   tipo,
   sanitizedEntidad,
   entityLabel,
   sanitizedOriginalBaseName,
+  extension,
   targetDir,
 }) {
   const findExistingByRelativePath = db.prepare(
@@ -183,7 +198,12 @@ function getUniquePdfStorageName({
   );
 
   for (let attempt = 0; attempt <= MAX_COLLISION_ATTEMPTS; attempt += 1) {
-    const targetFilename = buildStoredPdfFilename(entityLabel, sanitizedOriginalBaseName, attempt);
+    const targetFilename = buildStoredFilename(
+      entityLabel,
+      sanitizedOriginalBaseName,
+      extension,
+      attempt
+    );
     const relativePath = path.join(tipo, sanitizedEntidad, targetFilename);
     const targetPath = path.join(targetDir, targetFilename);
 
@@ -232,7 +252,7 @@ function registerFacturasHandlers(deps = {}) {
   const electronApp = deps.app || app;
   /**
    * Handler: facturas:uploadPDF
-   * Uploads a PDF file to the managed facturas directory.
+   * Uploads a file to the managed facturas directory.
    * @param {object} params - Upload parameters
    * @param {string} params.tipo - 'compra' or 'venta'
    * @param {number} params.entidadId - ID of the entidad (proveedor or cliente)
@@ -253,10 +273,13 @@ function registerFacturasHandlers(deps = {}) {
       }
 
       // Validate tipo
-      if (tipo !== 'compra' && tipo !== 'venta') {
+      if (tipo !== 'compra' && tipo !== 'venta' && tipo !== 'arreglos') {
         return {
           success: false,
-          error: { code: 'INVALID_INPUT', message: 'tipo must be "compra" or "venta"' },
+          error: {
+            code: 'INVALID_INPUT',
+            message: 'tipo must be "compra", "venta", or "arreglos"',
+          },
         };
       }
 
@@ -268,12 +291,12 @@ function registerFacturasHandlers(deps = {}) {
         };
       }
 
-      // Check file extension is .pdf (case-insensitive)
+      // Check allowed file extension
       const fileExt = path.extname(filePath).toLowerCase();
-      if (fileExt !== '.pdf') {
+      if (!ALLOWED_FILE_EXTENSIONS.has(fileExt)) {
         return {
           success: false,
-          error: { code: 'FILE_INVALID', message: 'File must be a PDF (.pdf extension)' },
+          error: { code: 'FILE_INVALID', message: `Unsupported file extension: ${fileExt}` },
         };
       }
 
@@ -288,14 +311,15 @@ function registerFacturasHandlers(deps = {}) {
         };
       }
 
-      // Optional: Verify MIME type by checking first 4 bytes for %PDF
-      const fileBuffer = fs.readFileSync(filePath, { encoding: null, flag: 'r' });
-      const header = fileBuffer.slice(0, 4).toString('utf-8');
-      if (header !== '%PDF') {
-        return {
-          success: false,
-          error: { code: 'FILE_INVALID', message: 'File does not appear to be a valid PDF' },
-        };
+      if (fileExt === '.pdf') {
+        const fileBuffer = fs.readFileSync(filePath, { encoding: null, flag: 'r' });
+        const header = fileBuffer.slice(0, 4).toString('utf-8');
+        if (header !== '%PDF') {
+          return {
+            success: false,
+            error: { code: 'FILE_INVALID', message: 'File does not appear to be a valid PDF' },
+          };
+        }
       }
 
       // Sanitize entidadNombre for directory usage and filename for stored display-style name
@@ -311,15 +335,21 @@ function registerFacturasHandlers(deps = {}) {
       // Create directories if they don't exist
       fs.mkdirSync(targetDir, { recursive: true });
 
-      // Build filename: [Proveedor/Client] - [file name].pdf
-      const entityLabel = tipo === 'compra' ? 'Proveedor' : 'Client';
+      // Build filename: [Proveedor/Cliente/Arreglo] - [file name].[extension]
+      let entityLabel = 'Arreglo';
+      if (tipo === 'compra') {
+        entityLabel = 'Proveedor';
+      } else if (tipo === 'venta') {
+        entityLabel = 'Cliente';
+      }
       const db = getDb();
-      const { targetFilename, targetPath, relativePath } = getUniquePdfStorageName({
+      const { targetFilename, targetPath, relativePath } = getUniqueStorageName({
         db,
         tipo,
         sanitizedEntidad,
         entityLabel,
         sanitizedOriginalBaseName,
+        extension: fileExt,
         targetDir,
       });
 
@@ -327,7 +357,7 @@ function registerFacturasHandlers(deps = {}) {
       fs.copyFileSync(filePath, targetPath);
 
       // Insert record into facturas_pdf table
-      const entidadTipo = tipo === 'compra' ? 'proveedor' : 'cliente';
+      const entidadTipo = tipo === 'venta' ? 'cliente' : 'proveedor';
 
       const stmt = db.prepare(`
         INSERT INTO facturas_pdf (tipo, entidad_id, entidad_tipo, nombre_original, nombre_guardado, ruta_relativa)
@@ -356,7 +386,7 @@ function registerFacturasHandlers(deps = {}) {
         success: false,
         error: {
           code: 'INTERNAL_ERROR',
-          message: error.message || 'Failed to upload PDF',
+          message: error.message || 'Failed to upload file',
         },
       };
     }
@@ -438,10 +468,13 @@ function registerFacturasHandlers(deps = {}) {
         };
       }
 
-      if (tipo !== 'compra' && tipo !== 'venta') {
+      if (tipo !== 'compra' && tipo !== 'venta' && tipo !== 'arreglos') {
         return {
           success: false,
-          error: { code: 'INVALID_INPUT', message: 'tipo must be "compra" or "venta"' },
+          error: {
+            code: 'INVALID_INPUT',
+            message: 'tipo must be "compra", "venta", or "arreglos"',
+          },
         };
       }
 

@@ -114,18 +114,18 @@ function ClientesListView() {
     <div className="p-6">
       {/* Header with actions on the right */}
       <div className="flex items-center mb-4">
-        <h1 className="text-2xl font-bold text-neutral-900 flex-1">Facturas Venta</h1>
+        <h1 className="text-2xl font-bold text-neutral-900 flex-1">Contabilidad Venta</h1>
         <div className="ml-auto flex items-center gap-2">
           <button
             type="button"
-            onClick={() => navigate('/facturas/venta/nuevo')}
+            onClick={() => navigate('/contabilidad/venta/nuevo')}
             className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
           >
             + Nuevo Cliente
           </button>
           <button
             type="button"
-            onClick={() => navigate('/facturas')}
+            onClick={() => navigate('/contabilidad')}
             className="px-3 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
           >
             ← Volver
@@ -157,7 +157,7 @@ function ClientesListView() {
             <EntryCard
               key={cliente.id}
               urgente={false}
-              onClick={() => navigate(`/facturas/venta/${cliente.id}`)}
+              onClick={() => navigate(`/contabilidad/venta/${cliente.id}`)}
               onActionClick={(e) => setMenuState({ cliente, x: e.clientX, y: e.clientY })}
             >
               <h3 className="text-lg font-semibold mb-2 text-neutral-900">
@@ -178,7 +178,7 @@ function ClientesListView() {
                   </div>
                 )}
                 <div>
-                  <span className="font-medium">Facturas subidas:</span>{' '}
+                  <span className="font-medium">Archivos subidos:</span>{' '}
                   {folderCounts[cliente.id] ?? cliente.facturas_count ?? 0}
                 </div>
                 <div className="text-neutral-500">
@@ -199,7 +199,7 @@ function ClientesListView() {
           <button
             type="button"
             onClick={() => {
-              navigate(`/facturas/venta/${menuState.cliente.id}/editar`);
+              navigate(`/contabilidad/venta/${menuState.cliente.id}/editar`);
               setMenuState(null);
             }}
             className="block w-full text-left px-4 py-2 text-sm hover:bg-neutral-50 text-neutral-700"
@@ -262,7 +262,7 @@ function ClientePDFView() {
         <div>
           <button
             type="button"
-            onClick={() => navigate('/facturas/venta')}
+            onClick={() => navigate('/contabilidad/venta')}
             className="text-primary hover:text-primary/80 flex items-center gap-1 mb-2"
           >
             ← Volver
@@ -273,7 +273,7 @@ function ClientePDFView() {
         </div>
         <button
           type="button"
-          onClick={() => navigate(`/facturas/venta/${entidadId}/editar`)}
+          onClick={() => navigate(`/contabilidad/venta/${entidadId}/editar`)}
           className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
         >
           Editar cliente
@@ -287,6 +287,8 @@ function ClientePDFView() {
           tipo="venta"
           entidadId={entidadId}
           entidadNombre={cliente?.razon_social || `Cliente ${entidadId}`}
+          sectionLabel="Facturas"
+          fileLabel="Factura"
         />
       )}
     </div>

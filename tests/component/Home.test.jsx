@@ -77,7 +77,7 @@ describe('Home page', () => {
     expect(screen.getByRole('link', { name: /Notas/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Llamar/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Encargar/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Facturas/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Contabilidad/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /E-mail/i })).toBeInTheDocument();
   });
 
