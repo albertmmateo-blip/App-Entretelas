@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import EntryForm from '../../components/EntryForm';
+import PDFUploadSection from '../../components/PDFUploadSection';
 import useCRUD from '../../hooks/useCRUD';
 
 function ClienteForm() {
@@ -85,13 +86,23 @@ function ClienteForm() {
         </h1>
       </div>
 
-      <EntryForm
-        fields={fields}
-        initialValues={{ ...initialValues, id: existingCliente?.id }}
-        onSubmit={handleSubmit}
-        onCancel={handleCancel}
-        showUrgenteToggle={false}
-      />
+      <div className="space-y-6">
+        <EntryForm
+          fields={fields}
+          initialValues={{ ...initialValues, id: existingCliente?.id }}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+          showUrgenteToggle={false}
+        />
+
+        {isEdit && existingCliente && (
+          <PDFUploadSection
+            tipo="venta"
+            entidadId={existingCliente.id}
+            entidadNombre={existingCliente.razon_social}
+          />
+        )}
+      </div>
     </div>
   );
 }
