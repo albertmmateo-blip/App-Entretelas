@@ -49,7 +49,7 @@ function ProveedorForm() {
 
     if (isEdit) {
       const result = await update(parseInt(proveedorId, 10), payload);
-      if (result) navigate('/facturas/compra');
+      if (result) navigate(`/facturas/compra/${proveedorId}`);
       return result;
     }
 
@@ -59,7 +59,7 @@ function ProveedorForm() {
   };
 
   const handleCancel = () => {
-    navigate('/facturas/compra');
+    navigate(isEdit ? `/facturas/compra/${proveedorId}` : '/facturas/compra');
   };
 
   return (

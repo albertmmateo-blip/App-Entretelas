@@ -54,8 +54,10 @@ export function AppLayout() {
           <Route path="/facturas" element={<Facturas />} />
           <Route path="/facturas/compra" element={<Facturas />} />
           <Route path="/facturas/compra/:proveedorId" element={<Facturas />} />
+          <Route path="/facturas/compra/:proveedorId/editar" element={<Facturas />} />
           <Route path="/facturas/venta" element={<Facturas />} />
           <Route path="/facturas/venta/:clienteId" element={<Facturas />} />
+          <Route path="/facturas/venta/:clienteId/editar" element={<Facturas />} />
           <Route path="/email" element={<Email />} />
         </Routes>
       </main>

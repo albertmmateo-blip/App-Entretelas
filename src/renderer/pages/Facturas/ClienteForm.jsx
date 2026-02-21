@@ -58,7 +58,7 @@ function ClienteForm() {
 
     if (isEdit) {
       const result = await update(parseInt(clienteId, 10), payload);
-      if (result) navigate('/facturas/venta');
+      if (result) navigate(`/facturas/venta/${clienteId}`);
       return result;
     }
 
@@ -68,7 +68,7 @@ function ClienteForm() {
   };
 
   const handleCancel = () => {
-    navigate('/facturas/venta');
+    navigate(isEdit ? `/facturas/venta/${clienteId}` : '/facturas/venta');
   };
 
   return (

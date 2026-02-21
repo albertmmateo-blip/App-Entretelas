@@ -8,6 +8,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     listBackups: () => ipcRenderer.invoke('db:listBackups'),
     restoreBackup: (backupFilename) => ipcRenderer.invoke('db:restoreBackup', backupFilename),
   },
+  system: {
+    openExternal: (url) => ipcRenderer.invoke('system:openExternal', url),
+  },
   // Notas module
   notas: {
     getAll: () => ipcRenderer.invoke('notas:getAll'),

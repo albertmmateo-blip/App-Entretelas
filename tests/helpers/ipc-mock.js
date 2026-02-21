@@ -47,6 +47,9 @@ export function createMockElectronAPI() {
 
   // Mock structure matching the real window.electronAPI
   const mockAPI = {
+    system: {
+      openExternal: createMockHandler('system:openExternal'),
+    },
     notas: {
       getAll: createMockHandler('notas:getAll'),
       create: createMockHandler('notas:create'),

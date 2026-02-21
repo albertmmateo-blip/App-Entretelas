@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import PDFUploadSection from '../../components/PDFUploadSection';
 import { EntriesGrid, EntryCard, EmptyState, LoadingState } from '../../components/entries';
 import useCRUD from '../../hooks/useCRUD';
 import ClienteForm from './ClienteForm';
@@ -137,7 +138,7 @@ function ClientesListView() {
           <button
             type="button"
             onClick={() => {
-              navigate(`/facturas/venta/${menuState.cliente.id}`);
+              navigate(`/facturas/venta/${menuState.cliente.id}/editar`);
               setMenuState(null);
             }}
             className="block w-full text-left px-4 py-2 text-sm hover:bg-neutral-50 text-neutral-700"
@@ -172,11 +173,76 @@ function ClientesListView() {
   );
 }
 
-function ClientesList() {
+function ClientePDFView() {
+  const navigate = useNavigate();
   const { clienteId } = useParams();
+  const parsedId = parseInt(clienteId, 10);
+  const entidadId = Number.isNaN(parsedId) ? null : parsedId;
+  const { entries, loading, fetchAll } = useCRUD('clientes');
 
-  if (clienteId === 'nuevo' || clienteId) {
+  useEffect(() => {
+    if (entidadId && entries.length === 0) {
+      fetchAll();
+    }
+  }, [entidadId, entries.length, fetchAll]);
+
+  const cliente = useMemo(
+    () => (entidadId ? entries.find((item) => item.id === entidadId) : null),
+    [entidadId, entries]
+  );
+
+  if (!entidadId) {
+    return null;
+  }
+
+  return (
+    <div className="p-6 max-w-6xl mx-auto">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <button
+            type="button"
+            onClick={() => navigate('/facturas/venta')}
+            className="text-primary hover:text-primary/80 flex items-center gap-1 mb-2"
+          >
+            ← Volver
+          </button>
+          <h1 className="text-2xl font-bold text-neutral-900">
+            {cliente?.razon_social || 'Cliente'}
+          </h1>
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate(`/facturas/venta/${entidadId}/editar`)}
+          className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+        >
+          Editar cliente
+        </button>
+      </div>
+
+      {loading && !cliente ? (
+        <LoadingState />
+      ) : (
+        <PDFUploadSection
+          tipo="venta"
+          entidadId={entidadId}
+          entidadNombre={cliente?.razon_social || `Cliente ${entidadId}`}
+        />
+      )}
+    </div>
+  );
+}
+
+function ClientesList() {
+  const location = useLocation();
+  const { clienteId } = useParams();
+  const isEditRoute = location.pathname.endsWith('/editar');
+
+  if (clienteId === 'nuevo' || (clienteId && isEditRoute)) {
     return <ClienteForm />;
+  }
+
+  if (clienteId) {
+    return <ClientePDFView />;
   }
 
   return <ClientesListView />;

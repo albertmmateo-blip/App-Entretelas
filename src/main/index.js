@@ -9,6 +9,7 @@ const { registerEncargarHandlers } = require('./ipc/encargar');
 const { registerProveedoresHandlers } = require('./ipc/proveedores');
 const { registerClientesHandlers } = require('./ipc/clientes');
 const { registerFacturasHandlers } = require('./ipc/facturas');
+const { registerSystemHandlers } = require('./ipc/system');
 
 let mainWindow;
 
@@ -30,6 +31,7 @@ function createWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      webviewTag: true,
       preload: path.join(__dirname, '../preload/index.js'),
     },
   });
@@ -75,6 +77,7 @@ if (!gotTheLock) {
     registerProveedoresHandlers();
     registerClientesHandlers();
     registerFacturasHandlers();
+    registerSystemHandlers();
 
     createWindow();
 

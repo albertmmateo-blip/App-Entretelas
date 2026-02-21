@@ -1,7 +1,40 @@
-import { describe, it, expect } from 'vitest';
+import React from 'react';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { AppLayout } from '../../src/renderer/App';
+
+vi.mock('../../src/renderer/pages/Home', () => ({
+  default: () => <h1>Home</h1>,
+}));
+
+vi.mock('../../src/renderer/pages/Urgente', () => ({
+  default: () => <h1>URGENTE!</h1>,
+}));
+
+vi.mock('../../src/renderer/pages/Notas', () => ({
+  default: () => <h1>Notas</h1>,
+}));
+
+vi.mock('../../src/renderer/pages/Llamar', () => ({
+  default: () => <h1>Llamar</h1>,
+}));
+
+vi.mock('../../src/renderer/pages/Encargar', () => ({
+  default: () => <h1>Encargar</h1>,
+}));
+
+vi.mock('../../src/renderer/pages/Email', () => ({
+  default: () => <h1>E-mail</h1>,
+}));
+
+vi.mock('../../src/renderer/pages/Facturas', () => ({
+  default: function FacturasPageMock() {
+    const location = useLocation();
+    const isEditRoute = location.pathname.endsWith('/editar');
+    return <h1>{isEditRoute ? 'Facturas Edit Route' : 'Facturas'}</h1>;
+  },
+}));
 
 describe('App - Sidebar Navigation', () => {
   it('renders all seven navigation links in the correct order', () => {
@@ -185,5 +218,25 @@ describe('App - Sidebar Navigation', () => {
 
     const main = screen.getByRole('main');
     expect(within(main).getByRole('heading', { name: 'Facturas' })).toBeInTheDocument();
+  });
+
+  it('registers nested routes for facturas edit paths', () => {
+    const { rerender } = render(
+      <MemoryRouter initialEntries={['/facturas/compra/123/editar']}>
+        <AppLayout />
+      </MemoryRouter>
+    );
+
+    let main = screen.getByRole('main');
+    expect(within(main).getByRole('heading', { name: 'Facturas Edit Route' })).toBeInTheDocument();
+
+    rerender(
+      <MemoryRouter initialEntries={['/facturas/venta/456/editar']}>
+        <AppLayout />
+      </MemoryRouter>
+    );
+
+    main = screen.getByRole('main');
+    expect(within(main).getByRole('heading', { name: 'Facturas Edit Route' })).toBeInTheDocument();
   });
 });

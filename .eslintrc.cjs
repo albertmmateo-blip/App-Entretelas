@@ -22,6 +22,12 @@ module.exports = {
     'prettier/prettier': 'error',
     'react/react-in-jsx-scope': 'off',
     'react/jsx-filename-extension': [1, { extensions: ['.jsx', '.js'] }],
+    'react/no-unknown-property': [
+      'error',
+      {
+        ignore: ['partition', 'allowpopups', 'disablewebsecurity', 'nodeintegration'],
+      },
+    ],
     'import/prefer-default-export': 'off',
     'no-console': 'off',
     'react/prop-types': 'off',

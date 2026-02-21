@@ -364,7 +364,7 @@ This file contains an ordered sequence of AI agent prompts for incrementally bui
 
 ## Phase 4 – E-mail
 
-### P4-01 — Gmail webview `[ ]`
+### P4-01 — Gmail webview `[x]`
 
 > Implement the E-mail page as specified in `docs/REQUIREMENTS.md §3.7`.
 >
