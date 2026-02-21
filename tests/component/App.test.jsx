@@ -10,6 +10,6 @@ describe('App', () => {
 
   it('renders the Home page by default', () => {
     render(<App />);
-    expect(screen.getByText('Home')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Home' })).toBeInTheDocument();
   });
 });

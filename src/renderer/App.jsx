@@ -10,6 +10,7 @@ import Email from './pages/Email';
 
 export function AppLayout() {
   const navLinks = [
+    { path: '/', label: 'Home', icon: '🏠', end: true },
     { path: '/urgente', label: 'URGENTE!', icon: '⚠️' },
     { path: '/notas', label: 'Notas', icon: '📝' },
     { path: '/llamar', label: 'Llamar', icon: '📞' },
@@ -22,10 +23,11 @@ export function AppLayout() {
     <div className="flex h-screen">
       {/* Sidebar */}
       <nav className="w-[72px] bg-white border-r border-neutral-200 flex flex-col py-4">
-        {navLinks.map(({ path, label, icon }) => (
+        {navLinks.map(({ path, label, icon, end }) => (
           <NavLink
             key={path}
             to={path}
+            end={end}
             className={({ isActive }) =>
               `flex flex-col items-center justify-center py-3 px-2 text-xs hover:bg-neutral-50 transition-colors ${
                 isActive ? 'text-primary' : 'text-neutral-700'
