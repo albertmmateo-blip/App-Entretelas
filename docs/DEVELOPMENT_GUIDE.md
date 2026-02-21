@@ -102,6 +102,34 @@ In production the app uses `app.getPath('userData')` automatically.
 
 ## 7. Building a Distributable
 
+Confirmed electron-builder configuration in `package.json` under the `build` key:
+
+```json
+{
+  "build": {
+    "appId": "com.entretelas.app",
+    "productName": "App-Entretelas",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": ["dist-renderer/**/*", "src/main/**/*", "src/preload/**/*", "package.json"],
+    "win": {
+      "target": "nsis",
+      "icon": "src/renderer/assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}
+```
+
+Build command:
+
 ```powershell
 npm run dist
 ```
@@ -112,24 +140,11 @@ This invokes `electron-builder` which:
 2. Packages the app into `dist/win-unpacked/`.
 3. Creates an NSIS installer at `dist/App-Entretelas Setup x.y.z.exe`.
 
-`electron-builder` configuration lives in `package.json` under the `"build"` key:
+Output location: `dist/App-Entretelas Setup x.y.z.exe`.
 
-```json
-{
-  "build": {
-    "appId": "com.entretelas.app",
-    "productName": "App-Entretelas",
-    "win": {
-      "target": "nsis",
-      "icon": "src/renderer/assets/icon.ico"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
-    }
-  }
-}
-```
+Manual testing steps:
+
+To verify installer on target machine: (1) Copy `.exe` to Windows 10+ machine, (2) Run installer, (3) Choose installation directory, (4) Complete installation, (5) Launch app from Start Menu, (6) Verify app opens, database initializes, and sidebar renders correctly.
 
 ---
 

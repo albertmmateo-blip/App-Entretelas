@@ -3,10 +3,8 @@
   "version": "1.0.0",
   "description": "Desktop business-manager application built with **Electron + React + SQLite**.",
   "main": "src/main/index.js",
-  "directories": {
-    "doc": "docs"
-  },
   "scripts": {
+    "preinstall": "node scripts/verify-official-sources.js",
     "predev": "npm run rebuild-natives",
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
     "dev:vite": "vite",
@@ -52,9 +50,32 @@
     "url": "https://github.com/albertmmateo-blip/App-Entretelas/issues"
   },
   "homepage": "https://github.com/albertmmateo-blip/App-Entretelas#readme",
+  "build": {
+    "appId": "com.entretelas.app",
+    "productName": "App-Entretelas",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist-renderer/**/*",
+      "src/main/**/*",
+      "src/preload/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "src/renderer/assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  },
   "dependencies": {
     "better-sqlite3": "^12.6.2",
-    "electron": "^30.5.1",
     "electron-window-state": "^5.0.3",
     "pdfjs-dist": "^5.4.624",
     "prop-types": "^15.8.1",
@@ -73,6 +94,7 @@
     "autoprefixer": "^10.4.24",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
+    "electron": "^30.5.1",
     "electron-builder": "^26.8.1",
     "eslint": "^8.57.1",
     "eslint-config-airbnb": "^19.0.4",

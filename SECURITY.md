@@ -99,6 +99,19 @@ This application follows these security guidelines:
 5. **File Upload Validation:** PDF uploads are validated for file type, size, and sanitized paths
 6. **Webview Sandboxing:** Gmail webview uses partition isolation and navigation restrictions
 
+## Dependency Source Policy
+
+To reduce supply-chain risk, this repository enforces official dependency sources only:
+
+- npm registry is pinned in `.npmrc` to `https://registry.npmjs.org/`
+- TLS validation is required via `strict-ssl=true`
+- `preinstall` runs `scripts/verify-official-sources.js`, which blocks installs when:
+  - `package.json` uses URL/git/file/workspace dependency specifiers
+  - `package-lock.json` contains packages resolved from hosts other than `registry.npmjs.org`
+  - lockfile entries with `resolved` are missing `integrity`
+
+If install fails with an official-source policy error, update dependencies to npmjs-published packages and regenerate `package-lock.json` with `npm install`.
+
 ## Reporting a Vulnerability
 
 If you discover a security vulnerability in App-Entretelas, please report it by:
