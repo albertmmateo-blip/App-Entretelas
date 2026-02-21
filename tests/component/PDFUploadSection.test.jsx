@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { fireEvent, render, waitFor } from '@testing-library/react';
+import { fireEvent, render, waitFor, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PDFUploadSection from '../../src/renderer/components/PDFUploadSection';
 
@@ -29,17 +29,20 @@ function setupMocks({
   initialList = [],
   uploadImpl = async () => ({ success: true }),
   getAllImpl,
+  updateMetadataImpl = async () => ({ success: true }),
 } = {}) {
   const getAllForEntidad = vi.fn(
     getAllImpl || (async () => ({ success: true, data: initialList }))
   );
   const uploadPDF = vi.fn(uploadImpl);
+  const updatePDFMetadata = vi.fn(updateMetadataImpl);
   const deletePDF = vi.fn(async () => ({ success: true }));
 
   global.window.electronAPI = {
     facturas: {
       getAllForEntidad,
       uploadPDF,
+      updatePDFMetadata,
       deletePDF,
     },
   };
@@ -47,6 +50,7 @@ function setupMocks({
   return {
     getAllForEntidad,
     uploadPDF,
+    updatePDFMetadata,
     deletePDF,
   };
 }
@@ -169,5 +173,46 @@ describe('PDFUploadSection', () => {
     await waitFor(() => {
       expect(showToastMock).toHaveBeenCalledWith('No se pudo cargar', 'error');
     });
+  });
+
+  it('shows metadata fields and allows updating payment status', async () => {
+    const { updatePDFMetadata } = setupMocks({
+      initialList: [
+        {
+          id: 21,
+          ruta_relativa: 'compra/proveedor/factura.pdf',
+          nombre_original: 'factura.pdf',
+          fecha_subida: '2026-02-20T09:00:00.000Z',
+          importe: 100,
+          importe_iva_re: 121,
+          vencimiento: '2026-03-15',
+          pagada: 0,
+        },
+      ],
+    });
+    const user = userEvent.setup();
+
+    render(<PDFUploadSection tipo="compra" entidadId={1} entidadNombre="Proveedor 1" />);
+
+    await waitFor(() => {
+      expect(document.body.textContent).toContain('Importe:');
+      expect(document.body.textContent).toContain('Importe+IVA+RE:');
+      expect(document.body.textContent).toContain('Vencimiento: 2026-03-15');
+      expect(document.body.textContent).toContain('Pendiente');
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Factura pagada' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    await waitFor(() => {
+      expect(updatePDFMetadata).toHaveBeenCalledWith(21, {
+        importe: 100,
+        importeIvaRe: 121,
+        vencimiento: '2026-03-15',
+        pagada: true,
+      });
+    });
+    expect(showToastMock).toHaveBeenCalledWith('Factura actualizada correctamente', 'success');
   });
 });

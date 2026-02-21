@@ -32,6 +32,51 @@ const WINDOWS_RESERVED_NAMES = [
 const MAX_STORED_FILENAME_LENGTH = 200;
 const MAX_COLLISION_ATTEMPTS = 9999;
 
+function normalizeOptionalAmount(value, fieldName) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const numericValue =
+    typeof value === 'string' ? Number(value.replace(',', '.').trim()) : Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    const error = new Error(`${fieldName} must be a valid number`);
+    error.code = 'INVALID_INPUT';
+    throw error;
+  }
+
+  return numericValue;
+}
+
+function normalizeOptionalDueDate(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const error = new Error('vencimiento must use YYYY-MM-DD format');
+    error.code = 'INVALID_INPUT';
+    throw error;
+  }
+
+  return value;
+}
+
+function normalizePaymentStatus(value) {
+  if (value === true || value === 1 || value === '1') {
+    return 1;
+  }
+
+  if (value === false || value === 0 || value === '0' || value === null || value === undefined) {
+    return 0;
+  }
+
+  const error = new Error('pagada must be a boolean or 0/1 value');
+  error.code = 'INVALID_INPUT';
+  throw error;
+}
+
 /**
  * Sanitizes a filename by removing special characters and applying safety rules.
  * @param {string} filename - The filename to sanitize
@@ -417,6 +462,67 @@ function registerFacturasHandlers() {
         error: {
           code: 'INTERNAL_ERROR',
           message: error.message || 'Failed to get PDFs',
+        },
+      };
+    }
+  });
+
+  /**
+   * Handler: facturas:updatePDFMetadata
+   * Updates editable metadata fields for a PDF invoice.
+   * @param {number} id - ID of the facturas_pdf record
+   * @param {object} data - Metadata payload
+   * @returns {Promise<{ success: boolean, data?: object, error?: object }>}
+   */
+  ipcMain.handle('facturas:updatePDFMetadata', async (event, id, data) => {
+    try {
+      if (!id || typeof id !== 'number') {
+        return {
+          success: false,
+          error: { code: 'INVALID_INPUT', message: 'id must be a number' },
+        };
+      }
+
+      const payload = data || {};
+      const importe = normalizeOptionalAmount(payload.importe, 'importe');
+      const importeIvaRe = normalizeOptionalAmount(payload.importeIvaRe, 'importeIvaRe');
+      const vencimiento = normalizeOptionalDueDate(payload.vencimiento);
+      const pagada = normalizePaymentStatus(payload.pagada);
+
+      const db = getDatabase();
+
+      const exists = db.prepare('SELECT id FROM facturas_pdf WHERE id = ?').get(id);
+      if (!exists) {
+        return {
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'PDF record not found' },
+        };
+      }
+
+      const stmt = db.prepare(`
+        UPDATE facturas_pdf
+        SET importe = ?,
+            importe_iva_re = ?,
+            vencimiento = ?,
+            pagada = ?
+        WHERE id = ?
+      `);
+
+      stmt.run(importe, importeIvaRe, vencimiento, pagada, id);
+
+      const updatedRecord = db.prepare('SELECT * FROM facturas_pdf WHERE id = ?').get(id);
+
+      return {
+        success: true,
+        data: updatedRecord,
+      };
+    } catch (error) {
+      console.error('Error in facturas:updatePDFMetadata:', error);
+      return {
+        success: false,
+        error: {
+          code: error.code || 'INTERNAL_ERROR',
+          message: error.message || 'Failed to update PDF metadata',
         },
       };
     }

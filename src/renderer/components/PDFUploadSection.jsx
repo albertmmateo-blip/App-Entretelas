@@ -4,6 +4,39 @@ import PDFThumbnail from './PDFThumbnail';
 import ConfirmDialog from './ConfirmDialog';
 import useToast from '../hooks/useToast';
 
+function normalizeDateForInput(value) {
+  if (!value) {
+    return '';
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return '';
+  }
+
+  return parsed.toISOString().slice(0, 10);
+}
+
+function formatAmount(value) {
+  if (value === null || value === undefined || value === '') {
+    return '—';
+  }
+
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return String(value);
+  }
+
+  return numericValue.toLocaleString('es-ES', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 /**
  * PDFUploadSection component
  * Manages PDF uploads and displays thumbnails for an entity (proveedor or cliente)
@@ -17,11 +50,21 @@ function PDFUploadSection({ tipo, entidadId = null, entidadNombre }) {
   const [pdfs, setPdfs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [savingMetadataId, setSavingMetadataId] = useState(null);
+  const [editingPdfId, setEditingPdfId] = useState(null);
+  const [metadataForm, setMetadataForm] = useState({
+    importe: '',
+    importeIvaRe: '',
+    vencimiento: '',
+    pagada: false,
+  });
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const { showToast } = useToast();
 
   const fetchPDFs = useCallback(async () => {
-    if (!entidadId) return;
+    if (!entidadId) {
+      return [];
+    }
 
     try {
       setLoading(true);
@@ -31,21 +74,72 @@ function PDFUploadSection({ tipo, entidadId = null, entidadNombre }) {
       });
 
       if (response.success) {
-        setPdfs(response.data || []);
-      } else {
-        showToast(response.error?.message || 'Error al cargar PDFs', 'error');
+        const rows = response.data || [];
+        setPdfs(rows);
+        return rows;
       }
+
+      showToast(response.error?.message || 'Error al cargar PDFs', 'error');
     } catch (error) {
       console.error('Error fetching PDFs:', error);
       showToast('Error al cargar PDFs', 'error');
     } finally {
       setLoading(false);
     }
+
+    return [];
   }, [tipo, entidadId, showToast]);
 
   useEffect(() => {
     fetchPDFs();
   }, [fetchPDFs]);
+
+  const startEditing = (pdf) => {
+    setEditingPdfId(pdf.id);
+    setMetadataForm({
+      importe: pdf.importe ?? '',
+      importeIvaRe: pdf.importe_iva_re ?? '',
+      vencimiento: normalizeDateForInput(pdf.vencimiento),
+      pagada: Boolean(pdf.pagada),
+    });
+  };
+
+  const cancelEditing = () => {
+    setEditingPdfId(null);
+    setMetadataForm({
+      importe: '',
+      importeIvaRe: '',
+      vencimiento: '',
+      pagada: false,
+    });
+  };
+
+  const handleSaveMetadata = async (pdfId) => {
+    try {
+      setSavingMetadataId(pdfId);
+
+      const response = await window.electronAPI.facturas.updatePDFMetadata(pdfId, {
+        importe: metadataForm.importe,
+        importeIvaRe: metadataForm.importeIvaRe,
+        vencimiento: metadataForm.vencimiento,
+        pagada: metadataForm.pagada,
+      });
+
+      if (!response.success) {
+        showToast(response.error?.message || 'Error al actualizar factura', 'error');
+        return;
+      }
+
+      showToast('Factura actualizada correctamente', 'success');
+      await fetchPDFs();
+      cancelEditing();
+    } catch (error) {
+      console.error('Error updating PDF metadata:', error);
+      showToast('Error al actualizar factura', 'error');
+    } finally {
+      setSavingMetadataId(null);
+    }
+  };
 
   const handleFileSelect = async (event) => {
     const { target } = event;
@@ -74,6 +168,7 @@ function PDFUploadSection({ tipo, entidadId = null, entidadNombre }) {
 
     try {
       setUploading(true);
+      const uploadedPdfIds = [];
       const uploadResponses = await Promise.all(
         validFiles.map(async (file) => {
           const response = await window.electronAPI.facturas.uploadPDF({
@@ -89,6 +184,9 @@ function PDFUploadSection({ tipo, entidadId = null, entidadNombre }) {
 
       const successCount = uploadResponses.reduce((count, { file, response }) => {
         if (response.success) {
+          if (response.data?.id) {
+            uploadedPdfIds.push(response.data.id);
+          }
           return count + 1;
         }
 
@@ -103,7 +201,12 @@ function PDFUploadSection({ tipo, entidadId = null, entidadNombre }) {
             : `${successCount} PDFs subidos correctamente`,
           'success'
         );
-        await fetchPDFs();
+        const refreshedPdfs = await fetchPDFs();
+        const latestUploadedId = uploadedPdfIds[uploadedPdfIds.length - 1];
+        const latestUploadedPdf = refreshedPdfs.find((pdf) => pdf.id === latestUploadedId);
+        if (latestUploadedPdf) {
+          startEditing(latestUploadedPdf);
+        }
       }
     } catch (error) {
       console.error('Error uploading PDF:', error);
@@ -181,7 +284,7 @@ function PDFUploadSection({ tipo, entidadId = null, entidadNombre }) {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {pdfs.map((pdf) => (
             <div key={pdf.id} className="relative group">
-              <div className="border border-neutral-200 rounded-lg p-2 hover:border-primary transition-colors">
+              <div className="border border-neutral-200 rounded-lg p-2 hover:border-primary transition-colors bg-neutral-50">
                 <PDFThumbnail pdfPath={pdf.ruta_relativa} />
                 <div className="mt-2">
                   <p className="text-xs text-neutral-700 truncate" title={pdf.nombre_original}>
@@ -190,6 +293,100 @@ function PDFUploadSection({ tipo, entidadId = null, entidadNombre }) {
                   <p className="text-xs text-neutral-500">
                     {new Date(pdf.fecha_subida).toLocaleDateString('es-ES')}
                   </p>
+                  <p className="text-xs text-neutral-700 mt-1">
+                    Importe: {formatAmount(pdf.importe)}
+                  </p>
+                  <p className="text-xs text-neutral-700">
+                    Importe+IVA+RE: {formatAmount(pdf.importe_iva_re)}
+                  </p>
+                  <p className="text-xs text-neutral-700">
+                    Vencimiento: {pdf.vencimiento ? normalizeDateForInput(pdf.vencimiento) : '—'}
+                  </p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span
+                      className={`inline-block w-2.5 h-2.5 rounded-full ${
+                        pdf.pagada ? 'bg-success' : 'bg-danger'
+                      }`}
+                      aria-label={pdf.pagada ? 'Pagada' : 'Pendiente'}
+                    />
+                    <span
+                      className={`text-xs font-medium ${pdf.pagada ? 'text-success-700' : 'text-danger-700'}`}
+                    >
+                      {pdf.pagada ? 'Pagada' : 'Pendiente'}
+                    </span>
+                  </div>
+
+                  {editingPdfId === pdf.id ? (
+                    <div className="mt-2 space-y-2 border-t border-neutral-200 pt-2">
+                      <input
+                        type="text"
+                        value={metadataForm.importe}
+                        onChange={(event) =>
+                          setMetadataForm((prev) => ({ ...prev, importe: event.target.value }))
+                        }
+                        placeholder="Importe"
+                        className="w-full text-xs px-2 py-1 border border-neutral-300 rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                      <input
+                        type="text"
+                        value={metadataForm.importeIvaRe}
+                        onChange={(event) =>
+                          setMetadataForm((prev) => ({ ...prev, importeIvaRe: event.target.value }))
+                        }
+                        placeholder="Importe+IVA+RE"
+                        className="w-full text-xs px-2 py-1 border border-neutral-300 rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                      <input
+                        type="date"
+                        value={metadataForm.vencimiento}
+                        onChange={(event) =>
+                          setMetadataForm((prev) => ({ ...prev, vencimiento: event.target.value }))
+                        }
+                        className="w-full text-xs px-2 py-1 border border-neutral-300 rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                      <label
+                        htmlFor={`pdf-pagada-${pdf.id}`}
+                        className="flex items-center gap-2 text-xs text-neutral-700"
+                      >
+                        <input
+                          id={`pdf-pagada-${pdf.id}`}
+                          type="checkbox"
+                          checked={metadataForm.pagada}
+                          onChange={(event) =>
+                            setMetadataForm((prev) => ({ ...prev, pagada: event.target.checked }))
+                          }
+                        />
+                        Factura pagada
+                      </label>
+
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleSaveMetadata(pdf.id)}
+                          disabled={savingMetadataId === pdf.id}
+                          className="flex-1 text-xs px-2 py-1 bg-primary text-white rounded hover:bg-primary/90 disabled:opacity-50"
+                        >
+                          {savingMetadataId === pdf.id ? 'Guardando...' : 'Guardar'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelEditing}
+                          disabled={savingMetadataId === pdf.id}
+                          className="flex-1 text-xs px-2 py-1 bg-neutral-200 text-neutral-700 rounded hover:bg-neutral-300 disabled:opacity-50"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => startEditing(pdf)}
+                      className="mt-2 text-xs px-2 py-1 bg-neutral-200 text-neutral-700 rounded hover:bg-neutral-300"
+                    >
+                      Editar
+                    </button>
+                  )}
                 </div>
               </div>
               <button

@@ -84,6 +84,7 @@ export function createMockElectronAPI() {
       uploadPDF: createMockHandler('facturas:uploadPDF'),
       deletePDF: createMockHandler('facturas:deletePDF'),
       getAllForEntidad: createMockHandler('facturas:getAllForEntidad'),
+      updatePDFMetadata: createMockHandler('facturas:updatePDFMetadata'),
       getPDFBytes: createMockHandler('facturas:getPDFBytes'),
     },
     db: {

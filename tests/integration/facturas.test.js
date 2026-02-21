@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { createTestDb } from '../helpers/db';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { createTestDb } from '../helpers/db';
 
 // Mock electron's ipcMain and app
 const mockHandlers = {};
@@ -345,6 +345,44 @@ describe('Facturas IPC Handlers', () => {
     it('should return error for invalid tipo', async () => {
       const handler = mockHandlers['facturas:getAllForEntidad'];
       const response = await handler(null, { tipo: 'invalid', entidadId: testProviderId });
+
+      expect(response.success).toBe(false);
+      expect(response.error.code).toBe('INVALID_INPUT');
+    });
+  });
+
+  describe('facturas:updatePDFMetadata', () => {
+    it('should update invoice metadata and payment status', async () => {
+      const uploadHandler = mockHandlers['facturas:uploadPDF'];
+      const uploadResponse = await uploadHandler(null, {
+        tipo: 'compra',
+        entidadId: testProviderId,
+        entidadNombre: 'Test Proveedor',
+        filePath: testPDFPath,
+      });
+
+      expect(uploadResponse.success).toBe(true);
+
+      const handler = mockHandlers['facturas:updatePDFMetadata'];
+      const response = await handler(null, uploadResponse.data.id, {
+        importe: '100.50',
+        importeIvaRe: '121.60',
+        vencimiento: '2026-04-30',
+        pagada: true,
+      });
+
+      expect(response.success).toBe(true);
+      expect(response.data.importe).toBe(100.5);
+      expect(response.data.importe_iva_re).toBe(121.6);
+      expect(response.data.vencimiento).toBe('2026-04-30');
+      expect(response.data.pagada).toBe(1);
+    });
+
+    it('should return INVALID_INPUT for invalid vencimiento format', async () => {
+      const handler = mockHandlers['facturas:updatePDFMetadata'];
+      const response = await handler(null, 1, {
+        vencimiento: '30/04/2026',
+      });
 
       expect(response.success).toBe(false);
       expect(response.error.code).toBe('INVALID_INPUT');
