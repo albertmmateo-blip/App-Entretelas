@@ -49,39 +49,61 @@ function PDFUploadSection({ tipo, entidadId = null, entidadNombre }) {
 
   const handleFileSelect = async (event) => {
     const { target } = event;
-    const file = target.files?.[0];
-    if (!file) return;
+    const files = Array.from(target.files || []);
+    if (files.length === 0) return;
 
-    // Validate file extension
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-      showToast('Solo se permiten archivos PDF', 'error');
-      target.value = '';
-      return;
-    }
-
-    // Validate file size (50MB)
     const maxSize = 52428800;
-    if (file.size > maxSize) {
-      showToast('El archivo no puede superar los 50 MB', 'error');
+    const validFiles = files.filter((file) => {
+      if (!file.name.toLowerCase().endsWith('.pdf')) {
+        showToast(`"${file.name}" no es un PDF válido`, 'error');
+        return false;
+      }
+
+      if (file.size > maxSize) {
+        showToast(`"${file.name}" supera los 50 MB`, 'error');
+        return false;
+      }
+
+      return true;
+    });
+
+    if (validFiles.length === 0) {
       target.value = '';
       return;
     }
 
     try {
       setUploading(true);
+      const uploadResponses = await Promise.all(
+        validFiles.map(async (file) => {
+          const response = await window.electronAPI.facturas.uploadPDF({
+            tipo,
+            entidadId,
+            entidadNombre,
+            filePath: file.path,
+          });
 
-      const response = await window.electronAPI.facturas.uploadPDF({
-        tipo,
-        entidadId,
-        entidadNombre,
-        filePath: file.path,
-      });
+          return { file, response };
+        })
+      );
 
-      if (response.success) {
-        showToast('PDF subido correctamente', 'success');
+      const successCount = uploadResponses.reduce((count, { file, response }) => {
+        if (response.success) {
+          return count + 1;
+        }
+
+        showToast(response.error?.message || `Error al subir "${file.name}"`, 'error');
+        return count;
+      }, 0);
+
+      if (successCount > 0) {
+        showToast(
+          successCount === 1
+            ? '1 PDF subido correctamente'
+            : `${successCount} PDFs subidos correctamente`,
+          'success'
+        );
         await fetchPDFs();
-      } else {
-        showToast(response.error?.message || 'Error al subir PDF', 'error');
       }
     } catch (error) {
       console.error('Error uploading PDF:', error);
@@ -135,6 +157,7 @@ function PDFUploadSection({ tipo, entidadId = null, entidadNombre }) {
             id="pdf-upload"
             type="file"
             accept=".pdf"
+            multiple
             onChange={handleFileSelect}
             disabled={uploading}
             className="hidden"
