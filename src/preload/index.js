@@ -43,4 +43,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     update: (id, data) => ipcRenderer.invoke('clientes:update', id, data),
     delete: (id) => ipcRenderer.invoke('clientes:delete', id),
   },
+  // Facturas module
+  facturas: {
+    getPDFBytes: (pdfPath) => ipcRenderer.invoke('facturas:getPDFBytes', pdfPath),
+  },
 });
