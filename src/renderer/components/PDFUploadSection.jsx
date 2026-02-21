@@ -13,7 +13,7 @@ import useToast from '../hooks/useToast';
  * @param {number} props.entidadId - ID of the entity (proveedor or cliente)
  * @param {string} props.entidadNombre - Name of the entity
  */
-function PDFUploadSection({ tipo, entidadId, entidadNombre }) {
+function PDFUploadSection({ tipo, entidadId = null, entidadNombre }) {
   const [pdfs, setPdfs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -200,10 +200,6 @@ PDFUploadSection.propTypes = {
   tipo: PropTypes.oneOf(['compra', 'venta']).isRequired,
   entidadId: PropTypes.number,
   entidadNombre: PropTypes.string.isRequired,
-};
-
-PDFUploadSection.defaultProps = {
-  entidadId: null,
 };
 
 export default PDFUploadSection;
