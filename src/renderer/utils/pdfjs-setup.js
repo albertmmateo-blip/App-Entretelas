@@ -1,9 +1,11 @@
 import * as pdfjsLib from 'pdfjs-dist';
+// Import the worker using Vite's ?url suffix to get a proper URL reference
+// This ensures Vite handles the worker file correctly during both dev and build
+// eslint-disable-next-line import/no-unresolved
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 // Configure PDF.js Web Worker
-// Use a local worker file to comply with Content Security Policy (CSP)
-// The worker file is in the public directory and served as a static asset
-// Use import.meta.env.BASE_URL to ensure proper path in both dev and production
-pdfjsLib.GlobalWorkerOptions.workerSrc = `${import.meta.env.BASE_URL}pdf.worker.min.mjs`;
+// Use the imported URL to ensure proper resolution in Vite's dev server and production builds
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 export default pdfjsLib;
