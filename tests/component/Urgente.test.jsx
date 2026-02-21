@@ -172,9 +172,9 @@ describe('Urgente page', () => {
       expect(screen.getByText('Notas')).toBeInTheDocument();
     });
 
-    // Check for urgente indicator (red dot)
+    // Check for urgente indicator icon
     const urgentIndicator = screen.getByTitle('Urgente');
-    expect(urgentIndicator).toHaveTextContent('●');
+    expect(urgentIndicator).toHaveTextContent('⚠️');
   });
 
   it('displays contact field when present', async () => {

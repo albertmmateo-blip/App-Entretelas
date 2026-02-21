@@ -45,7 +45,7 @@ function EntryCard({ urgente, onClick, children, onActionClick }) {
       {urgente ? (
         <div className="absolute top-2 right-2">
           <span className="text-danger font-bold text-xl" title="Urgente">
-            ⚠
+            ⚠️
           </span>
         </div>
       ) : null}

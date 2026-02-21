@@ -89,13 +89,31 @@ function Urgente() {
   const totalUrgent =
     groupedEntries.notas.length + groupedEntries.llamar.length + groupedEntries.encargar.length;
 
+  const urgentHeader = (
+    <div className="mb-6 rounded-xl border border-danger-200 bg-danger-100/70 px-4 py-3 flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3">
+        <span className="text-2xl" aria-hidden="true">
+          ⚠️
+        </span>
+        <div>
+          <h1 className="text-2xl font-bold text-danger-700 leading-tight tracking-wide">
+            URGENTE!
+          </h1>
+          <p className="text-xs font-medium text-danger-700/80">Revisar primero</p>
+        </div>
+      </div>
+      {!loading && (
+        <span className="inline-flex items-center rounded-full bg-danger text-white px-2.5 py-0.5 text-xs font-semibold">
+          {totalUrgent}
+        </span>
+      )}
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-bold text-neutral-900 mb-6 flex items-center gap-2">
-          <span>⚠️</span>
-          <span>URGENTE!</span>
-        </h1>
+        {urgentHeader}
         <div className="text-sm text-neutral-500 text-center py-8">Cargando...</div>
       </div>
     );
@@ -104,10 +122,7 @@ function Urgente() {
   if (totalUrgent === 0) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-bold text-neutral-900 mb-6 flex items-center gap-2">
-          <span>⚠️</span>
-          <span>URGENTE!</span>
-        </h1>
+        {urgentHeader}
         <div className="flex flex-col items-center py-16 text-neutral-400">
           <span className="text-5xl mb-4">📭</span>
           <p className="text-lg font-medium">No hay entradas urgentes</p>
@@ -118,10 +133,7 @@ function Urgente() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold text-neutral-900 mb-6 flex items-center gap-2">
-        <span>⚠️</span>
-        <span>URGENTE!</span>
-      </h1>
+      {urgentHeader}
 
       {/* Notas group */}
       <div className="mb-8">
@@ -137,7 +149,7 @@ function Urgente() {
                 key={entry.id}
                 role="button"
                 tabIndex={0}
-                className="bg-neutral-100 border border-neutral-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer flex items-start justify-between gap-4"
+                className="bg-neutral-100 border border-danger-200/70 rounded-lg p-4 hover:shadow-md hover:border-danger transition-[box-shadow,border-color] cursor-pointer flex items-start justify-between gap-4"
                 onClick={() => navigate(`/notas/${entry.id}`)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -148,11 +160,11 @@ function Urgente() {
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded bg-neutral-100 text-neutral-700">
+                    <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded bg-danger-100 text-danger-700 border border-danger-200">
                       {MODULE_LABELS.notas}
                     </span>
-                    <span className="text-danger text-sm" title="Urgente">
-                      ●
+                    <span className="text-danger text-sm" title="Urgente" aria-label="Urgente">
+                      ⚠️
                     </span>
                   </div>
                   <h3 className="text-base font-semibold text-neutral-900 mb-1">
@@ -173,7 +185,7 @@ function Urgente() {
                     e.stopPropagation();
                     handleRemoveUrgent('notas', entry);
                   }}
-                  className="px-3 py-1.5 text-sm text-neutral-700 border border-neutral-300 rounded hover:bg-neutral-50 transition-colors whitespace-nowrap"
+                  className="px-3 py-1.5 text-sm text-danger-700 border border-danger-200 rounded hover:bg-danger-100 transition-colors whitespace-nowrap"
                 >
                   Quitar urgencia
                 </button>
@@ -197,7 +209,7 @@ function Urgente() {
                 key={entry.id}
                 role="button"
                 tabIndex={0}
-                className="bg-neutral-100 border border-neutral-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer flex items-start justify-between gap-4"
+                className="bg-neutral-100 border border-danger-200/70 rounded-lg p-4 hover:shadow-md hover:border-danger transition-[box-shadow,border-color] cursor-pointer flex items-start justify-between gap-4"
                 onClick={() => navigate(`/llamar/${entry.id}`)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -208,11 +220,11 @@ function Urgente() {
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded bg-neutral-100 text-neutral-700">
+                    <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded bg-danger-100 text-danger-700 border border-danger-200">
                       {MODULE_LABELS.llamar}
                     </span>
-                    <span className="text-danger text-sm" title="Urgente">
-                      ●
+                    <span className="text-danger text-sm" title="Urgente" aria-label="Urgente">
+                      ⚠️
                     </span>
                   </div>
                   <h3 className="text-base font-semibold text-neutral-900 mb-1">
@@ -233,7 +245,7 @@ function Urgente() {
                     e.stopPropagation();
                     handleRemoveUrgent('llamar', entry);
                   }}
-                  className="px-3 py-1.5 text-sm text-neutral-700 border border-neutral-300 rounded hover:bg-neutral-50 transition-colors whitespace-nowrap"
+                  className="px-3 py-1.5 text-sm text-danger-700 border border-danger-200 rounded hover:bg-danger-100 transition-colors whitespace-nowrap"
                 >
                   Quitar urgencia
                 </button>
@@ -257,7 +269,7 @@ function Urgente() {
                 key={entry.id}
                 role="button"
                 tabIndex={0}
-                className="bg-neutral-100 border border-neutral-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer flex items-start justify-between gap-4"
+                className="bg-neutral-100 border border-danger-200/70 rounded-lg p-4 hover:shadow-md hover:border-danger transition-[box-shadow,border-color] cursor-pointer flex items-start justify-between gap-4"
                 onClick={() => navigate(`/encargar/${entry.id}`)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -268,11 +280,11 @@ function Urgente() {
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded bg-neutral-100 text-neutral-700">
+                    <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded bg-danger-100 text-danger-700 border border-danger-200">
                       {MODULE_LABELS.encargar}
                     </span>
-                    <span className="text-danger text-sm" title="Urgente">
-                      ●
+                    <span className="text-danger text-sm" title="Urgente" aria-label="Urgente">
+                      ⚠️
                     </span>
                   </div>
                   <h3 className="text-base font-semibold text-neutral-900 mb-1">
@@ -293,7 +305,7 @@ function Urgente() {
                     e.stopPropagation();
                     handleRemoveUrgent('encargar', entry);
                   }}
-                  className="px-3 py-1.5 text-sm text-neutral-700 border border-neutral-300 rounded hover:bg-neutral-50 transition-colors whitespace-nowrap"
+                  className="px-3 py-1.5 text-sm text-danger-700 border border-danger-200 rounded hover:bg-danger-100 transition-colors whitespace-nowrap"
                 >
                   Quitar urgencia
                 </button>

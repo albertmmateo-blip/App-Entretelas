@@ -23,23 +23,41 @@ export function AppLayout() {
     <div className="flex h-screen bg-neutral-50 text-neutral-700">
       {/* Sidebar */}
       <nav className="w-[78px] bg-primary border-r border-primary-700/25 flex flex-col py-4 shadow-sm">
-        {navLinks.map(({ path, label, icon, end }) => (
-          <NavLink
-            key={path}
-            to={path}
-            end={end}
-            className={({ isActive }) =>
-              `mx-2 mb-1 rounded-md flex flex-col items-center justify-center py-3 px-2 text-xs transition-colors ${
-                isActive
-                  ? 'text-primary text-white bg-white/20 font-medium'
-                  : 'text-white/90 hover:bg-white/15 hover:text-white'
-              }`
-            }
-          >
-            <span className="text-2xl mb-1">{icon}</span>
-            <span className="text-center leading-tight">{label}</span>
-          </NavLink>
-        ))}
+        {navLinks.map(({ path, label, icon, end }) => {
+          const isUrgentLink = path === '/urgente';
+
+          return (
+            <NavLink
+              key={path}
+              to={path}
+              end={end}
+              className={({ isActive }) => {
+                let stateClasses = '';
+
+                if (isActive) {
+                  stateClasses = isUrgentLink
+                    ? 'border-danger-200/70 bg-danger-100 text-danger-700 font-semibold'
+                    : 'border-transparent text-primary text-white bg-white/20 font-medium';
+                } else {
+                  stateClasses = isUrgentLink
+                    ? 'border-transparent text-white hover:bg-danger-700/25 hover:border-danger-200/40 hover:text-white'
+                    : 'border-transparent text-white/90 hover:bg-white/15 hover:text-white';
+                }
+
+                return `mx-2 mb-1 rounded-md border flex flex-col items-center justify-center py-3 px-2 text-xs transition-colors ${stateClasses}`;
+              }}
+            >
+              <span className={`text-2xl mb-1 ${isUrgentLink ? 'drop-shadow-sm' : ''}`}>
+                {icon}
+              </span>
+              <span
+                className={`text-center leading-tight ${isUrgentLink ? 'font-semibold tracking-wide' : ''}`}
+              >
+                {label}
+              </span>
+            </NavLink>
+          );
+        })}
       </nav>
 
       {/* Content area */}

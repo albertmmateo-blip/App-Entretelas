@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import DataTable from '../../components/DataTable';
 
-const MODULE_LABELS = { notas: 'N', llamar: 'LL', encargar: 'EN' };
+const MODULE_ICONS = { notas: '📝', llamar: '📞', encargar: '📦' };
 const MODULE_NAMES = { notas: 'Notas', llamar: 'Llamar', encargar: 'Encargar' };
 
 const NAV_ITEMS = [
@@ -21,7 +21,7 @@ const COLUMNS = [
     sortable: true,
     render: (value) => (
       <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded bg-neutral-100 text-neutral-700">
-        {MODULE_LABELS[value] ?? value}
+        {MODULE_ICONS[value] ?? value}
       </span>
     ),
   },
@@ -31,7 +31,12 @@ const COLUMNS = [
     sortable: false,
     render: (value) =>
       value ? (
-        <span className="inline-block w-3 h-3 rounded-full bg-danger" title="Urgente" />
+        <span
+          className="inline-flex items-center justify-center text-danger text-sm"
+          title="Urgente"
+        >
+          ⚠️
+        </span>
       ) : null,
   },
   {
