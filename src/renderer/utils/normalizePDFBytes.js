@@ -12,6 +12,7 @@
  *   - `Uint8Array` / typed array  – already the right shape
  *   - `number[]`                  – plain JS array of byte values
  *   - `{ type: 'Buffer', data: number[] }` – Node.js Buffer serialized form
+ *   - `{ data: number[] }`               – generic serializer wrapper
  *
  * @param {ArrayBuffer|Uint8Array|number[]|{type:'Buffer',data:number[]}} input
  *   The raw value of `response.data` from `window.electronAPI.facturas.getPDFBytes`.
@@ -36,6 +37,9 @@ export function normalizePDFBytes(input) {
     Array.isArray(input.data)
   ) {
     // Node.js Buffer structured-cloned as { type: 'Buffer', data: number[] }
+    uint8 = new Uint8Array(input.data);
+  } else if (input !== null && typeof input === 'object' && Array.isArray(input.data)) {
+    // Generic serializer wrapper { data: number[] }
     uint8 = new Uint8Array(input.data);
   } else {
     throw new Error(

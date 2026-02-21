@@ -82,9 +82,9 @@ function PDFThumbnail({ pdfPath }) {
             }
 
             // Normalize the IPC response payload into a Uint8Array that PDF.js can
-            // consume.  The main process returns a plain number[] to avoid any
-            // Buffer/ArrayBuffer structured-clone ambiguity, but we handle all
-            // possible shapes here defensively.
+            // consume.  The main process returns a fresh ArrayBuffer to avoid any
+            // Buffer structured-clone ambiguity, but we handle all possible shapes
+            // here defensively.
             const pdfData = normalizePDFBytes(response.data);
 
             if (import.meta.env.DEV) {

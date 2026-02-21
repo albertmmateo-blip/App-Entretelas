@@ -54,9 +54,20 @@ describe('normalizePDFBytes', () => {
       expect(Array.from(result)).toEqual(VALID_BYTES);
     });
 
-    it('should not treat a plain object without type:"Buffer" as a Buffer', () => {
+    it('should accept a plain object with type other than "Buffer" via generic handler', () => {
       const input = { type: 'other', data: VALID_BYTES };
-      expect(() => normalizePDFBytes(input)).toThrow(/Invalid PDF byte payload/);
+      const result = normalizePDFBytes(input);
+      expect(result).toBeInstanceOf(Uint8Array);
+      expect(Array.from(result)).toEqual(VALID_BYTES);
+    });
+  });
+
+  describe('generic { data: number[] } wrapper input', () => {
+    it('should accept { data: number[] } without type field', () => {
+      const input = { data: VALID_BYTES };
+      const result = normalizePDFBytes(input);
+      expect(result).toBeInstanceOf(Uint8Array);
+      expect(Array.from(result)).toEqual(VALID_BYTES);
     });
   });
 
