@@ -8,12 +8,23 @@ function EncargarForm() {
   const { id } = useParams();
   const isEdit = id && id !== 'nueva';
   const { entries, create, update, fetchAll } = useCRUD('encargar');
+  const {
+    entries: proveedores,
+    fetchAll: fetchProveedores,
+    loading: proveedoresLoading,
+  } = useCRUD('proveedores');
 
   useEffect(() => {
     if (isEdit && entries.length === 0) {
       fetchAll();
     }
   }, [entries.length, fetchAll, isEdit]);
+
+  useEffect(() => {
+    if (proveedores.length === 0) {
+      fetchProveedores();
+    }
+  }, [fetchProveedores, proveedores.length]);
 
   const existingEncargar = useMemo(
     () => (isEdit ? entries.find((e) => e.id === parseInt(id, 10)) : null),
@@ -22,6 +33,17 @@ function EncargarForm() {
 
   const fields = useMemo(
     () => [
+      {
+        name: 'proveedor_id',
+        label: 'Carpeta proveedor',
+        type: 'select',
+        required: true,
+        placeholder: 'Selecciona una carpeta',
+        options: proveedores.map((proveedor) => ({
+          value: String(proveedor.id),
+          label: proveedor.razon_social,
+        })),
+      },
       { name: 'articulo', label: 'Artículo', type: 'text', required: true, maxLength: 255 },
       { name: 'ref_interna', label: 'Ref. Interna', type: 'text', required: false, maxLength: 255 },
       {
@@ -31,7 +53,6 @@ function EncargarForm() {
         required: false,
         maxLength: 5000,
       },
-      { name: 'proveedor', label: 'Proveedor', type: 'text', required: false, maxLength: 255 },
       {
         name: 'ref_proveedor',
         label: 'Ref. Proveedor',
@@ -40,16 +61,16 @@ function EncargarForm() {
         maxLength: 255,
       },
     ],
-    []
+    [proveedores]
   );
 
   const initialValues = useMemo(
     () =>
       existingEncargar || {
+        proveedor_id: '',
         articulo: '',
         ref_interna: '',
         descripcion: '',
-        proveedor: '',
         ref_proveedor: '',
         urgente: false,
       },
@@ -57,8 +78,15 @@ function EncargarForm() {
   );
 
   const handleSubmit = async (values) => {
+    const proveedorId = Number(values.proveedor_id);
+
+    if (!Number.isInteger(proveedorId) || proveedorId <= 0) {
+      return null;
+    }
+
     const payload = {
       ...values,
+      proveedor_id: proveedorId,
       urgente: Boolean(values.urgente),
     };
 
@@ -94,9 +122,29 @@ function EncargarForm() {
         </div>
       </div>
 
+      {!proveedoresLoading && proveedores.length === 0 && (
+        <div className="mb-4 rounded border border-neutral-200 bg-neutral-100 p-3 text-sm text-neutral-700">
+          No hay carpetas de proveedores todavía.{' '}
+          <button
+            type="button"
+            onClick={() => navigate('/encargar/proveedor/nuevo')}
+            className="text-primary hover:text-primary/80"
+          >
+            Crear carpeta
+          </button>
+        </div>
+      )}
+
       <EntryForm
         fields={fields}
-        initialValues={{ ...initialValues, id: existingEncargar?.id }}
+        initialValues={{
+          ...initialValues,
+          proveedor_id:
+            initialValues.proveedor_id === null || initialValues.proveedor_id === undefined
+              ? ''
+              : String(initialValues.proveedor_id),
+          id: existingEncargar?.id,
+        }}
         onSubmit={handleSubmit}
         onCancel={handleCancel}
         showUrgenteToggle

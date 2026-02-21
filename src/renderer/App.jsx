@@ -52,7 +52,11 @@ export function AppLayout() {
           <Route path="/llamar" element={<Llamar />} />
           <Route path="/llamar/:id" element={<Llamar />} />
           <Route path="/encargar" element={<Encargar />} />
+          <Route path="/encargar/nueva" element={<Encargar />} />
           <Route path="/encargar/:id" element={<Encargar />} />
+          <Route path="/encargar/proveedor/nuevo" element={<Encargar />} />
+          <Route path="/encargar/proveedor/:proveedorId" element={<Encargar />} />
+          <Route path="/encargar/proveedor/:proveedorId/editar" element={<Encargar />} />
           <Route path="/facturas" element={<Facturas />} />
           <Route path="/facturas/compra" element={<Facturas />} />
           <Route path="/facturas/compra/:proveedorId" element={<Facturas />} />

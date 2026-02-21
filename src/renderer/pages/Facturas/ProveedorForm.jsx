@@ -4,7 +4,7 @@ import EntryForm from '../../components/EntryForm';
 import PDFUploadSection from '../../components/PDFUploadSection';
 import useCRUD from '../../hooks/useCRUD';
 
-function ProveedorForm() {
+function ProveedorForm({ basePath = '/facturas/compra', showPDFSection = true }) {
   const navigate = useNavigate();
   const { proveedorId } = useParams();
   const isEdit = proveedorId && proveedorId !== 'nuevo';
@@ -49,17 +49,17 @@ function ProveedorForm() {
 
     if (isEdit) {
       const result = await update(parseInt(proveedorId, 10), payload);
-      if (result) navigate(`/facturas/compra/${proveedorId}`);
+      if (result) navigate(`${basePath}/${proveedorId}`);
       return result;
     }
 
     const result = await create(payload);
-    if (result) navigate('/facturas/compra');
+    if (result) navigate(basePath);
     return result;
   };
 
   const handleCancel = () => {
-    navigate(isEdit ? `/facturas/compra/${proveedorId}` : '/facturas/compra');
+    navigate(isEdit ? `${basePath}/${proveedorId}` : basePath);
   };
 
   return (
@@ -86,7 +86,7 @@ function ProveedorForm() {
           showUrgenteToggle={false}
         />
 
-        {isEdit && existingProveedor && (
+        {showPDFSection && isEdit && existingProveedor && (
           <PDFUploadSection
             tipo="compra"
             entidadId={existingProveedor.id}

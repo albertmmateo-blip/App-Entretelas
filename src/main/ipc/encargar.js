@@ -108,6 +108,16 @@ function validateEncargarInput(data) {
     }
   }
 
+  // Validate proveedor_id (optional but if provided must be positive integer)
+  if (data.proveedor_id !== null && data.proveedor_id !== undefined) {
+    if (!Number.isInteger(data.proveedor_id) || data.proveedor_id <= 0) {
+      return {
+        valid: false,
+        error: { code: 'INVALID_INPUT', message: 'proveedor_id must be a positive integer' },
+      };
+    }
+  }
+
   return { valid: true };
 }
 
@@ -123,7 +133,20 @@ function registerEncargarHandlers() {
   ipcMain.handle('encargar:getAll', async () => {
     try {
       const db = getDatabase();
-      const encargar = db.prepare('SELECT * FROM encargar ORDER BY fecha_creacion DESC').all();
+      const encargar = db
+        .prepare(
+          `SELECT
+            e.*,
+            p.razon_social AS proveedor_razon_social
+          FROM encargar e
+          LEFT JOIN proveedores p ON p.id = e.proveedor_id
+          ORDER BY e.fecha_creacion DESC`
+        )
+        .all()
+        .map((entry) => ({
+          ...entry,
+          proveedor: entry.proveedor_razon_social || entry.proveedor,
+        }));
 
       return {
         success: true,
@@ -164,6 +187,16 @@ function registerEncargarHandlers() {
         };
       }
 
+      if (!Number.isInteger(data.proveedor_id) || data.proveedor_id <= 0) {
+        return {
+          success: false,
+          error: {
+            code: 'INVALID_INPUT',
+            message: 'proveedor_id is required and must be a positive integer',
+          },
+        };
+      }
+
       // Validate input
       const validation = validateEncargarInput(data);
       if (!validation.valid) {
@@ -175,20 +208,34 @@ function registerEncargarHandlers() {
 
       const db = getDatabase();
 
+      const proveedorRecord = db
+        .prepare('SELECT id, razon_social FROM proveedores WHERE id = ?')
+        .get(data.proveedor_id);
+      if (!proveedorRecord) {
+        return {
+          success: false,
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Proveedor folder not found',
+          },
+        };
+      }
+
       // Trim whitespace from string fields
       const articulo = data.articulo.trim();
       // eslint-disable-next-line camelcase
       const ref_interna = data.ref_interna ? data.ref_interna.trim() : null;
       const descripcion = data.descripcion ? data.descripcion.trim() : null;
-      const proveedor = data.proveedor ? data.proveedor.trim() : null;
+      const proveedor = proveedorRecord.razon_social;
       // eslint-disable-next-line camelcase
       const ref_proveedor = data.ref_proveedor ? data.ref_proveedor.trim() : null;
+      const proveedorId = proveedorRecord.id;
       const urgente = data.urgente ? 1 : 0;
 
       // Insert encargar entry
       const stmt = db.prepare(`
-        INSERT INTO encargar (articulo, ref_interna, descripcion, proveedor, ref_proveedor, urgente)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO encargar (articulo, ref_interna, descripcion, proveedor, ref_proveedor, proveedor_id, urgente)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `);
 
       // eslint-disable-next-line camelcase
@@ -198,17 +245,28 @@ function registerEncargarHandlers() {
         descripcion,
         proveedor,
         ref_proveedor,
+        proveedorId,
         urgente
       );
 
       // Fetch the created encargar entry
       const encargar = db
-        .prepare('SELECT * FROM encargar WHERE id = ?')
+        .prepare(
+          `SELECT
+            e.*,
+            p.razon_social AS proveedor_razon_social
+          FROM encargar e
+          LEFT JOIN proveedores p ON p.id = e.proveedor_id
+          WHERE e.id = ?`
+        )
         .get(result.lastInsertRowid);
 
       return {
         success: true,
-        data: encargar,
+        data: {
+          ...encargar,
+          proveedor: encargar.proveedor_razon_social || encargar.proveedor,
+        },
       };
     } catch (error) {
       console.error('Error in encargar:create handler:', error);
@@ -301,6 +359,31 @@ function registerEncargarHandlers() {
         urgente = data.urgente ? 1 : 0;
       }
 
+      let proveedorId;
+      if (data.proveedor_id !== undefined) {
+        proveedorId = data.proveedor_id;
+
+        if (proveedorId !== null) {
+          const proveedorRecord = db
+            .prepare('SELECT id, razon_social FROM proveedores WHERE id = ?')
+            .get(proveedorId);
+
+          if (!proveedorRecord) {
+            return {
+              success: false,
+              error: {
+                code: 'NOT_FOUND',
+                message: 'Proveedor folder not found',
+              },
+            };
+          }
+
+          proveedor = proveedorRecord.razon_social;
+        } else {
+          proveedor = null;
+        }
+      }
+
       // Build update query dynamically based on provided fields
       const updates = [];
       const values = [];
@@ -322,6 +405,10 @@ function registerEncargarHandlers() {
       if (proveedor !== undefined) {
         updates.push('proveedor = ?');
         values.push(proveedor);
+      }
+      if (proveedorId !== undefined) {
+        updates.push('proveedor_id = ?');
+        values.push(proveedorId);
       }
       // eslint-disable-next-line camelcase
       if (ref_proveedor !== undefined) {
@@ -354,11 +441,23 @@ function registerEncargarHandlers() {
       stmt.run(...values);
 
       // Fetch the updated encargar entry
-      const encargar = db.prepare('SELECT * FROM encargar WHERE id = ?').get(id);
+      const encargar = db
+        .prepare(
+          `SELECT
+            e.*,
+            p.razon_social AS proveedor_razon_social
+          FROM encargar e
+          LEFT JOIN proveedores p ON p.id = e.proveedor_id
+          WHERE e.id = ?`
+        )
+        .get(id);
 
       return {
         success: true,
-        data: encargar,
+        data: {
+          ...encargar,
+          proveedor: encargar.proveedor_razon_social || encargar.proveedor,
+        },
       };
     } catch (error) {
       console.error('Error in encargar:update handler:', error);

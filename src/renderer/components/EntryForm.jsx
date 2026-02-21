@@ -153,28 +153,54 @@ function EntryForm({ fields, initialValues = {}, onSubmit, onCancel, showUrgente
             {field.label}
             {field.required ? ' *' : ''}
           </label>
-          {field.type === 'textarea' ? (
-            <textarea
-              id={field.name}
-              name={field.name}
-              value={formData[field.name]}
-              onChange={handleChange}
-              maxLength={field.maxLength}
-              rows={6}
-              className="w-full px-4 py-2 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent resize-y"
-            />
-          ) : (
-            <input
-              type={field.type || 'text'}
-              id={field.name}
-              name={field.name}
-              value={formData[field.name]}
-              onChange={handleChange}
-              required={field.required}
-              maxLength={field.maxLength}
-              className="w-full px-4 py-2 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
-          )}
+          {(() => {
+            if (field.type === 'textarea') {
+              return (
+                <textarea
+                  id={field.name}
+                  name={field.name}
+                  value={formData[field.name]}
+                  onChange={handleChange}
+                  maxLength={field.maxLength}
+                  rows={6}
+                  className="w-full px-4 py-2 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent resize-y"
+                />
+              );
+            }
+
+            if (field.type === 'select') {
+              return (
+                <select
+                  id={field.name}
+                  name={field.name}
+                  value={formData[field.name]}
+                  onChange={handleChange}
+                  required={field.required}
+                  className="w-full px-4 py-2 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  <option value="">{field.placeholder || 'Selecciona una opción'}</option>
+                  {(field.options || []).map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              );
+            }
+
+            return (
+              <input
+                type={field.type || 'text'}
+                id={field.name}
+                name={field.name}
+                value={formData[field.name]}
+                onChange={handleChange}
+                required={field.required}
+                maxLength={field.maxLength}
+                className="w-full px-4 py-2 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+            );
+          })()}
           {errors[field.name] && <p className="text-sm text-danger mt-1">{errors[field.name]}</p>}
           {field.maxLength && getCharacterCount(field.name, field.maxLength)}
         </div>

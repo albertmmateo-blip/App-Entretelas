@@ -24,6 +24,21 @@ vi.mock('../../src/main/db/connection', () => ({
 describe('Encargar IPC Handlers', () => {
   let db;
 
+  const createProveedorFolder = (overrides = {}) => {
+    const payload = {
+      razon_social: 'Proveedor Carpeta',
+      direccion: null,
+      nif: null,
+      ...overrides,
+    };
+
+    const result = db
+      .prepare('INSERT INTO proveedores (razon_social, direccion, nif) VALUES (?, ?, ?)')
+      .run(payload.razon_social, payload.direccion, payload.nif);
+
+    return Number(result.lastInsertRowid);
+  };
+
   beforeEach(async () => {
     // Clear handlers from previous tests
     Object.keys(mockHandlers).forEach((key) => {
@@ -87,9 +102,10 @@ describe('Encargar IPC Handlers', () => {
 
   describe('encargar:create', () => {
     it('should create an encargar entry with valid data', async () => {
+      const proveedorId = createProveedorFolder({ razon_social: 'Test Supplier' });
       const encargarData = createEncargar({
         articulo: 'New Product',
-        proveedor: 'Test Supplier',
+        proveedor_id: proveedorId,
         urgente: true,
       });
 
@@ -101,6 +117,7 @@ describe('Encargar IPC Handlers', () => {
       expect(response.data.id).toBeDefined();
       expect(response.data.articulo).toBe('New Product');
       expect(response.data.proveedor).toBe('Test Supplier');
+      expect(response.data.proveedor_id).toBe(proveedorId);
       expect(response.data.urgente).toBe(1);
 
       // Verify in database
@@ -109,22 +126,36 @@ describe('Encargar IPC Handlers', () => {
       expect(encargar.articulo).toBe('New Product');
     });
 
-    it('should create an encargar entry with only required fields', async () => {
-      const encargarData = { articulo: 'Minimal Product' };
+    it('should create an encargar entry with required fields', async () => {
+      const proveedorId = createProveedorFolder({ razon_social: 'Proveedor mínimo' });
+      const encargarData = { articulo: 'Minimal Product', proveedor_id: proveedorId };
 
       const handler = mockHandlers['encargar:create'];
       const response = await handler(null, encargarData);
 
       expect(response.success).toBe(true);
       expect(response.data.articulo).toBe('Minimal Product');
+      expect(response.data.proveedor_id).toBe(proveedorId);
       expect(response.data.ref_interna).toBeNull();
       expect(response.data.descripcion).toBeNull();
-      expect(response.data.proveedor).toBeNull();
+      expect(response.data.proveedor).toBe('Proveedor mínimo');
       expect(response.data.ref_proveedor).toBeNull();
     });
 
+    it('should fail when proveedor_id is missing', async () => {
+      const encargarData = { articulo: 'Valid Product' };
+
+      const handler = mockHandlers['encargar:create'];
+      const response = await handler(null, encargarData);
+
+      expect(response.success).toBe(false);
+      expect(response.error.code).toBe('INVALID_INPUT');
+      expect(response.error.message).toContain('proveedor_id is required');
+    });
+
     it('should fail when articulo is missing', async () => {
-      const encargarData = { proveedor: 'Test Supplier' };
+      const proveedorId = createProveedorFolder({ razon_social: 'Test Supplier' });
+      const encargarData = { proveedor_id: proveedorId };
 
       const handler = mockHandlers['encargar:create'];
       const response = await handler(null, encargarData);
@@ -135,7 +166,8 @@ describe('Encargar IPC Handlers', () => {
     });
 
     it('should fail when articulo is empty string', async () => {
-      const encargarData = { articulo: '   ' };
+      const proveedorId = createProveedorFolder();
+      const encargarData = { articulo: '   ', proveedor_id: proveedorId };
 
       const handler = mockHandlers['encargar:create'];
       const response = await handler(null, encargarData);
@@ -145,7 +177,8 @@ describe('Encargar IPC Handlers', () => {
     });
 
     it('should fail when articulo exceeds 255 characters', async () => {
-      const encargarData = { articulo: 'a'.repeat(256) };
+      const proveedorId = createProveedorFolder();
+      const encargarData = { articulo: 'a'.repeat(256), proveedor_id: proveedorId };
 
       const handler = mockHandlers['encargar:create'];
       const response = await handler(null, encargarData);
@@ -156,8 +189,10 @@ describe('Encargar IPC Handlers', () => {
     });
 
     it('should fail when ref_interna exceeds 255 characters', async () => {
+      const proveedorId = createProveedorFolder();
       const encargarData = {
         articulo: 'Valid Product',
+        proveedor_id: proveedorId,
         ref_interna: 'a'.repeat(256),
       };
 
@@ -170,8 +205,10 @@ describe('Encargar IPC Handlers', () => {
     });
 
     it('should fail when descripcion exceeds 5000 characters', async () => {
+      const proveedorId = createProveedorFolder();
       const encargarData = {
         articulo: 'Valid Product',
+        proveedor_id: proveedorId,
         descripcion: 'a'.repeat(5001),
       };
 
@@ -184,8 +221,10 @@ describe('Encargar IPC Handlers', () => {
     });
 
     it('should fail when proveedor exceeds 255 characters', async () => {
+      const proveedorId = createProveedorFolder();
       const encargarData = {
         articulo: 'Valid Product',
+        proveedor_id: proveedorId,
         proveedor: 'a'.repeat(256),
       };
 
@@ -198,8 +237,10 @@ describe('Encargar IPC Handlers', () => {
     });
 
     it('should fail when ref_proveedor exceeds 255 characters', async () => {
+      const proveedorId = createProveedorFolder();
       const encargarData = {
         articulo: 'Valid Product',
+        proveedor_id: proveedorId,
         ref_proveedor: 'a'.repeat(256),
       };
 
@@ -212,10 +253,11 @@ describe('Encargar IPC Handlers', () => {
     });
 
     it('should trim whitespace from string fields', async () => {
+      const proveedorId = createProveedorFolder({ razon_social: 'Supplier' });
       const encargarData = {
         articulo: '  Product Name  ',
+        proveedor_id: proveedorId,
         ref_interna: '  REF-001  ',
-        proveedor: '  Supplier  ',
       };
 
       const handler = mockHandlers['encargar:create'];
@@ -230,15 +272,19 @@ describe('Encargar IPC Handlers', () => {
 
   describe('encargar:update', () => {
     it('should update an existing encargar entry', async () => {
+      const proveedorOriginalId = createProveedorFolder({ razon_social: 'Original Supplier' });
+      const proveedorNuevoId = createProveedorFolder({ razon_social: 'New Supplier' });
       // Create initial entry
-      const testEncargar = [createEncargar({ articulo: 'Original Product' })];
+      const testEncargar = [
+        createEncargar({ articulo: 'Original Product', proveedor_id: proveedorOriginalId }),
+      ];
       seedTestData(db, 'encargar', testEncargar);
       const existing = db.prepare('SELECT * FROM encargar').get();
 
       // Update entry
       const updateData = {
         articulo: 'Updated Product',
-        proveedor: 'New Supplier',
+        proveedor_id: proveedorNuevoId,
       };
 
       const handler = mockHandlers['encargar:update'];
@@ -247,6 +293,7 @@ describe('Encargar IPC Handlers', () => {
       expect(response.success).toBe(true);
       expect(response.data.articulo).toBe('Updated Product');
       expect(response.data.proveedor).toBe('New Supplier');
+      expect(response.data.proveedor_id).toBe(proveedorNuevoId);
 
       // Verify in database
       const updated = db.prepare('SELECT * FROM encargar WHERE id = ?').get(existing.id);
@@ -254,12 +301,14 @@ describe('Encargar IPC Handlers', () => {
     });
 
     it('should update only provided fields', async () => {
+      const proveedorId = createProveedorFolder({ razon_social: 'Original Supplier' });
       // Create initial entry
       const testEncargar = [
         createEncargar({
           articulo: 'Original Product',
           ref_interna: 'REF-001',
           proveedor: 'Original Supplier',
+          proveedor_id: proveedorId,
         }),
       ];
       seedTestData(db, 'encargar', testEncargar);
