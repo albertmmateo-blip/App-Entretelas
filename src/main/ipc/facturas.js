@@ -338,15 +338,14 @@ function registerFacturasHandlers() {
    * Handler: facturas:getPDFBytes
    * Gets PDF file bytes for rendering thumbnails in the renderer process.
    *
-   * The file content is returned as a plain `number[]` (array of byte values)
-   * rather than a Node.js `Buffer` or `ArrayBuffer`.  Electron's structured-clone
-   * algorithm serializes `Buffer` objects as `{ type: 'Buffer', data: number[] }`
-   * which the renderer cannot use directly with `pdfjsLib.getDocument`.  A plain
-   * `number[]` is always faithfully reproduced on the renderer side and can be
-   * trivially wrapped with `new Uint8Array(data)`.
+   * The file content is returned as a fresh `ArrayBuffer` (not backed by the
+   * Node.js Buffer pool) so that Electron's structured-clone algorithm can
+   * transfer it reliably without any `{ type: 'Buffer', data: number[] }`
+   * ambiguity.  A `meta` object with `byteLength` is included to aid debugging
+   * without having to inspect the binary payload.
    *
    * @param {string} pdfPath - Relative path from facturas_pdf.ruta_relativa
-   * @returns {Promise<{ success: boolean, data?: number[], error?: { code: string, message: string } }>}
+   * @returns {Promise<{ success: boolean, data?: ArrayBuffer, meta?: { byteLength: number }, error?: { code: string, message: string } }>}
    */
   ipcMain.handle('facturas:getPDFBytes', async (event, pdfPath) => {
     try {
@@ -379,13 +378,16 @@ function registerFacturasHandlers() {
         };
       }
 
-      // Read file and return as a plain number array so that Electron's
-      // structured-clone algorithm does not inadvertently wrap it in
-      // { type: 'Buffer', data: [...] } when crossing the IPC boundary.
+      // Read the file and produce a *fresh* ArrayBuffer that is not backed by
+      // the Node.js Buffer pool.  `Uint8Array.from(buf)` copies the bytes into
+      // a new allocation whose `.buffer` is exactly the right size, so
+      // Electron's structured-clone transfers it without any Buffer wrapping.
       const fileBuffer = fs.readFileSync(absolutePath);
+      const arrayBuffer = Uint8Array.from(fileBuffer).buffer;
       return {
         success: true,
-        data: Array.from(fileBuffer),
+        data: arrayBuffer,
+        meta: { byteLength: arrayBuffer.byteLength },
       };
     } catch (error) {
       console.error('Error in facturas:getPDFBytes:', error);
