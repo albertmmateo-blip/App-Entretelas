@@ -16,6 +16,9 @@ export default defineConfig({
       'pdfjs-dist': path.join(__dirname, 'node_modules/pdfjs-dist'),
     },
   },
+  optimizeDeps: {
+    exclude: ['pdfjs-dist'],
+  },
   build: {
     outDir: path.join(__dirname, 'dist-renderer'),
     emptyOutDir: true,
