@@ -47,4 +47,12 @@ module.exports = {
       version: 'detect',
     },
   },
+  overrides: [
+    {
+      files: ['src/main/**/*.js', 'src/preload/**/*.js', 'tests/**/*.js', 'tests/**/*.jsx'],
+      rules: {
+        'import/no-extraneous-dependencies': ['error', { devDependencies: true }],
+      },
+    },
+  ],
 };

@@ -189,6 +189,7 @@ describe('PDFUploadSection', () => {
           ruta_relativa: 'compra/proveedor/factura.pdf',
           nombre_original: 'factura.pdf',
           fecha_subida: '2026-02-20T09:00:00.000Z',
+          fecha: '2026-02-19',
           importe: 100,
           importe_iva_re: 121,
           vencimiento: '2026-03-15',
@@ -201,6 +202,7 @@ describe('PDFUploadSection', () => {
     render(<PDFUploadSection tipo="compra" entidadId={1} entidadNombre="Proveedor 1" />);
 
     await waitFor(() => {
+      expect(document.body.textContent).toContain('Fecha: 2026-02-19');
       expect(document.body.textContent).toContain('Importe:');
       expect(document.body.textContent).toContain('Importe+IVA+RE:');
       expect(document.body.textContent).toContain('Vencimiento: 2026-03-15');
@@ -208,11 +210,13 @@ describe('PDFUploadSection', () => {
     });
 
     await user.click(screen.getByRole('button', { name: 'Editar' }));
+    fireEvent.change(screen.getByLabelText('Fecha'), { target: { value: '2026-02-20' } });
     await user.click(screen.getByRole('checkbox', { name: 'Factura pagada' }));
     await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
     await waitFor(() => {
       expect(updatePDFMetadata).toHaveBeenCalledWith(21, {
+        fecha: '2026-02-20',
         importe: 100,
         importeIvaRe: 121,
         vencimiento: '2026-03-15',

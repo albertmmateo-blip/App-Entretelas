@@ -92,6 +92,7 @@ function PDFUploadSection({
   const [savingMetadataId, setSavingMetadataId] = useState(null);
   const [editingPdfId, setEditingPdfId] = useState(null);
   const [metadataForm, setMetadataForm] = useState({
+    fecha: '',
     importe: '',
     importeIvaRe: '',
     vencimiento: '',
@@ -136,6 +137,7 @@ function PDFUploadSection({
   const startEditing = (pdf) => {
     setEditingPdfId(pdf.id);
     setMetadataForm({
+      fecha: normalizeDateForInput(pdf.fecha),
       importe: pdf.importe ?? '',
       importeIvaRe: pdf.importe_iva_re ?? '',
       vencimiento: normalizeDateForInput(pdf.vencimiento),
@@ -146,6 +148,7 @@ function PDFUploadSection({
   const cancelEditing = () => {
     setEditingPdfId(null);
     setMetadataForm({
+      fecha: '',
       importe: '',
       importeIvaRe: '',
       vencimiento: '',
@@ -158,6 +161,7 @@ function PDFUploadSection({
       setSavingMetadataId(pdfId);
 
       const response = await window.electronAPI.facturas.updatePDFMetadata(pdfId, {
+        fecha: metadataForm.fecha,
         importe: metadataForm.importe,
         importeIvaRe: metadataForm.importeIvaRe,
         vencimiento: metadataForm.vencimiento,
@@ -392,8 +396,9 @@ function PDFUploadSection({
                     {new Date(pdf.fecha_subida).toLocaleDateString('es-ES')}
                   </p>
                   <p className="text-xs text-neutral-700 mt-1">
-                    Importe: {formatAmount(pdf.importe)}
+                    Fecha: {pdf.fecha ? normalizeDateForInput(pdf.fecha) : '—'}
                   </p>
+                  <p className="text-xs text-neutral-700">Importe: {formatAmount(pdf.importe)}</p>
                   <p className="text-xs text-neutral-700">
                     Importe+IVA+RE: {formatAmount(pdf.importe_iva_re)}
                   </p>
@@ -419,6 +424,15 @@ function PDFUploadSection({
 
                   {editingPdfId === pdf.id ? (
                     <div className="mt-2 space-y-2 border-t border-neutral-200 pt-2">
+                      <input
+                        type="date"
+                        value={metadataForm.fecha}
+                        onChange={(event) =>
+                          setMetadataForm((prev) => ({ ...prev, fecha: event.target.value }))
+                        }
+                        aria-label="Fecha"
+                        className="w-full text-xs px-2 py-1 border border-neutral-300 rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
                       <input
                         type="text"
                         value={metadataForm.importe}

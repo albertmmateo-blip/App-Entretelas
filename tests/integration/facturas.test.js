@@ -424,6 +424,7 @@ describe('Facturas IPC Handlers', () => {
 
       const handler = mockHandlers['facturas:updatePDFMetadata'];
       const response = await handler(null, uploadResponse.data.id, {
+        fecha: '2026-04-01',
         importe: '100.50',
         importeIvaRe: '121.60',
         vencimiento: '2026-04-30',
@@ -431,10 +432,21 @@ describe('Facturas IPC Handlers', () => {
       });
 
       expect(response.success).toBe(true);
+      expect(response.data.fecha).toBe('2026-04-01');
       expect(response.data.importe).toBe(100.5);
       expect(response.data.importe_iva_re).toBe(121.6);
       expect(response.data.vencimiento).toBe('2026-04-30');
       expect(response.data.pagada).toBe(1);
+    });
+
+    it('should return INVALID_INPUT for invalid fecha format', async () => {
+      const handler = mockHandlers['facturas:updatePDFMetadata'];
+      const response = await handler(null, 1, {
+        fecha: '30/04/2026',
+      });
+
+      expect(response.success).toBe(false);
+      expect(response.error.code).toBe('INVALID_INPUT');
     });
 
     it('should return INVALID_INPUT for invalid vencimiento format', async () => {

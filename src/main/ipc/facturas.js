@@ -66,13 +66,13 @@ function normalizeOptionalAmount(value, fieldName) {
   return numericValue;
 }
 
-function normalizeOptionalDueDate(value) {
+function normalizeOptionalCalendarDate(value, fieldName) {
   if (value === null || value === undefined || value === '') {
     return null;
   }
 
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    const error = new Error('vencimiento must use YYYY-MM-DD format');
+    const error = new Error(`${fieldName} must use YYYY-MM-DD format`);
     error.code = 'INVALID_INPUT';
     throw error;
   }
@@ -271,6 +271,7 @@ function registerFacturasHandlers(deps = {}) {
       const { tipo, entidadId, entidadNombre, filePath } = params;
       const isTopLevelContabilidad = tipo === 'contabilidad';
       const requiresEntidad = !isTopLevelContabilidad;
+      const fecha = normalizeOptionalCalendarDate(params?.fecha, 'fecha');
 
       // Validate required parameters
       if (!tipo || !filePath || (requiresEntidad && (!entidadId || !entidadNombre))) {
@@ -377,8 +378,16 @@ function registerFacturasHandlers(deps = {}) {
       const resolvedEntidadId = isTopLevelContabilidad ? 0 : entidadId;
 
       const stmt = db.prepare(`
-        INSERT INTO facturas_pdf (tipo, entidad_id, entidad_tipo, nombre_original, nombre_guardado, ruta_relativa)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO facturas_pdf (
+          tipo,
+          entidad_id,
+          entidad_tipo,
+          nombre_original,
+          nombre_guardado,
+          ruta_relativa,
+          fecha
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `);
 
       const result = stmt.run(
@@ -387,7 +396,8 @@ function registerFacturasHandlers(deps = {}) {
         entidadTipo,
         originalFilename,
         targetFilename,
-        relativePath
+        relativePath,
+        fecha
       );
 
       return {
@@ -541,9 +551,10 @@ function registerFacturasHandlers(deps = {}) {
       }
 
       const payload = data || {};
+      const fecha = normalizeOptionalCalendarDate(payload.fecha, 'fecha');
       const importe = normalizeOptionalAmount(payload.importe, 'importe');
       const importeIvaRe = normalizeOptionalAmount(payload.importeIvaRe, 'importeIvaRe');
-      const vencimiento = normalizeOptionalDueDate(payload.vencimiento);
+      const vencimiento = normalizeOptionalCalendarDate(payload.vencimiento, 'vencimiento');
       const pagada = normalizePaymentStatus(payload.pagada);
 
       const db = getDb();
@@ -558,14 +569,15 @@ function registerFacturasHandlers(deps = {}) {
 
       const stmt = db.prepare(`
         UPDATE facturas_pdf
-        SET importe = ?,
+        SET fecha = ?,
+            importe = ?,
             importe_iva_re = ?,
             vencimiento = ?,
             pagada = ?
         WHERE id = ?
       `);
 
-      stmt.run(importe, importeIvaRe, vencimiento, pagada, id);
+      stmt.run(fecha, importe, importeIvaRe, vencimiento, pagada, id);
 
       const updatedRecord = db.prepare('SELECT * FROM facturas_pdf WHERE id = ?').get(id);
 
