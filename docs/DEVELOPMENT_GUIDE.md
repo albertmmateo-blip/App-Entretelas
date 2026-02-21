@@ -372,6 +372,16 @@ To auto-fix:
 npm run lint:fix
 ```
 
+If `husky`/`lint-staged` fails repeatedly while committing, use this sequence:
+
+```powershell
+npm run lint:fix
+git add -A
+git commit -m "<mensaje>"
+```
+
+This avoids partial-staging stash/restore conflicts and ensures the committed snapshot is the same one that passed lint.
+
 ---
 
 ## 10. Branching & PR Rules

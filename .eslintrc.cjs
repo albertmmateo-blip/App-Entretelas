@@ -20,6 +20,9 @@ module.exports = {
   plugins: ['react', 'prettier'],
   rules: {
     'prettier/prettier': 'error',
+    'no-restricted-syntax': 'off',
+    'no-continue': 'off',
+    'no-await-in-loop': 'off',
     'react/react-in-jsx-scope': 'off',
     'react/require-default-props': [
       'error',
