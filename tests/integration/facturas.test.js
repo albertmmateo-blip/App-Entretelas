@@ -1,0 +1,400 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { createTestDb } from '../helpers/db';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+
+// Mock electron's ipcMain and app
+const mockHandlers = {};
+const mockUserDataPath = path.join(os.tmpdir(), `test-facturas-${Date.now()}`);
+
+vi.mock('electron', () => ({
+  ipcMain: {
+    handle: vi.fn((channel, handler) => {
+      mockHandlers[channel] = handler;
+    }),
+    removeHandler: vi.fn((channel) => {
+      delete mockHandlers[channel];
+    }),
+  },
+  app: {
+    getPath: vi.fn(() => mockUserDataPath),
+  },
+  shell: {},
+}));
+
+describe('Facturas IPC Handlers', () => {
+  let db;
+  let testPDFPath;
+  let testProviderId;
+
+  beforeEach(async () => {
+    // Create test database
+    db = createTestDb();
+
+    // Mock getDatabase to return our test database
+    const connectionModule = await import('../../src/main/db/connection');
+    connectionModule.getDatabase = () => db;
+
+    // Create test userData directory
+    if (!fs.existsSync(mockUserDataPath)) {
+      fs.mkdirSync(mockUserDataPath, { recursive: true });
+    }
+
+    // Create a test PDF file
+    testPDFPath = path.join(mockUserDataPath, 'test-invoice.pdf');
+    // Create a valid PDF with %PDF header
+    const pdfHeader = Buffer.from('%PDF-1.4\n%Test PDF content\n');
+    fs.writeFileSync(testPDFPath, pdfHeader);
+
+    // Insert a test proveedor
+    const proveedorStmt = db.prepare(`
+      INSERT INTO proveedores (razon_social, direccion, nif)
+      VALUES (?, ?, ?)
+    `);
+    const result = proveedorStmt.run('Test Proveedor', 'Test Address', '12345678A');
+    testProviderId = result.lastInsertRowid;
+
+    // Register handlers
+    const { registerFacturasHandlers } = await import('../../src/main/ipc/facturas');
+    registerFacturasHandlers();
+  });
+
+  afterEach(() => {
+    // Clear all handlers
+    Object.keys(mockHandlers).forEach((key) => {
+      delete mockHandlers[key];
+    });
+
+    // Close database
+    if (db) {
+      db.close();
+    }
+
+    // Clean up test files
+    if (fs.existsSync(mockUserDataPath)) {
+      fs.rmSync(mockUserDataPath, { recursive: true, force: true });
+    }
+  });
+
+  describe('facturas:uploadPDF', () => {
+    it('should upload a valid PDF file', async () => {
+      const handler = mockHandlers['facturas:uploadPDF'];
+      expect(handler).toBeDefined();
+
+      const params = {
+        tipo: 'compra',
+        entidadId: testProviderId,
+        entidadNombre: 'Test Proveedor',
+        filePath: testPDFPath,
+      };
+
+      const response = await handler(null, params);
+
+      expect(response.success).toBe(true);
+      expect(response.data).toBeDefined();
+      expect(response.data.id).toBeDefined();
+      expect(response.data.ruta_relativa).toContain('compra');
+      expect(response.data.ruta_relativa).toContain('test_proveedor');
+
+      // Verify database record
+      const record = db.prepare('SELECT * FROM facturas_pdf WHERE id = ?').get(response.data.id);
+      expect(record).toBeDefined();
+      expect(record.tipo).toBe('compra');
+      expect(record.entidad_id).toBe(testProviderId);
+      expect(record.entidad_tipo).toBe('proveedor');
+    });
+
+    it('should return error for missing parameters', async () => {
+      const handler = mockHandlers['facturas:uploadPDF'];
+      const response = await handler(null, {});
+
+      expect(response.success).toBe(false);
+      expect(response.error.code).toBe('INVALID_INPUT');
+    });
+
+    it('should return error for invalid tipo', async () => {
+      const handler = mockHandlers['facturas:uploadPDF'];
+      const params = {
+        tipo: 'invalid',
+        entidadId: testProviderId,
+        entidadNombre: 'Test',
+        filePath: testPDFPath,
+      };
+
+      const response = await handler(null, params);
+
+      expect(response.success).toBe(false);
+      expect(response.error.code).toBe('INVALID_INPUT');
+    });
+
+    it('should return FILE_NOT_FOUND for non-existent file', async () => {
+      const handler = mockHandlers['facturas:uploadPDF'];
+      const params = {
+        tipo: 'compra',
+        entidadId: testProviderId,
+        entidadNombre: 'Test',
+        filePath: '/nonexistent/file.pdf',
+      };
+
+      const response = await handler(null, params);
+
+      expect(response.success).toBe(false);
+      expect(response.error.code).toBe('FILE_NOT_FOUND');
+    });
+
+    it('should return FILE_INVALID for non-PDF file', async () => {
+      const handler = mockHandlers['facturas:uploadPDF'];
+      const txtPath = path.join(mockUserDataPath, 'test.txt');
+      fs.writeFileSync(txtPath, 'Not a PDF');
+
+      const params = {
+        tipo: 'compra',
+        entidadId: testProviderId,
+        entidadNombre: 'Test',
+        filePath: txtPath,
+      };
+
+      const response = await handler(null, params);
+
+      expect(response.success).toBe(false);
+      expect(response.error.code).toBe('FILE_INVALID');
+    });
+
+    it('should return FILE_TOO_LARGE for files over 50MB', async () => {
+      const handler = mockHandlers['facturas:uploadPDF'];
+      const largePath = path.join(mockUserDataPath, 'large.pdf');
+
+      // Create a file larger than 50MB (just write the header and set size in stats check)
+      // For testing, we'll create a smaller file but this tests the logic
+      const largeBuffer = Buffer.alloc(52428801); // 50MB + 1 byte
+      largeBuffer.write('%PDF-1.4\n', 0);
+      fs.writeFileSync(largePath, largeBuffer);
+
+      const params = {
+        tipo: 'compra',
+        entidadId: testProviderId,
+        entidadNombre: 'Test',
+        filePath: largePath,
+      };
+
+      const response = await handler(null, params);
+
+      expect(response.success).toBe(false);
+      expect(response.error.code).toBe('FILE_TOO_LARGE');
+    });
+
+    it('should return FILE_INVALID for file without PDF header', async () => {
+      const handler = mockHandlers['facturas:uploadPDF'];
+      const fakePDFPath = path.join(mockUserDataPath, 'fake.pdf');
+      fs.writeFileSync(fakePDFPath, 'Not a real PDF');
+
+      const params = {
+        tipo: 'compra',
+        entidadId: testProviderId,
+        entidadNombre: 'Test',
+        filePath: fakePDFPath,
+      };
+
+      const response = await handler(null, params);
+
+      expect(response.success).toBe(false);
+      expect(response.error.code).toBe('FILE_INVALID');
+      expect(response.error.message).toContain('valid PDF');
+    });
+
+    it('should sanitize filenames with special characters', async () => {
+      const handler = mockHandlers['facturas:uploadPDF'];
+      const specialPath = path.join(mockUserDataPath, 'special*.pdf');
+      fs.writeFileSync(specialPath, Buffer.from('%PDF-1.4\nTest'));
+
+      const params = {
+        tipo: 'compra',
+        entidadId: testProviderId,
+        entidadNombre: 'Special:Name*Test',
+        filePath: specialPath,
+      };
+
+      const response = await handler(null, params);
+
+      expect(response.success).toBe(true);
+      expect(response.data.ruta_relativa).toContain('specialnametest');
+      expect(response.data.ruta_relativa).not.toContain('*');
+      expect(response.data.ruta_relativa).not.toContain(':');
+    });
+  });
+
+  describe('facturas:deletePDF', () => {
+    it('should delete PDF file and database record', async () => {
+      // First upload a PDF
+      const uploadHandler = mockHandlers['facturas:uploadPDF'];
+      const uploadParams = {
+        tipo: 'compra',
+        entidadId: testProviderId,
+        entidadNombre: 'Test Proveedor',
+        filePath: testPDFPath,
+      };
+      const uploadResponse = await uploadHandler(null, uploadParams);
+      expect(uploadResponse.success).toBe(true);
+      const pdfId = uploadResponse.data.id;
+
+      // Now delete it
+      const deleteHandler = mockHandlers['facturas:deletePDF'];
+      const deleteResponse = await deleteHandler(null, pdfId);
+
+      expect(deleteResponse.success).toBe(true);
+
+      // Verify database record is deleted
+      const record = db.prepare('SELECT * FROM facturas_pdf WHERE id = ?').get(pdfId);
+      expect(record).toBeUndefined();
+    });
+
+    it('should return error for invalid id', async () => {
+      const handler = mockHandlers['facturas:deletePDF'];
+      const response = await handler(null, null);
+
+      expect(response.success).toBe(false);
+      expect(response.error.code).toBe('INVALID_INPUT');
+    });
+
+    it('should return error for non-existent PDF', async () => {
+      const handler = mockHandlers['facturas:deletePDF'];
+      const response = await handler(null, 99999);
+
+      expect(response.success).toBe(false);
+      expect(response.error.code).toBe('NOT_FOUND');
+    });
+
+    it('should succeed even if file was manually deleted', async () => {
+      // First upload a PDF
+      const uploadHandler = mockHandlers['facturas:uploadPDF'];
+      const uploadParams = {
+        tipo: 'compra',
+        entidadId: testProviderId,
+        entidadNombre: 'Test Proveedor',
+        filePath: testPDFPath,
+      };
+      const uploadResponse = await uploadHandler(null, uploadParams);
+      expect(uploadResponse.success).toBe(true);
+      const pdfId = uploadResponse.data.id;
+
+      // Manually delete the file
+      const record = db.prepare('SELECT * FROM facturas_pdf WHERE id = ?').get(pdfId);
+      const fullPath = path.join(mockUserDataPath, 'facturas', record.ruta_relativa);
+      if (fs.existsSync(fullPath)) {
+        fs.unlinkSync(fullPath);
+      }
+
+      // Now try to delete via handler
+      const deleteHandler = mockHandlers['facturas:deletePDF'];
+      const deleteResponse = await deleteHandler(null, pdfId);
+
+      expect(deleteResponse.success).toBe(true);
+    });
+  });
+
+  describe('facturas:getAllForEntidad', () => {
+    it('should return all PDFs for an entidad', async () => {
+      // Upload two PDFs
+      const uploadHandler = mockHandlers['facturas:uploadPDF'];
+      const params1 = {
+        tipo: 'compra',
+        entidadId: testProviderId,
+        entidadNombre: 'Test Proveedor',
+        filePath: testPDFPath,
+      };
+      await uploadHandler(null, params1);
+
+      // Create another PDF
+      const testPDFPath2 = path.join(mockUserDataPath, 'test-invoice-2.pdf');
+      fs.writeFileSync(testPDFPath2, Buffer.from('%PDF-1.4\nTest 2'));
+      const params2 = {
+        tipo: 'compra',
+        entidadId: testProviderId,
+        entidadNombre: 'Test Proveedor',
+        filePath: testPDFPath2,
+      };
+      await uploadHandler(null, params2);
+
+      // Get all PDFs
+      const handler = mockHandlers['facturas:getAllForEntidad'];
+      const response = await handler(null, { tipo: 'compra', entidadId: testProviderId });
+
+      expect(response.success).toBe(true);
+      expect(response.data).toHaveLength(2);
+      expect(response.data[0].entidad_id).toBe(testProviderId);
+      expect(response.data[1].entidad_id).toBe(testProviderId);
+    });
+
+    it('should return empty array if no PDFs found', async () => {
+      const handler = mockHandlers['facturas:getAllForEntidad'];
+      const response = await handler(null, { tipo: 'compra', entidadId: testProviderId });
+
+      expect(response.success).toBe(true);
+      expect(response.data).toHaveLength(0);
+    });
+
+    it('should return error for missing parameters', async () => {
+      const handler = mockHandlers['facturas:getAllForEntidad'];
+      const response = await handler(null, {});
+
+      expect(response.success).toBe(false);
+      expect(response.error.code).toBe('INVALID_INPUT');
+    });
+
+    it('should return error for invalid tipo', async () => {
+      const handler = mockHandlers['facturas:getAllForEntidad'];
+      const response = await handler(null, { tipo: 'invalid', entidadId: testProviderId });
+
+      expect(response.success).toBe(false);
+      expect(response.error.code).toBe('INVALID_INPUT');
+    });
+  });
+
+  describe('facturas:getPDFBytes', () => {
+    it('should return PDF bytes as ArrayBuffer', async () => {
+      // First upload a PDF
+      const uploadHandler = mockHandlers['facturas:uploadPDF'];
+      const uploadParams = {
+        tipo: 'compra',
+        entidadId: testProviderId,
+        entidadNombre: 'Test Proveedor',
+        filePath: testPDFPath,
+      };
+      const uploadResponse = await uploadHandler(null, uploadParams);
+      expect(uploadResponse.success).toBe(true);
+
+      // Now get PDF bytes
+      const handler = mockHandlers['facturas:getPDFBytes'];
+      const response = await handler(null, uploadResponse.data.ruta_relativa);
+
+      expect(response.success).toBe(true);
+      expect(response.data).toBeInstanceOf(ArrayBuffer);
+      expect(response.data.byteLength).toBeGreaterThan(0);
+    });
+
+    it('should return error for path traversal attempt', async () => {
+      const handler = mockHandlers['facturas:getPDFBytes'];
+      const response = await handler(null, '../../../etc/passwd');
+
+      expect(response.success).toBe(false);
+      expect(response.error.code).toBe('INVALID_PATH');
+    });
+
+    it('should return error for non-existent file', async () => {
+      const handler = mockHandlers['facturas:getPDFBytes'];
+      const response = await handler(null, 'compra/test/nonexistent.pdf');
+
+      expect(response.success).toBe(false);
+      expect(response.error.code).toBe('FILE_NOT_FOUND');
+    });
+
+    it('should return error for invalid input', async () => {
+      const handler = mockHandlers['facturas:getPDFBytes'];
+      const response = await handler(null, null);
+
+      expect(response.success).toBe(false);
+      expect(response.error.code).toBe('INVALID_INPUT');
+    });
+  });
+});

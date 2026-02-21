@@ -45,6 +45,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   // Facturas module
   facturas: {
+    uploadPDF: (params) => ipcRenderer.invoke('facturas:uploadPDF', params),
+    deletePDF: (id) => ipcRenderer.invoke('facturas:deletePDF', id),
+    getAllForEntidad: (params) => ipcRenderer.invoke('facturas:getAllForEntidad', params),
     getPDFBytes: (pdfPath) => ipcRenderer.invoke('facturas:getPDFBytes', pdfPath),
   },
 });
