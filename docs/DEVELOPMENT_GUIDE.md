@@ -191,6 +191,8 @@ Generate a coverage report:
 npm run test:coverage
 ```
 
+`npm run test:coverage` runs Vitest suites and excludes `tests/e2e/**`.
+
 Run Playwright E2E suite:
 
 ```powershell

@@ -40,6 +40,11 @@ npm run lint
 npm run build
 ```
 
+### Testing note
+
+- `npm run test:coverage` runs **Vitest** unit/component/integration suites and excludes `tests/e2e/**`.
+- Run end-to-end tests separately with `npm run test:e2e` (Playwright).
+
 ## Documentation
 
 | Document                                                             | Description                                                     |
