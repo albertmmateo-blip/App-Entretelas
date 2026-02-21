@@ -25,6 +25,7 @@ module.exports = {
     'import/prefer-default-export': 'off',
     'no-console': 'off',
     'react/prop-types': 'off',
+    'import/no-unresolved': ['error', { ignore: ['\\?url$', '\\?worker$', '\\?raw$'] }],
   },
   settings: {
     react: {
