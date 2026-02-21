@@ -29,6 +29,9 @@ const WINDOWS_RESERVED_NAMES = [
   'LPT9',
 ];
 
+const MAX_STORED_FILENAME_LENGTH = 200;
+const MAX_COLLISION_ATTEMPTS = 9999;
+
 /**
  * Sanitizes a filename by removing special characters and applying safety rules.
  * @param {string} filename - The filename to sanitize
@@ -68,6 +71,86 @@ function sanitizeFilename(filename) {
   }
 
   return sanitized;
+}
+
+/**
+ * Sanitizes only the base part of a filename while preserving case and spaces.
+ * Used to build human-readable stored PDF filenames.
+ * @param {string} name - filename base (without extension)
+ * @returns {string}
+ */
+function sanitizeFileBaseName(name) {
+  if (!name || typeof name !== 'string') {
+    return 'unnamed';
+  }
+
+  let sanitized = name;
+
+  // eslint-disable-next-line no-control-regex
+  sanitized = sanitized.replace(/[\x00-\x1F\\/:*?"<>|#()]/g, '');
+  sanitized = sanitized.replace(/\s+/g, ' ').trim();
+  sanitized = sanitized.replace(/[.\s]+$/g, '').trim();
+
+  if (!sanitized) {
+    return 'unnamed';
+  }
+
+  if (sanitized.length > 180) {
+    sanitized = sanitized.substring(0, 180).trim();
+  }
+
+  if (WINDOWS_RESERVED_NAMES.includes(sanitized.toUpperCase())) {
+    sanitized = `${sanitized}_`;
+  }
+
+  return sanitized;
+}
+
+function buildStoredPdfFilename(entityLabel, baseName, suffixNumber = 0) {
+  const suffix = suffixNumber > 0 ? ` (${suffixNumber})` : '';
+  const prefix = `${entityLabel} - `;
+  const extension = '.pdf';
+  const maxBaseLength = Math.max(
+    1,
+    MAX_STORED_FILENAME_LENGTH - prefix.length - suffix.length - extension.length
+  );
+
+  let truncatedBase = baseName.substring(0, maxBaseLength).trim();
+  truncatedBase = truncatedBase.replace(/[.\s]+$/g, '').trim();
+
+  if (!truncatedBase) {
+    truncatedBase = 'unnamed';
+  }
+
+  return `${prefix}${truncatedBase}${suffix}${extension}`;
+}
+
+function getUniquePdfStorageName({
+  db,
+  tipo,
+  sanitizedEntidad,
+  entityLabel,
+  sanitizedOriginalBaseName,
+  targetDir,
+}) {
+  const findExistingByRelativePath = db.prepare(
+    'SELECT 1 FROM facturas_pdf WHERE ruta_relativa = ? LIMIT 1'
+  );
+
+  for (let attempt = 0; attempt <= MAX_COLLISION_ATTEMPTS; attempt += 1) {
+    const targetFilename = buildStoredPdfFilename(entityLabel, sanitizedOriginalBaseName, attempt);
+    const relativePath = path.join(tipo, sanitizedEntidad, targetFilename);
+    const targetPath = path.join(targetDir, targetFilename);
+
+    const existsOnDisk = fs.existsSync(targetPath);
+    const existsInDatabase = Boolean(findExistingByRelativePath.get(relativePath));
+
+    if (!existsOnDisk && !existsInDatabase) {
+      return { targetFilename, targetPath, relativePath };
+    }
+  }
+
+  throw new Error('Unable to allocate unique PDF filename after multiple attempts');
 }
 
 /**
@@ -167,10 +250,11 @@ function registerFacturasHandlers() {
         };
       }
 
-      // Sanitize entidadNombre and filename
+      // Sanitize entidadNombre for directory usage and filename for stored display-style name
       const sanitizedEntidad = sanitizeFilename(entidadNombre);
       const originalFilename = path.basename(filePath);
-      const sanitizedOriginalFilename = sanitizeFilename(originalFilename);
+      const originalBaseName = path.basename(originalFilename, path.extname(originalFilename));
+      const sanitizedOriginalBaseName = sanitizeFileBaseName(originalBaseName);
 
       // Build target path: {userData}/facturas/${tipo}/${sanitizedEntidad}/
       const userDataPath = app.getPath('userData');
@@ -179,18 +263,22 @@ function registerFacturasHandlers() {
       // Create directories if they don't exist
       fs.mkdirSync(targetDir, { recursive: true });
 
-      // Build filename: [SanitizedEntidad] - [sanitized_filename].pdf
-      const targetFilename = `${sanitizedEntidad}-${sanitizedOriginalFilename}`;
-      const targetPath = path.join(targetDir, targetFilename);
+      // Build filename: [Proveedor/Client] - [file name].pdf
+      const entityLabel = tipo === 'compra' ? 'Proveedor' : 'Client';
+      const db = getDatabase();
+      const { targetFilename, targetPath, relativePath } = getUniquePdfStorageName({
+        db,
+        tipo,
+        sanitizedEntidad,
+        entityLabel,
+        sanitizedOriginalBaseName,
+        targetDir,
+      });
 
       // Copy file
       fs.copyFileSync(filePath, targetPath);
 
-      // Build relative path
-      const relativePath = path.join(tipo, sanitizedEntidad, targetFilename);
-
       // Insert record into facturas_pdf table
-      const db = getDatabase();
       const entidadTipo = tipo === 'compra' ? 'proveedor' : 'cliente';
 
       const stmt = db.prepare(`

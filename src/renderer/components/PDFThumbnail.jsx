@@ -61,18 +61,23 @@ function PDFThumbnail({ pdfPath }) {
     let isMounted = true;
 
     async function generateThumbnail() {
+      let timeoutId;
       try {
         setLoading(true);
         setError(null);
 
         // Create a promise that rejects after timeout
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('PDF rendering timed out')), RENDER_TIMEOUT_MS);
+          timeoutId = setTimeout(
+            () => reject(new Error('PDF rendering timed out')),
+            RENDER_TIMEOUT_MS
+          );
         });
 
         // Create the actual rendering promise
         const renderPromise = (async () => {
           let pdf = null;
+          let loadingTask = null;
           try {
             // Get PDF bytes from main process
             const response = await window.electronAPI.facturas.getPDFBytes(pdfPath);
@@ -92,12 +97,19 @@ function PDFThumbnail({ pdfPath }) {
               console.debug(`[PDFThumbnail] Loaded ${pdfData.byteLength} bytes for "${pdfPath}"`);
             }
 
-            // Pass options explicitly to ensure proper initialization in Electron/Vite environment
-            const loadingTask = pdfjsLib.getDocument({
-              data: pdfData,
-              verbosity: 0, // Suppress warnings
-            });
-            pdf = await loadingTask.promise;
+            // Prefer worker rendering; fallback to main thread only if worker init fails.
+            try {
+              loadingTask = pdfjsLib.getDocument({ data: pdfData, verbosity: 0 });
+              pdf = await loadingTask.promise;
+            } catch (workerError) {
+              console.warn('PDF worker loading failed, retrying without worker:', workerError);
+              loadingTask = pdfjsLib.getDocument({
+                data: pdfData,
+                disableWorker: true,
+                verbosity: 0,
+              });
+              pdf = await loadingTask.promise;
+            }
 
             // Get first page
             const page = await pdf.getPage(1);
@@ -127,6 +139,10 @@ function PDFThumbnail({ pdfPath }) {
             canvas.height = THUMBNAIL_HEIGHT;
             const context = canvas.getContext('2d');
 
+            if (!context) {
+              throw new Error('Canvas context is not available');
+            }
+
             // Render PDF page to canvas
             await page.render({
               canvasContext: context,
@@ -138,6 +154,9 @@ function PDFThumbnail({ pdfPath }) {
 
             return dataUrl;
           } finally {
+            if (loadingTask) {
+              loadingTask.destroy();
+            }
             // Clean up PDF document to prevent memory leaks
             if (pdf) {
               pdf.destroy();
@@ -147,6 +166,7 @@ function PDFThumbnail({ pdfPath }) {
 
         // Race between rendering and timeout
         const dataUrl = await Promise.race([renderPromise, timeoutPromise]);
+        clearTimeout(timeoutId);
 
         if (isMounted) {
           setThumbnailDataUrl(dataUrl);
@@ -160,6 +180,8 @@ function PDFThumbnail({ pdfPath }) {
           setError(normalizedError);
           setLoading(false);
         }
+      } finally {
+        clearTimeout(timeoutId);
       }
     }
 
