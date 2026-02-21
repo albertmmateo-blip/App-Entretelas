@@ -281,26 +281,26 @@ function ProveedorPDFView({ tipo = 'compra' }) {
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
+      <div className="flex items-center mb-6">
+        <h1 className="text-2xl font-bold text-neutral-900 flex-1">
+          {proveedor?.razon_social || 'Proveedor'}
+        </h1>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => navigate(`${basePath}/${entidadId}/editar`)}
+            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+          >
+            {`Editar proveedor (${titleLabel.toLowerCase()})`}
+          </button>
           <button
             type="button"
             onClick={() => navigate(basePath)}
-            className="text-primary hover:text-primary/80 flex items-center gap-1 mb-2"
+            className="px-3 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
           >
             ← Volver
           </button>
-          <h1 className="text-2xl font-bold text-neutral-900">
-            {proveedor?.razon_social || 'Proveedor'}
-          </h1>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate(`${basePath}/${entidadId}/editar`)}
-          className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
-        >
-          {`Editar proveedor (${titleLabel.toLowerCase()})`}
-        </button>
       </div>
 
       {loading && !proveedor ? (
