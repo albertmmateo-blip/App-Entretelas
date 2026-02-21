@@ -27,9 +27,16 @@ import React from 'react';
  */
 function EntryCard({ urgente, onClick, children, onActionClick }) {
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
       className={`bg-white rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer p-4 relative text-left ${
         urgente ? 'border-2 border-danger' : 'border border-neutral-200'
       }`}
@@ -60,7 +67,7 @@ function EntryCard({ urgente, onClick, children, onActionClick }) {
           ⋮
         </button>
       )}
-    </button>
+    </div>
   );
 }
 
