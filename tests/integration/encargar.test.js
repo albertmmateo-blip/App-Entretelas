@@ -4,15 +4,16 @@ import { createEncargar } from '../fixtures/sample-data';
 
 // Mock electron's ipcMain BEFORE any imports that might use it
 const mockHandlers = {};
+const mockIpcMain = {
+  handle: vi.fn((channel, handler) => {
+    mockHandlers[channel] = handler;
+  }),
+  removeHandler: vi.fn((channel) => {
+    delete mockHandlers[channel];
+  }),
+};
 vi.mock('electron', () => ({
-  ipcMain: {
-    handle: vi.fn((channel, handler) => {
-      mockHandlers[channel] = handler;
-    }),
-    removeHandler: vi.fn((channel) => {
-      delete mockHandlers[channel];
-    }),
-  },
+  ipcMain: mockIpcMain,
 }));
 
 // Mock the database connection module
@@ -49,12 +50,12 @@ describe('Encargar IPC Handlers', () => {
     db = createTestDb();
     mockDb = db;
 
-    // Clear module cache to force re-import with fresh mocks
-    vi.resetModules();
-
     // Register handlers
     const { registerEncargarHandlers } = await import('../../src/main/ipc/encargar');
-    registerEncargarHandlers();
+    registerEncargarHandlers({
+      ipcMain: mockIpcMain,
+      getDatabase: () => db,
+    });
   });
 
   afterEach(() => {

@@ -34,6 +34,10 @@ entidad_tipo    TEXT  ('proveedor' | 'cliente')
 nombre_original TEXT  (original filename provided by the user)
 nombre_guardado TEXT  (full stored filename: "[Entidad] - [nombre_original]")
 ruta_relativa   TEXT  (relative path from {userData}/facturas/)
+importe         REAL  (optional invoice amount)
+importe_iva_re  REAL  (optional total amount incl. IVA/RE)
+vencimiento     TEXT  (optional due date, YYYY-MM-DD)
+pagada          INTEGER (0/1, default 0)
 fecha_subida    TEXT  (ISO-8601)
 fecha_mod       TEXT  (ISO-8601)
 ```
@@ -127,6 +131,10 @@ CREATE TABLE IF NOT EXISTS facturas_pdf (
     nombre_original TEXT    NOT NULL,
     nombre_guardado TEXT    NOT NULL,
     ruta_relativa   TEXT    NOT NULL UNIQUE,
+    importe         REAL,
+    importe_iva_re  REAL,
+    vencimiento     TEXT,
+    pagada          INTEGER NOT NULL DEFAULT 0 CHECK (pagada IN (0, 1)),
     fecha_subida    TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     fecha_mod       TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
@@ -192,6 +200,7 @@ CREATE INDEX IF NOT EXISTS idx_facturas_entidad ON facturas_pdf(entidad_id, enti
 | `clientes`     | `numero_cliente` | Non-empty string after trimming   |
 | `facturas_pdf` | `tipo`           | One of `'compra'`, `'venta'`      |
 | `facturas_pdf` | `entidad_tipo`   | One of `'proveedor'`, `'cliente'` |
+| `facturas_pdf` | `pagada`         | Boolean integer: 0 or 1           |
 | All tables     | `urgente`        | Boolean integer: 0 or 1           |
 
 Validation is enforced at two levels:
@@ -207,7 +216,8 @@ Migrations are numbered SQL files in `src/main/db/migrations/`:
 
 ```
 001_init.sql      – creates all tables, triggers, and indexes
-002_*.sql         – future schema changes (additive only for v1)
+002_facturas_pdf_metadata.sql – adds `importe`, `importe_iva_re`, `vencimiento`, `pagada` to `facturas_pdf`
+003_*.sql         – future schema changes (additive only for v1)
 ```
 
 On startup, `src/main/db/connection.js` reads the `user_version` PRAGMA, applies any migrations with a higher number, and updates `user_version`. Migrations are **never modified after release**; new changes are always new migration files.

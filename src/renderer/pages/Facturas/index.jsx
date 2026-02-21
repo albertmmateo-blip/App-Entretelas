@@ -1,24 +1,20 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import ProveedoresList from './ProveedoresList';
 import ClientesList from './ClientesList';
 
 function Facturas() {
   const navigate = useNavigate();
-  const isCompra = window.location.hash.includes('/facturas/compra');
-  const isVenta = window.location.hash.includes('/facturas/venta');
+  const { pathname } = useLocation();
 
-  // Show proveedores list if on /facturas/compra route
-  if (isCompra) {
+  if (pathname.startsWith('/facturas/compra')) {
     return <ProveedoresList />;
   }
 
-  // Show clientes list if on /facturas/venta route
-  if (isVenta) {
+  if (pathname.startsWith('/facturas/venta')) {
     return <ClientesList />;
   }
 
-  // Root facturas page - show two folder icons
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold text-neutral-900 mb-6">Facturas</h1>

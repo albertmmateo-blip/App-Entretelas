@@ -177,38 +177,44 @@
 └──────────────────────────────────────────────────────────┘
 ```
 
-Clicking a folder opens:
+Clicking **Facturas Compra** opens:
 
 ```
 ┌──────────────────────────────────────────────────────────┐
 │  ← Facturas Compra        [+ Nuevo Proveedor]            │
 ├──────────────────────────────────────────────────────────┤
 │  🔍 [Buscar …]                                           │
-├─────────────────────────────────────────────────────────-┤
-│  📁 Proveedor A (3 facturas)                      ⋮      │
-│  📁 Proveedor B (1 factura)                       ⋮      │
+├──────────────────────────────────────────────────────────┤
+│  [chips acceso rápido por proveedor]                     │
+├──────────────────────────────────────────────────────────┤
+│  📁 Proveedor A (Facturas subidas: N)             ⋮      │
+│  📁 Proveedor B (Facturas subidas: N)             ⋮      │
 └──────────────────────────────────────────────────────────┘
 ```
 
-Clicking a Proveedor folder opens:
+Clicking a Proveedor/Cliente card opens:
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  ← Proveedor A                [+ Subir Factura]          │
+│  ← Proveedor A               [Editar proveedor/cliente]  │
 ├──────────────────────────────────────────────────────────┤
-│  🔍 [Buscar …]    Ordenar: [Fecha ▾]                     │
+│  [Facturas PDF (count)]      [+ Subir PDF]               │
 ├──────────────────────────────────────────────────────────┤
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐               │
 │  │ [thumb]  │  │ [thumb]  │  │ [thumb]  │               │
-│  │ fact.pdf │  │ fact2.pdf│  │ fact3.pdf│               │
-│  │ 19/02/26 │  │ 18/02/26 │  │ 17/02/26 │               │
+│  │ archivo  │  │ archivo  │  │ archivo  │               │
+│  │ fecha    │  │ fecha    │  │ fecha    │               │
+│  │ importe  │  │ importe  │  │ importe  │               │
+│  │ pagada?  │  │ pagada?  │  │ pagada?  │               │
+│  │ [Editar] │  │ [Editar] │  │ [Editar] │               │
 │  └──────────┘  └──────────┘  └──────────┘               │
 └──────────────────────────────────────────────────────────┘
 ```
 
 - Thumbnails are 160 × 210 px (A4 aspect ratio).
-- Double-clicking a thumbnail opens the PDF in the system viewer.
-- A `⋮` context menu on each thumbnail provides: **Abrir**, **Eliminar**.
+- Each PDF card includes inline metadata editing (`importe`, `importe+IVA+RE`, `vencimiento`, `pagada`).
+- PDF deletion uses a dedicated delete icon with confirmation dialog.
+- Thumbnail rendering is lazy (IntersectionObserver) and reads bytes via `facturas:getPDFBytes`.
 
 ---
 
@@ -247,25 +253,29 @@ Clicking a Proveedor folder opens:
 
 ## 12. Routing (React Router)
 
-| Route                           | Page                             |
-| ------------------------------- | -------------------------------- |
-| `/`                             | Home                             |
-| `/urgente`                      | URGENTE!                         |
-| `/notas`                        | Notas list                       |
-| `/notas/nueva`                  | New note form                    |
-| `/notas/:id`                    | Edit note form                   |
-| `/llamar`                       | Llamar list                      |
-| `/llamar/nueva`                 | New llamar form                  |
-| `/llamar/:id`                   | Edit llamar form                 |
-| `/encargar`                     | Encargar list                    |
-| `/encargar/nueva`               | New encargar form                |
-| `/encargar/:id`                 | Edit encargar form               |
-| `/facturas`                     | Facturas root (two folders)      |
-| `/facturas/compra`              | Facturas Compra – Proveedor list |
-| `/facturas/compra/:proveedorId` | PDF list for a Proveedor         |
-| `/facturas/venta`               | Facturas Venta – Cliente list    |
-| `/facturas/venta/:clienteId`    | PDF list for a Cliente           |
-| `/email`                        | Gmail webview                    |
+| Route                                  | Page                             |
+| -------------------------------------- | -------------------------------- |
+| `/`                                    | Home                             |
+| `/urgente`                             | URGENTE!                         |
+| `/notas`                               | Notas list                       |
+| `/notas/nueva`                         | New note form                    |
+| `/notas/:id`                           | Edit note form                   |
+| `/llamar`                              | Llamar list                      |
+| `/llamar/nueva`                        | New llamar form                  |
+| `/llamar/:id`                          | Edit llamar form                 |
+| `/encargar`                            | Encargar list                    |
+| `/encargar/nueva`                      | New encargar form                |
+| `/encargar/:id`                        | Edit encargar form               |
+| `/facturas`                            | Facturas root (two folders)      |
+| `/facturas/compra`                     | Facturas Compra – Proveedor list |
+| `/facturas/compra/nuevo`               | Crear proveedor                  |
+| `/facturas/compra/:proveedorId`        | PDF list for a Proveedor         |
+| `/facturas/compra/:proveedorId/editar` | Edit proveedor                   |
+| `/facturas/venta`                      | Facturas Venta – Cliente list    |
+| `/facturas/venta/nuevo`                | Crear cliente                    |
+| `/facturas/venta/:clienteId`           | PDF list for a Cliente           |
+| `/facturas/venta/:clienteId/editar`    | Edit cliente                     |
+| `/email`                               | Gmail webview                    |
 
 ---
 

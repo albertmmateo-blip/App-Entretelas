@@ -4,15 +4,21 @@ import { createCliente } from '../fixtures/sample-data';
 
 // Mock electron's ipcMain
 const mockHandlers = {};
+const mockIpcMain = {
+  handle: vi.fn((channel, handler) => {
+    mockHandlers[channel] = handler;
+  }),
+  removeHandler: vi.fn((channel) => {
+    delete mockHandlers[channel];
+  }),
+};
 vi.mock('electron', () => ({
-  ipcMain: {
-    handle: vi.fn((channel, handler) => {
-      mockHandlers[channel] = handler;
-    }),
-    removeHandler: vi.fn((channel) => {
-      delete mockHandlers[channel];
-    }),
-  },
+  ipcMain: mockIpcMain,
+}));
+
+let mockDb = null;
+vi.mock('../../src/main/db/connection', () => ({
+  getDatabase: () => mockDb,
 }));
 
 describe('Clientes IPC Handlers', () => {
@@ -21,14 +27,14 @@ describe('Clientes IPC Handlers', () => {
   beforeEach(async () => {
     // Create test database
     db = createTestDb();
-
-    // Mock getDatabase to return our test database
-    const connectionModule = await import('../../src/main/db/connection');
-    connectionModule.getDatabase = () => db;
+    mockDb = db;
 
     // Register handlers
     const { registerClientesHandlers } = await import('../../src/main/ipc/clientes');
-    registerClientesHandlers();
+    registerClientesHandlers({
+      ipcMain: mockIpcMain,
+      getDatabase: () => db,
+    });
   });
 
   afterEach(() => {

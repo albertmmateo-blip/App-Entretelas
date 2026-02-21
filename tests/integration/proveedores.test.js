@@ -4,15 +4,21 @@ import { createProveedor } from '../fixtures/sample-data';
 
 // Mock electron's ipcMain
 const mockHandlers = {};
+const mockIpcMain = {
+  handle: vi.fn((channel, handler) => {
+    mockHandlers[channel] = handler;
+  }),
+  removeHandler: vi.fn((channel) => {
+    delete mockHandlers[channel];
+  }),
+};
 vi.mock('electron', () => ({
-  ipcMain: {
-    handle: vi.fn((channel, handler) => {
-      mockHandlers[channel] = handler;
-    }),
-    removeHandler: vi.fn((channel) => {
-      delete mockHandlers[channel];
-    }),
-  },
+  ipcMain: mockIpcMain,
+}));
+
+let mockDb = null;
+vi.mock('../../src/main/db/connection', () => ({
+  getDatabase: () => mockDb,
 }));
 
 describe('Proveedores IPC Handlers', () => {
@@ -21,14 +27,14 @@ describe('Proveedores IPC Handlers', () => {
   beforeEach(async () => {
     // Create test database
     db = createTestDb();
-
-    // Mock getDatabase to return our test database
-    const connectionModule = await import('../../src/main/db/connection');
-    connectionModule.getDatabase = () => db;
+    mockDb = db;
 
     // Register handlers
     const { registerProveedoresHandlers } = await import('../../src/main/ipc/proveedores');
-    registerProveedoresHandlers();
+    registerProveedoresHandlers({
+      ipcMain: mockIpcMain,
+      getDatabase: () => db,
+    });
   });
 
   afterEach(() => {
@@ -79,31 +85,34 @@ describe('Proveedores IPC Handlers', () => {
       const proveedores = db
         .prepare('SELECT id, razon_social FROM proveedores ORDER BY razon_social ASC')
         .all();
+      const proveedorDos = proveedores.find((item) => item.razon_social === 'Proveedor Dos');
+
+      expect(proveedorDos).toBeDefined();
 
       seedTestData(db, 'facturas_pdf', [
         {
           tipo: 'compra',
-          entidad_id: proveedores[1].id,
+          entidad_id: proveedorDos.id,
           entidad_tipo: 'proveedor',
           nombre_original: 'factura-1.pdf',
           nombre_guardado: 'Proveedor - factura-1.pdf',
-          ruta_relativa: `compra/proveedor-dos/factura-1-${proveedores[1].id}.pdf`,
+          ruta_relativa: `compra/proveedor-dos/factura-1-${proveedorDos.id}.pdf`,
         },
         {
           tipo: 'compra',
-          entidad_id: proveedores[1].id,
+          entidad_id: proveedorDos.id,
           entidad_tipo: 'proveedor',
           nombre_original: 'factura-2.pdf',
           nombre_guardado: 'Proveedor - factura-2.pdf',
-          ruta_relativa: `compra/proveedor-dos/factura-2-${proveedores[1].id}.pdf`,
+          ruta_relativa: `compra/proveedor-dos/factura-2-${proveedorDos.id}.pdf`,
         },
         {
           tipo: 'venta',
-          entidad_id: proveedores[1].id,
+          entidad_id: proveedorDos.id,
           entidad_tipo: 'cliente',
           nombre_original: 'cliente-factura.pdf',
           nombre_guardado: 'Client - cliente-factura.pdf',
-          ruta_relativa: `venta/cliente/factura-${proveedores[1].id}.pdf`,
+          ruta_relativa: `venta/cliente/factura-${proveedorDos.id}.pdf`,
         },
       ]);
 

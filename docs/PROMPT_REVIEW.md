@@ -573,7 +573,7 @@ Update P5-02:
 **P1-02:**
 ```
 
-- Add: "Run a visual regression test (Percy or Chromatic) to verify colors match design tokens in tailwind.config.js"
+- Add: "Run a visual regression test (Percy or Chromatic) to verify colors match design tokens defined in renderer styles/theme files"
 - OR: "Create a script that parses CSS and checks for Tailwind class usage: grep for 'bg-neutral-50', 'text-primary', etc."
 
 ```
@@ -848,7 +848,7 @@ Electron follows Chromium release cycle (new major every 8 weeks). Updating requ
 ### Vite Version Updates
 
 1. Check Vite migration guide: https://vitejs.dev/guide/migration.html
-2. Update vite.config.js per migration guide
+2. Update vite.config.mjs per migration guide
 3. Test HMR in development: `npm run dev`
 4. Test production build: `npm run build`
 5. Verify Electron app still launches after build

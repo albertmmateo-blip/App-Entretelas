@@ -101,15 +101,17 @@ function validateLlamarInput(data) {
 /**
  * Registers IPC handlers for llamar operations.
  */
-function registerLlamarHandlers() {
+function registerLlamarHandlers(deps = {}) {
+  const ipc = deps.ipcMain || ipcMain;
+  const getDb = deps.getDatabase || getDatabase;
   /**
    * Handler: llamar:getAll
    * Returns all llamar entries from the database.
    * @returns {Promise<{success: boolean, data?: Array, error?: {code: string, message: string}}>}
    */
-  ipcMain.handle('llamar:getAll', async () => {
+  ipc.handle('llamar:getAll', async () => {
     try {
-      const db = getDatabase();
+      const db = getDb();
       const llamar = db.prepare('SELECT * FROM llamar ORDER BY fecha_creacion DESC').all();
 
       return {
@@ -135,7 +137,7 @@ function registerLlamarHandlers() {
    * @param {Object} data - The llamar data { asunto, contacto, nombre?, descripcion?, urgente? }
    * @returns {Promise<{success: boolean, data?: Object, error?: {code: string, message: string}}>}
    */
-  ipcMain.handle('llamar:create', async (_event, data) => {
+  ipc.handle('llamar:create', async (_event, data) => {
     try {
       // Check for required fields
       if (!data.asunto || (typeof data.asunto === 'string' && data.asunto.trim().length === 0)) {
@@ -170,7 +172,7 @@ function registerLlamarHandlers() {
         };
       }
 
-      const db = getDatabase();
+      const db = getDb();
 
       // Trim whitespace from string fields
       const asunto = data.asunto.trim();
@@ -214,7 +216,7 @@ function registerLlamarHandlers() {
    * @param {Object} data - The llamar data to update { asunto?, contacto?, nombre?, descripcion?, urgente? }
    * @returns {Promise<{success: boolean, data?: Object, error?: {code: string, message: string}}>}
    */
-  ipcMain.handle('llamar:update', async (_event, id, data) => {
+  ipc.handle('llamar:update', async (_event, id, data) => {
     try {
       // Validate ID
       if (!id || typeof id !== 'number') {
@@ -236,7 +238,7 @@ function registerLlamarHandlers() {
         };
       }
 
-      const db = getDatabase();
+      const db = getDb();
 
       // Check if llamar entry exists
       const existing = db.prepare('SELECT id FROM llamar WHERE id = ?').get(id);
@@ -346,7 +348,7 @@ function registerLlamarHandlers() {
    * @param {number} id - The llamar ID
    * @returns {Promise<{success: boolean, error?: {code: string, message: string}}>}
    */
-  ipcMain.handle('llamar:delete', async (_event, id) => {
+  ipc.handle('llamar:delete', async (_event, id) => {
     try {
       // Validate ID
       if (!id || typeof id !== 'number') {
@@ -359,7 +361,7 @@ function registerLlamarHandlers() {
         };
       }
 
-      const db = getDatabase();
+      const db = getDb();
 
       // Check if llamar entry exists
       const existing = db.prepare('SELECT id FROM llamar WHERE id = ?').get(id);

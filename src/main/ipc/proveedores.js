@@ -79,15 +79,17 @@ function validateProveedorInput(data) {
 /**
  * Registers IPC handlers for proveedores operations.
  */
-function registerProveedoresHandlers() {
+function registerProveedoresHandlers(deps = {}) {
+  const ipc = deps.ipcMain || ipcMain;
+  const getDb = deps.getDatabase || getDatabase;
   /**
    * Handler: proveedores:getAll
    * Returns all proveedores from the database.
    * @returns {Promise<{success: boolean, data?: Array, error?: {code: string, message: string}}>}
    */
-  ipcMain.handle('proveedores:getAll', async () => {
+  ipc.handle('proveedores:getAll', async () => {
     try {
-      const db = getDatabase();
+      const db = getDb();
       const proveedores = db
         .prepare(
           `
@@ -126,7 +128,7 @@ function registerProveedoresHandlers() {
    * @param {Object} data - The proveedor data { razon_social, direccion?, nif? }
    * @returns {Promise<{success: boolean, data?: Object, error?: {code: string, message: string}}>}
    */
-  ipcMain.handle('proveedores:create', async (_event, data) => {
+  ipc.handle('proveedores:create', async (_event, data) => {
     try {
       // Validate required field
       if (!data.razon_social) {
@@ -148,7 +150,7 @@ function registerProveedoresHandlers() {
         };
       }
 
-      const db = getDatabase();
+      const db = getDb();
 
       // Trim whitespace from string fields
       const razonSocial = data.razon_social.trim();
@@ -192,7 +194,7 @@ function registerProveedoresHandlers() {
    * @param {Object} data - The proveedor data to update { razon_social?, direccion?, nif? }
    * @returns {Promise<{success: boolean, data?: Object, error?: {code: string, message: string}}>}
    */
-  ipcMain.handle('proveedores:update', async (_event, id, data) => {
+  ipc.handle('proveedores:update', async (_event, id, data) => {
     try {
       // Validate ID
       if (!id || typeof id !== 'number') {
@@ -214,7 +216,7 @@ function registerProveedoresHandlers() {
         };
       }
 
-      const db = getDatabase();
+      const db = getDb();
 
       // Check if proveedor exists
       const existing = db.prepare('SELECT id FROM proveedores WHERE id = ?').get(id);
@@ -321,7 +323,7 @@ function registerProveedoresHandlers() {
    * @param {number} id - The proveedor ID
    * @returns {Promise<{success: boolean, error?: {code: string, message: string}}>}
    */
-  ipcMain.handle('proveedores:delete', async (_event, id) => {
+  ipc.handle('proveedores:delete', async (_event, id) => {
     try {
       // Validate ID
       if (!id || typeof id !== 'number') {
@@ -334,7 +336,7 @@ function registerProveedoresHandlers() {
         };
       }
 
-      const db = getDatabase();
+      const db = getDb();
 
       // Check if proveedor exists
       const existing = db.prepare('SELECT id FROM proveedores WHERE id = ?').get(id);

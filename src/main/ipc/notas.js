@@ -67,18 +67,40 @@ function validateNotaInput(data) {
   return { valid: true };
 }
 
+function normalizeOptionalString(value) {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (!value) {
+    return null;
+  }
+
+  return value.trim();
+}
+
+function normalizeOptionalBooleanAsInt(value) {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return value ? 1 : 0;
+}
+
 /**
  * Registers IPC handlers for notas operations.
  */
-function registerNotasHandlers() {
+function registerNotasHandlers(deps = {}) {
+  const ipc = deps.ipcMain || ipcMain;
+  const getDb = deps.getDatabase || getDatabase;
   /**
    * Handler: notas:getAll
    * Returns all notas from the database.
    * @returns {Promise<{success: boolean, data?: Array, error?: {code: string, message: string}}>}
    */
-  ipcMain.handle('notas:getAll', async () => {
+  ipc.handle('notas:getAll', async () => {
     try {
-      const db = getDatabase();
+      const db = getDb();
       const notas = db.prepare('SELECT * FROM notas ORDER BY fecha_creacion DESC').all();
 
       return {
@@ -104,7 +126,7 @@ function registerNotasHandlers() {
    * @param {Object} data - The nota data { nombre?, descripcion?, contacto?, urgente? }
    * @returns {Promise<{success: boolean, data?: Object, error?: {code: string, message: string}}>}
    */
-  ipcMain.handle('notas:create', async (_event, data) => {
+  ipc.handle('notas:create', async (_event, data) => {
     try {
       // Validate input
       const validation = validateNotaInput(data);
@@ -115,7 +137,7 @@ function registerNotasHandlers() {
         };
       }
 
-      const db = getDatabase();
+      const db = getDb();
 
       // Trim whitespace from string fields
       const nombre = data.nombre ? data.nombre.trim() : null;
@@ -158,7 +180,7 @@ function registerNotasHandlers() {
    * @param {Object} data - The nota data to update { nombre?, descripcion?, contacto?, urgente? }
    * @returns {Promise<{success: boolean, data?: Object, error?: {code: string, message: string}}>}
    */
-  ipcMain.handle('notas:update', async (_event, id, data) => {
+  ipc.handle('notas:update', async (_event, id, data) => {
     try {
       // Validate ID
       if (!id || typeof id !== 'number') {
@@ -180,7 +202,7 @@ function registerNotasHandlers() {
         };
       }
 
-      const db = getDatabase();
+      const db = getDb();
 
       // Check if nota exists
       const existing = db.prepare('SELECT id FROM notas WHERE id = ?').get(id);
@@ -195,17 +217,10 @@ function registerNotasHandlers() {
       }
 
       // Trim whitespace from string fields
-      const nombre =
-        data.nombre !== undefined ? (data.nombre ? data.nombre.trim() : null) : undefined;
-      const descripcion =
-        data.descripcion !== undefined
-          ? data.descripcion
-            ? data.descripcion.trim()
-            : null
-          : undefined;
-      const contacto =
-        data.contacto !== undefined ? (data.contacto ? data.contacto.trim() : null) : undefined;
-      const urgente = data.urgente !== undefined ? (data.urgente ? 1 : 0) : undefined;
+      const nombre = normalizeOptionalString(data.nombre);
+      const descripcion = normalizeOptionalString(data.descripcion);
+      const contacto = normalizeOptionalString(data.contacto);
+      const urgente = normalizeOptionalBooleanAsInt(data.urgente);
 
       // Build update query dynamically based on provided fields
       const updates = [];
@@ -273,7 +288,7 @@ function registerNotasHandlers() {
    * @param {number} id - The nota ID
    * @returns {Promise<{success: boolean, error?: {code: string, message: string}}>}
    */
-  ipcMain.handle('notas:delete', async (_event, id) => {
+  ipc.handle('notas:delete', async (_event, id) => {
     try {
       // Validate ID
       if (!id || typeof id !== 'number') {
@@ -286,7 +301,7 @@ function registerNotasHandlers() {
         };
       }
 
-      const db = getDatabase();
+      const db = getDb();
 
       // Check if nota exists
       const existing = db.prepare('SELECT id FROM notas WHERE id = ?').get(id);

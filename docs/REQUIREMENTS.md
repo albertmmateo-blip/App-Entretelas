@@ -12,7 +12,7 @@ App-Entretelas is a desktop application used as an internal business manager. It
 | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GF-01 | The application **must** run as a standalone desktop app on **Windows** (Windows 10 or later). macOS and Linux are out of scope.                                                         |
 | GF-02 | All data **must** be stored locally in an SQLite database. No cloud persistence is required for v1.                                                                                      |
-| GF-03 | Every list view **must** support sorting (ascending/descending on at least one column), full-text search, and filtering by at least one attribute.                                       |
+| GF-03 | Data modules **must** provide at least search or filtering in their primary list view; sortable columns are required where explicitly defined per-module.                                |
 | GF-04 | Any entry in **Notas**, **Llamar**, or **Encargar** can be marked as **URGENTE!**. Urgent entries are surfaced at the top of their respective lists and aggregated in the URGENTE! page. |
 | GF-05 | The main navigation menu is always visible and displays large icons for each module in the following order: URGENTE!, Notas, Llamar, Encargar, Facturas, E-mail.                         |
 | GF-06 | All text in the UI **must** be in Spanish.                                                                                                                                               |
@@ -95,33 +95,33 @@ App-Entretelas is a desktop application used as an internal business manager. It
 
 #### 3.6.1 General
 
-| ID    | Requirement                                                                                                                                   |
-| ----- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| FA-01 | Two top-level folders are displayed: **Facturas Compra** and **Facturas Venta**.                                                              |
-| FA-02 | Both folders behave identically, but Facturas Compra contains **Proveedor** sub-folders, and Facturas Venta contains **Cliente** sub-folders. |
-| FA-03 | PDFs are stored on disk (not in SQLite) in a structured folder hierarchy: `facturas/<tipo>/<entidad>/`.                                       |
-| FA-04 | The stored filename format is: `[Nombre entidad] - [nombre original del archivo].pdf`.                                                        |
-| FA-05 | PDF thumbnails (first page preview) are displayed in the list view for each invoice.                                                          |
-| FA-06 | Invoices within a folder are sortable by: file name, upload date, and entity name.                                                            |
-| FA-07 | Invoices are searchable by file name and entity name.                                                                                         |
-| FA-08 | A PDF can be opened in the system's default PDF viewer by double-clicking its thumbnail.                                                      |
-| FA-09 | A PDF can be deleted (with confirmation) from the folder.                                                                                     |
+| ID    | Requirement                                                                                                                                                                                |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| FA-01 | The `/facturas` root page displays two top-level folders: **Facturas Compra** and **Facturas Venta**.                                                                                      |
+| FA-02 | **Facturas Compra** lists `proveedores`; **Facturas Venta** lists `clientes`. Each list supports text search by key fields and card-level actions (Editar / Eliminar).                     |
+| FA-03 | PDFs are stored on disk under `{userData}/facturas/<tipo>/<entidad_sanitizada>/` and tracked in SQLite table `facturas_pdf` (metadata + relative path).                                    |
+| FA-04 | Stored PDF filename format is `[Proveedor                                                                                                                                                  | Client] - [nombre_original_sanitizado].pdf`, with numeric suffix collision handling (`(1)`, `(2)`, ...). |
+| FA-05 | PDF upload accepts one or multiple files and validates: `.pdf` extension, `%PDF` header, and max size **50 MB** per file.                                                                  |
+| FA-06 | Each uploaded PDF is shown as a first-page thumbnail (160 × 210) with metadata summary: original filename, upload date, importe, importe+IVA+RE, vencimiento, and estado pagada/pendiente. |
+| FA-07 | Metadata fields (`importe`, `importe_iva_re`, `vencimiento`, `pagada`) are editable from the PDF card and persisted via IPC.                                                               |
+| FA-08 | A PDF can be deleted with confirmation; DB record deletion and file deletion are both attempted by the main process handler.                                                               |
+| FA-09 | PDF bytes retrieval for thumbnail rendering must validate relative paths and reject traversal attempts (`..`, `~`, or paths outside `{userData}/facturas`).                                |
 
 #### 3.6.2 Proveedor (Facturas Compra)
 
-| ID    | Requirement                                                                                                                |
-| ----- | -------------------------------------------------------------------------------------------------------------------------- |
-| FP-01 | **Required fields:** `Razón Social` (text).                                                                                |
-| FP-02 | **Optional fields:** `Dirección` (text), `NIF` (text).                                                                     |
-| FP-03 | A Proveedor folder can be renamed or deleted. Deleting a Proveedor folder deletes all its stored PDFs (with confirmation). |
+| ID    | Requirement                                                                                                                                |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| FP-01 | **Required fields:** `Razón Social` (text).                                                                                                |
+| FP-02 | **Optional fields:** `Dirección` (text), `NIF` (text).                                                                                     |
+| FP-03 | Routes implemented: `/facturas/compra`, `/facturas/compra/nuevo`, `/facturas/compra/:proveedorId`, `/facturas/compra/:proveedorId/editar`. |
 
 #### 3.6.3 Cliente (Facturas Venta)
 
-| ID    | Requirement                                                             |
-| ----- | ----------------------------------------------------------------------- |
-| FC-01 | **Required fields:** `Razón Social` (text), `Número de Cliente` (text). |
-| FC-02 | **Optional fields:** `Dirección` (text), `NIF` (text).                  |
-| FC-03 | A Cliente folder can be renamed or deleted (same rules as Proveedor).   |
+| ID    | Requirement                                                                                                                        |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| FC-01 | **Required fields:** `Razón Social` (text), `Número de Cliente` (text).                                                            |
+| FC-02 | **Optional fields:** `Dirección` (text), `NIF` (text).                                                                             |
+| FC-03 | Routes implemented: `/facturas/venta`, `/facturas/venta/nuevo`, `/facturas/venta/:clienteId`, `/facturas/venta/:clienteId/editar`. |
 
 ---
 

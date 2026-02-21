@@ -226,7 +226,10 @@ function validatePDFPath(relativePath) {
 /**
  * Register all facturas-related IPC handlers.
  */
-function registerFacturasHandlers() {
+function registerFacturasHandlers(deps = {}) {
+  const ipc = deps.ipcMain || ipcMain;
+  const getDb = deps.getDatabase || getDatabase;
+  const electronApp = deps.app || app;
   /**
    * Handler: facturas:uploadPDF
    * Uploads a PDF file to the managed facturas directory.
@@ -237,7 +240,7 @@ function registerFacturasHandlers() {
    * @param {string} params.filePath - Source file path
    * @returns {Promise<{ success: boolean, data?: { id: number, ruta_relativa: string }, error?: object }>}
    */
-  ipcMain.handle('facturas:uploadPDF', async (event, params) => {
+  ipc.handle('facturas:uploadPDF', async (event, params) => {
     try {
       const { tipo, entidadId, entidadNombre, filePath } = params;
 
@@ -302,7 +305,7 @@ function registerFacturasHandlers() {
       const sanitizedOriginalBaseName = sanitizeFileBaseName(originalBaseName);
 
       // Build target path: {userData}/facturas/${tipo}/${sanitizedEntidad}/
-      const userDataPath = app.getPath('userData');
+      const userDataPath = electronApp.getPath('userData');
       const targetDir = path.join(userDataPath, 'facturas', tipo, sanitizedEntidad);
 
       // Create directories if they don't exist
@@ -310,7 +313,7 @@ function registerFacturasHandlers() {
 
       // Build filename: [Proveedor/Client] - [file name].pdf
       const entityLabel = tipo === 'compra' ? 'Proveedor' : 'Client';
-      const db = getDatabase();
+      const db = getDb();
       const { targetFilename, targetPath, relativePath } = getUniquePdfStorageName({
         db,
         tipo,
@@ -365,7 +368,7 @@ function registerFacturasHandlers() {
    * @param {number} id - ID of the facturas_pdf record
    * @returns {Promise<{ success: boolean, error?: object }>}
    */
-  ipcMain.handle('facturas:deletePDF', async (event, id) => {
+  ipc.handle('facturas:deletePDF', async (event, id) => {
     try {
       if (!id || typeof id !== 'number') {
         return {
@@ -374,7 +377,7 @@ function registerFacturasHandlers() {
         };
       }
 
-      const db = getDatabase();
+      const db = getDb();
 
       // Get the record to find the file path
       const record = db.prepare('SELECT * FROM facturas_pdf WHERE id = ?').get(id);
@@ -391,7 +394,7 @@ function registerFacturasHandlers() {
       deleteStmt.run(id);
 
       // Then delete file from disk
-      const userDataPath = app.getPath('userData');
+      const userDataPath = electronApp.getPath('userData');
       const filePath = path.join(userDataPath, 'facturas', record.ruta_relativa);
 
       if (fs.existsSync(filePath)) {
@@ -424,7 +427,7 @@ function registerFacturasHandlers() {
    * @param {number} params.entidadId - ID of the entidad
    * @returns {Promise<{ success: boolean, data?: Array, error?: object }>}
    */
-  ipcMain.handle('facturas:getAllForEntidad', async (event, params) => {
+  ipc.handle('facturas:getAllForEntidad', async (event, params) => {
     try {
       const { tipo, entidadId } = params;
 
@@ -442,7 +445,7 @@ function registerFacturasHandlers() {
         };
       }
 
-      const db = getDatabase();
+      const db = getDb();
       const stmt = db.prepare(`
         SELECT * FROM facturas_pdf
         WHERE tipo = ? AND entidad_id = ?
@@ -474,7 +477,7 @@ function registerFacturasHandlers() {
    * @param {object} data - Metadata payload
    * @returns {Promise<{ success: boolean, data?: object, error?: object }>}
    */
-  ipcMain.handle('facturas:updatePDFMetadata', async (event, id, data) => {
+  ipc.handle('facturas:updatePDFMetadata', async (event, id, data) => {
     try {
       if (!id || typeof id !== 'number') {
         return {
@@ -489,7 +492,7 @@ function registerFacturasHandlers() {
       const vencimiento = normalizeOptionalDueDate(payload.vencimiento);
       const pagada = normalizePaymentStatus(payload.pagada);
 
-      const db = getDatabase();
+      const db = getDb();
 
       const exists = db.prepare('SELECT id FROM facturas_pdf WHERE id = ?').get(id);
       if (!exists) {
@@ -541,7 +544,7 @@ function registerFacturasHandlers() {
    * @param {string} pdfPath - Relative path from facturas_pdf.ruta_relativa
    * @returns {Promise<{ success: boolean, data?: ArrayBuffer, meta?: { byteLength: number }, error?: { code: string, message: string } }>}
    */
-  ipcMain.handle('facturas:getPDFBytes', async (event, pdfPath) => {
+  ipc.handle('facturas:getPDFBytes', async (event, pdfPath) => {
     try {
       // Validate input
       const validation = validatePDFPath(pdfPath);
@@ -550,7 +553,7 @@ function registerFacturasHandlers() {
       }
 
       // Build absolute path within userData/facturas/
-      const userDataPath = app.getPath('userData');
+      const userDataPath = electronApp.getPath('userData');
       const facturasDir = path.join(userDataPath, 'facturas');
       const absolutePath = path.join(facturasDir, pdfPath);
 

@@ -107,15 +107,17 @@ function validateClienteInput(data) {
 /**
  * Registers IPC handlers for clientes operations.
  */
-function registerClientesHandlers() {
+function registerClientesHandlers(deps = {}) {
+  const ipc = deps.ipcMain || ipcMain;
+  const getDb = deps.getDatabase || getDatabase;
   /**
    * Handler: clientes:getAll
    * Returns all clientes from the database.
    * @returns {Promise<{success: boolean, data?: Array, error?: {code: string, message: string}}>}
    */
-  ipcMain.handle('clientes:getAll', async () => {
+  ipc.handle('clientes:getAll', async () => {
     try {
-      const db = getDatabase();
+      const db = getDb();
       const clientes = db
         .prepare(
           `
@@ -154,7 +156,7 @@ function registerClientesHandlers() {
    * @param {Object} data - The cliente data { razon_social, numero_cliente, direccion?, nif? }
    * @returns {Promise<{success: boolean, data?: Object, error?: {code: string, message: string}}>}
    */
-  ipcMain.handle('clientes:create', async (_event, data) => {
+  ipc.handle('clientes:create', async (_event, data) => {
     try {
       // Validate required fields
       if (!data.razon_social) {
@@ -185,7 +187,7 @@ function registerClientesHandlers() {
         };
       }
 
-      const db = getDatabase();
+      const db = getDb();
 
       // Trim whitespace from string fields
       const razonSocial = data.razon_social.trim();
@@ -228,7 +230,7 @@ function registerClientesHandlers() {
    * @param {Object} data - The cliente data to update { razon_social?, numero_cliente?, direccion?, nif? }
    * @returns {Promise<{success: boolean, data?: Object, error?: {code: string, message: string}}>}
    */
-  ipcMain.handle('clientes:update', async (_event, id, data) => {
+  ipc.handle('clientes:update', async (_event, id, data) => {
     try {
       // Validate ID
       if (!id || typeof id !== 'number') {
@@ -250,7 +252,7 @@ function registerClientesHandlers() {
         };
       }
 
-      const db = getDatabase();
+      const db = getDb();
 
       // Check if cliente exists
       const existing = db.prepare('SELECT id FROM clientes WHERE id = ?').get(id);
@@ -377,7 +379,7 @@ function registerClientesHandlers() {
    * @param {number} id - The cliente ID
    * @returns {Promise<{success: boolean, error?: {code: string, message: string}}>}
    */
-  ipcMain.handle('clientes:delete', async (_event, id) => {
+  ipc.handle('clientes:delete', async (_event, id) => {
     try {
       // Validate ID
       if (!id || typeof id !== 'number') {
@@ -390,7 +392,7 @@ function registerClientesHandlers() {
         };
       }
 
-      const db = getDatabase();
+      const db = getDb();
 
       // Check if cliente exists
       const existing = db.prepare('SELECT id FROM clientes WHERE id = ?').get(id);

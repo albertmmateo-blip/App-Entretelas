@@ -85,6 +85,8 @@ In production the app uses `app.getPath('userData')` automatically.
 - Location (dev, if `ENTRETELAS_DATA_DIR` is set): the path defined above.
 - To reset the database during development, stop the app and delete the `.db` file; migrations will recreate it on next start.
 - PDF storage root: `%APPDATA%\App-Entretelas\facturas\`
+- Facturas PDF path pattern: `%APPDATA%\App-Entretelas\facturas\<compra|venta>\<entidad_sanitizada>\[Proveedor|Client] - [archivo].pdf`
+- `facturas_pdf` stores metadata only; editable fields are `importe`, `importe_iva_re`, `vencimiento`, and `pagada`.
 
 ---
 
@@ -360,6 +362,10 @@ const pdfBuffer = fs.readFileSync(testPdfPath);
 
 The project uses **ESLint** (airbnb config) and **Prettier**. Both run as a pre-commit hook via `lint-staged`.
 
+### Commit-Safety Rule (for humans and AI agents)
+
+Any change is considered complete only if it can be committed without breaking hooks. Agents must not stop at “code compiles”; they must leave the tree in a commit-ready state.
+
 To check manually:
 
 ```powershell
@@ -382,6 +388,20 @@ git commit -m "<mensaje>"
 
 This avoids partial-staging stash/restore conflicts and ensures the committed snapshot is the same one that passed lint.
 
+#### Prevent recurring hook regressions
+
+- Prefer explicit normalization helpers over nested ternary chains in IPC handlers. This avoids repeat `no-nested-ternary` failures after formatting.
+- Do not silence lint rules to pass commits; fix root-cause code structure instead.
+- Before finishing a session, re-run `npm run lint` after all edits (including formatter changes) and only then report completion.
+- If lint reports `prettier/prettier` with `Delete ␍`, normalize line endings before committing:
+
+```powershell
+git add --renormalize .
+npm run lint
+```
+
+- Keep `.gitattributes` enforcement intact (`eol=lf` for source/docs) so future sessions do not reintroduce CRLF hook failures.
+
 ---
 
 ## 10. Branching & PR Rules
@@ -395,13 +415,13 @@ This avoids partial-staging stash/restore conflicts and ensures the committed sn
 
 ## 11. Troubleshooting
 
-| Problem                                          | Solution                                                                                   |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------ |
-| `better-sqlite3` fails to install                | Run `npm run rebuild-natives`; ensure Visual Studio Build Tools 2022 are installed         |
-| `NODE_MODULE_VERSION` mismatch between app/tests | Run `npm run dev` before app use (Electron ABI) and `npm test` before test runs (Node ABI) |
-| Blank white window on dev start                  | Wait for the Vite server to fully start; Electron retries automatically                    |
-| PDFs not loading                                 | Check that `ENTRETELAS_DATA_DIR` points to an existing directory                           |
-| Gmail webview blocked                            | Ensure the Content Security Policy in `index.html` allows `https://mail.google.com`        |
+| Problem                                          | Solution                                                                                                    |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `better-sqlite3` fails to install                | Run `npm run rebuild-natives`; ensure Visual Studio Build Tools 2022 are installed                          |
+| `NODE_MODULE_VERSION` mismatch between app/tests | Run `npm run dev` before app use (Electron ABI) and `npm test` before test runs (Node ABI)                  |
+| Blank white window on dev start                  | Wait for the Vite server to fully start; Electron retries automatically                                     |
+| PDFs not loading                                 | Verify `facturas:getPDFBytes` receives a valid `ruta_relativa` and file exists under `{userData}/facturas/` |
+| Gmail webview blocked                            | Ensure the Content Security Policy in `index.html` allows `https://mail.google.com`                         |
 
 ### Electron 30 Compatibility
 
@@ -562,7 +582,7 @@ Electron follows Chromium release cycle (new major every 8 weeks). Updating requ
 ### Vite Version Updates
 
 1. Check Vite migration guide: https://vitejs.dev/guide/migration.html
-2. Update `vite.config.js` per migration guide (Vite often changes config structure between majors)
+2. Update `vite.config.mjs` per migration guide (Vite often changes config structure between majors)
 3. Test HMR in development: `npm run dev` → make code change → verify hot reload works
 4. Test production build: `npm run build` → `npm run dist`
 5. Verify Electron app still launches after build
@@ -630,13 +650,13 @@ Use Electron's built-in crash reporter (future enhancement):
 
 ### Common Issues
 
-| Issue               | Diagnosis                                      | Solution                                     |
-| ------------------- | ---------------------------------------------- | -------------------------------------------- |
-| App won't start     | Check logs in `%APPDATA%\App-Entretelas\logs\` | Look for errors on startup                   |
-| Database locked     | Another instance running?                      | Close all instances, restart                 |
-| PDFs not displaying | Check PDF file permissions                     | Verify files exist in `{userData}/facturas/` |
-| Webview blank       | Gmail blocked by firewall?                     | Check network, try different network         |
-| Slow performance    | Large database?                                | Run `VACUUM` on SQLite database              |
+| Issue               | Diagnosis                                      | Solution                                                                                            |
+| ------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| App won't start     | Check logs in `%APPDATA%\App-Entretelas\logs\` | Look for errors on startup                                                                          |
+| Database locked     | Another instance running?                      | Close all instances, restart                                                                        |
+| PDFs not displaying | Invalid bytes/path or unreadable PDF           | Confirm `ruta_relativa` is valid, file exists, and check `facturas:getPDFBytes` errors in main logs |
+| Webview blank       | Gmail blocked by firewall?                     | Check network, try different network                                                                |
+| Slow performance    | Large database?                                | Run `VACUUM` on SQLite database                                                                     |
 
 ### Performance Profiling
 

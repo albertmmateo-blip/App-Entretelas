@@ -4,15 +4,26 @@ import { createNota } from '../fixtures/sample-data';
 
 // Mock electron's ipcMain
 const mockHandlers = {};
+const mockIpcMain = {
+  handle: vi.fn((channel, handler) => {
+    mockHandlers[channel] = handler;
+  }),
+  removeHandler: vi.fn((channel) => {
+    delete mockHandlers[channel];
+  }),
+};
+const electronMock = {
+  ipcMain: mockIpcMain,
+};
 vi.mock('electron', () => ({
-  ipcMain: {
-    handle: vi.fn((channel, handler) => {
-      mockHandlers[channel] = handler;
-    }),
-    removeHandler: vi.fn((channel) => {
-      delete mockHandlers[channel];
-    }),
-  },
+  __esModule: true,
+  default: electronMock,
+  ...electronMock,
+}));
+
+let mockDb = null;
+vi.mock('../../src/main/db/connection', () => ({
+  getDatabase: () => mockDb,
 }));
 
 describe('Notas IPC Handlers', () => {
@@ -21,14 +32,14 @@ describe('Notas IPC Handlers', () => {
   beforeEach(async () => {
     // Create test database
     db = createTestDb();
-
-    // Mock getDatabase to return our test database
-    const connectionModule = await import('../../src/main/db/connection');
-    connectionModule.getDatabase = () => db;
+    mockDb = db;
 
     // Register handlers
     const { registerNotasHandlers } = await import('../../src/main/ipc/notas');
-    registerNotasHandlers();
+    registerNotasHandlers({
+      ipcMain: mockIpcMain,
+      getDatabase: () => db,
+    });
   });
 
   afterEach(() => {

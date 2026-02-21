@@ -7,20 +7,27 @@ import { createTestDb } from '../helpers/db';
 // Mock electron's ipcMain and app
 const mockHandlers = {};
 const mockUserDataPath = path.join(os.tmpdir(), `test-facturas-${Date.now()}`);
+const mockIpcMain = {
+  handle: vi.fn((channel, handler) => {
+    mockHandlers[channel] = handler;
+  }),
+  removeHandler: vi.fn((channel) => {
+    delete mockHandlers[channel];
+  }),
+};
+const mockApp = {
+  getPath: vi.fn(() => mockUserDataPath),
+};
 
 vi.mock('electron', () => ({
-  ipcMain: {
-    handle: vi.fn((channel, handler) => {
-      mockHandlers[channel] = handler;
-    }),
-    removeHandler: vi.fn((channel) => {
-      delete mockHandlers[channel];
-    }),
-  },
-  app: {
-    getPath: vi.fn(() => mockUserDataPath),
-  },
+  ipcMain: mockIpcMain,
+  app: mockApp,
   shell: {},
+}));
+
+let mockDb = null;
+vi.mock('../../src/main/db/connection', () => ({
+  getDatabase: () => mockDb,
 }));
 
 describe('Facturas IPC Handlers', () => {
@@ -31,10 +38,7 @@ describe('Facturas IPC Handlers', () => {
   beforeEach(async () => {
     // Create test database
     db = createTestDb();
-
-    // Mock getDatabase to return our test database
-    const connectionModule = await import('../../src/main/db/connection');
-    connectionModule.getDatabase = () => db;
+    mockDb = db;
 
     // Create test userData directory
     if (!fs.existsSync(mockUserDataPath)) {
@@ -57,7 +61,11 @@ describe('Facturas IPC Handlers', () => {
 
     // Register handlers
     const { registerFacturasHandlers } = await import('../../src/main/ipc/facturas');
-    registerFacturasHandlers();
+    registerFacturasHandlers({
+      ipcMain: mockIpcMain,
+      getDatabase: () => db,
+      app: mockApp,
+    });
   });
 
   afterEach(() => {
@@ -205,7 +213,7 @@ describe('Facturas IPC Handlers', () => {
 
     it('should sanitize filenames with special characters', async () => {
       const handler = mockHandlers['facturas:uploadPDF'];
-      const specialPath = path.join(mockUserDataPath, 'special*.pdf');
+      const specialPath = path.join(mockUserDataPath, 'special.pdf');
       fs.writeFileSync(specialPath, Buffer.from('%PDF-1.4\nTest'));
 
       const params = {

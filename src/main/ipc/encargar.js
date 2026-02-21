@@ -124,15 +124,17 @@ function validateEncargarInput(data) {
 /**
  * Registers IPC handlers for encargar operations.
  */
-function registerEncargarHandlers() {
+function registerEncargarHandlers(deps = {}) {
+  const ipc = deps.ipcMain || ipcMain;
+  const getDb = deps.getDatabase || getDatabase;
   /**
    * Handler: encargar:getAll
    * Returns all encargar entries from the database.
    * @returns {Promise<{success: boolean, data?: Array, error?: {code: string, message: string}}>}
    */
-  ipcMain.handle('encargar:getAll', async () => {
+  ipc.handle('encargar:getAll', async () => {
     try {
-      const db = getDatabase();
+      const db = getDb();
       const encargar = db
         .prepare(
           `SELECT
@@ -171,7 +173,7 @@ function registerEncargarHandlers() {
    * @param {Object} data - The encargar data { articulo, ref_interna?, descripcion?, proveedor?, ref_proveedor?, urgente? }
    * @returns {Promise<{success: boolean, data?: Object, error?: {code: string, message: string}}>}
    */
-  ipcMain.handle('encargar:create', async (_event, data) => {
+  ipc.handle('encargar:create', async (_event, data) => {
     try {
       // Check for required fields
       if (
@@ -206,7 +208,7 @@ function registerEncargarHandlers() {
         };
       }
 
-      const db = getDatabase();
+      const db = getDb();
 
       const proveedorRecord = db
         .prepare('SELECT id, razon_social FROM proveedores WHERE id = ?')
@@ -288,7 +290,7 @@ function registerEncargarHandlers() {
    * @param {Object} data - The encargar data to update { articulo?, ref_interna?, descripcion?, proveedor?, ref_proveedor?, urgente? }
    * @returns {Promise<{success: boolean, data?: Object, error?: {code: string, message: string}}>}
    */
-  ipcMain.handle('encargar:update', async (_event, id, data) => {
+  ipc.handle('encargar:update', async (_event, id, data) => {
     try {
       // Validate ID
       if (!id || typeof id !== 'number') {
@@ -310,7 +312,7 @@ function registerEncargarHandlers() {
         };
       }
 
-      const db = getDatabase();
+      const db = getDb();
 
       // Check if encargar entry exists
       const existing = db.prepare('SELECT id FROM encargar WHERE id = ?').get(id);
@@ -478,7 +480,7 @@ function registerEncargarHandlers() {
    * @param {number} id - The encargar ID
    * @returns {Promise<{success: boolean, error?: {code: string, message: string}}>}
    */
-  ipcMain.handle('encargar:delete', async (_event, id) => {
+  ipc.handle('encargar:delete', async (_event, id) => {
     try {
       // Validate ID
       if (!id || typeof id !== 'number') {
@@ -491,7 +493,7 @@ function registerEncargarHandlers() {
         };
       }
 
-      const db = getDatabase();
+      const db = getDb();
 
       // Check if encargar entry exists
       const existing = db.prepare('SELECT id FROM encargar WHERE id = ?').get(id);

@@ -55,7 +55,7 @@ describe('Database Backup and Recovery', () => {
   });
 
   describe('Backup and Restore Workflow', () => {
-    it('should create a backup, modify data, and restore successfully', () => {
+    it('should create a backup, modify data, and restore successfully', async () => {
       // Create a database with some data
       const insertStmt = db.prepare(`
         INSERT INTO notas (nombre, descripcion, contacto, urgente)
@@ -64,7 +64,7 @@ describe('Database Backup and Recovery', () => {
       insertStmt.run('Test Nota', 'Test Description', 'test@example.com', 1);
 
       // Save database to main path
-      db.backup(dbPath);
+      await db.backup(dbPath);
 
       // Create backups directory and save a backup
       if (!fs.existsSync(backupsDir)) {

@@ -6,14 +6,14 @@ Desktop business-manager application built with **Electron + React + SQLite**.
 
 App-Entretelas is an internal tool for managing day-to-day business operations. It provides six core modules:
 
-| Module       | Description                                                                       |
-| ------------ | --------------------------------------------------------------------------------- |
-| **URGENTE!** | Aggregated view of all entries marked as urgent across Notas, Llamar and Encargar |
-| **Notas**    | Free-form note editor with optional contact/description fields                    |
-| **Llamar**   | Call/message reminders with contact and subject tracking                          |
-| **Encargar** | Product reorder list with supplier references                                     |
-| **Facturas** | PDF invoice folders for purchases and sales (with thumbnail preview)              |
-| **E-mail**   | Embedded Gmail access                                                             |
+| Module       | Description                                                                                      |
+| ------------ | ------------------------------------------------------------------------------------------------ |
+| **URGENTE!** | Aggregated view of all entries marked as urgent across Notas, Llamar and Encargar                |
+| **Notas**    | Free-form note editor with optional contact/description fields                                   |
+| **Llamar**   | Call/message reminders with contact and subject tracking                                         |
+| **Encargar** | Product reorder list with supplier references                                                    |
+| **Facturas** | Purchase/sales invoice folders with PDF upload, thumbnail preview, and payment metadata tracking |
+| **E-mail**   | Embedded Gmail access                                                                            |
 
 ## Quick Start
 
@@ -54,5 +54,6 @@ Every pull request that changes application behaviour **must**:
 1. Update the relevant section(s) in `docs/`.
 2. Mark the corresponding prompt in `PROMPTS.md` as completed and, if it spawns follow-on work, add new prompts.
 3. Keep `docs/DATA_MODEL.md` in sync with any database schema changes.
+4. Keep the snapshot commit-safe: verify `npm run lint` and `npm test` pass after final edits so husky/lint-staged cannot block the commit.
 
 See [PROMPTS.md](PROMPTS.md) for detailed agent instructions.

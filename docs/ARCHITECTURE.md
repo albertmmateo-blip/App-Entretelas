@@ -24,14 +24,14 @@
 │  ─ Creates BrowserWindow                                     │
 │  ─ Registers IPC handlers (ipcMain)                         │
 │  ─ Owns the SQLite connection (via better-sqlite3)           │
-│  ─ Handles file-system operations (PDF storage, thumbnails)  │
+│  ─ Handles file-system operations (PDF storage and retrieval) │
 └────────────────────┬─────────────────────────────────────────┘
                      │  contextBridge / ipcRenderer
 ┌────────────────────▼─────────────────────────────────────────┐
 │  Renderer Process  (src/renderer/)                           │
 │  ─ React 18 SPA                                              │
 │  ─ Calls window.electronAPI.* exposed via preload script     │
-│  ─ Zustand stores consume IPC responses                      │
+│  ─ React hooks/components consume IPC responses              │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -48,21 +48,23 @@
 
 Examples:
 
-| Channel              | Direction       | Description                             |
-| -------------------- | --------------- | --------------------------------------- |
-| `notas:getAll`       | renderer → main | Fetch all notes                         |
-| `notas:create`       | renderer → main | Insert a new note                       |
-| `notas:update`       | renderer → main | Update an existing note                 |
-| `notas:delete`       | renderer → main | Delete a note                           |
-| `llamar:getAll`      | renderer → main | Fetch all llamar entries                |
-| `encargar:getAll`    | renderer → main | Fetch all encargar entries              |
-| `facturas:getPDF`    | renderer → main | Read PDF bytes for thumbnail generation |
-| `facturas:uploadPDF` | renderer → main | Copy a PDF into the managed folder      |
-| `facturas:deletePDF` | renderer → main | Delete a PDF file                       |
-| `proveedores:getAll` | renderer → main | Fetch all proveedor records             |
-| `clientes:getAll`    | renderer → main | Fetch all cliente records               |
-| `db:listBackups`     | renderer → main | List available database backups         |
-| `db:restoreBackup`   | renderer → main | Restore database from a specific backup |
+| Channel                      | Direction       | Description                             |
+| ---------------------------- | --------------- | --------------------------------------- |
+| `notas:getAll`               | renderer → main | Fetch all notes                         |
+| `notas:create`               | renderer → main | Insert a new note                       |
+| `notas:update`               | renderer → main | Update an existing note                 |
+| `notas:delete`               | renderer → main | Delete a note                           |
+| `llamar:getAll`              | renderer → main | Fetch all llamar entries                |
+| `encargar:getAll`            | renderer → main | Fetch all encargar entries              |
+| `facturas:getAllForEntidad`  | renderer → main | List all PDFs for an entidad            |
+| `facturas:uploadPDF`         | renderer → main | Copy a PDF into the managed folder      |
+| `facturas:deletePDF`         | renderer → main | Delete a PDF file                       |
+| `facturas:updatePDFMetadata` | renderer → main | Update invoice metadata fields          |
+| `facturas:getPDFBytes`       | renderer → main | Read PDF bytes for thumbnail generation |
+| `proveedores:getAll`         | renderer → main | Fetch all proveedor records             |
+| `clientes:getAll`            | renderer → main | Fetch all cliente records               |
+| `db:listBackups`             | renderer → main | List available database backups         |
+| `db:restoreBackup`           | renderer → main | Restore database from a specific backup |
 
 ---
 
@@ -79,8 +81,8 @@ App-Entretelas/
 ├── PROMPTS.md                   # AI agent build prompts
 ├── README.md
 ├── package.json
-├── vite.config.js
-├── tailwind.config.js
+├── vite.config.mjs
+├── postcss.config.js
 ├── .eslintrc.cjs
 ├── .prettierrc
 ├── src/
@@ -96,8 +98,6 @@ App-Entretelas/
 │   │   │   ├── facturas.js
 │   │   │   ├── proveedores.js
 │   │   │   └── clientes.js
-│   │   └── pdf/
-│   │       └── storage.js       # PDF file-system helpers
 │   ├── preload/
 │   │   └── index.js             # contextBridge definitions
 │   └── renderer/                # React SPA
@@ -106,12 +106,14 @@ App-Entretelas/
 │       ├── App.jsx              # Router + layout
 │       ├── assets/              # Icons, images
 │       ├── components/          # Shared, reusable components
-│       │   ├── Badge.jsx
 │       │   ├── ConfirmDialog.jsx
-│       │   ├── EmptyState.jsx
-│       │   ├── SearchBar.jsx
-│       │   ├── SortableTable.jsx
-│       │   └── UrgenteBadge.jsx
+│       │   ├── DataTable.jsx
+│       │   ├── EntryForm.jsx
+│       │   ├── ErrorBoundary.jsx
+│       │   ├── PDFThumbnail.jsx
+│       │   ├── PDFUploadSection.jsx
+│       │   ├── Toast.jsx
+│       │   └── entries/
 │       ├── pages/               # One folder per module
 │       │   ├── Home/
 │       │   ├── Urgente/
@@ -121,11 +123,7 @@ App-Entretelas/
 │       │   ├── Facturas/
 │       │   └── Email/
 │       └── store/               # Zustand stores
-│           ├── notas.js
-│           ├── llamar.js
-│           ├── encargar.js
-│           ├── facturas.js
-│           └── proveedores.js
+│           └── notas.js
 └── tests/
     ├── unit/                    # Vitest unit tests (pure functions)
     └── component/               # React Testing Library component tests
@@ -139,9 +137,9 @@ App-Entretelas/
 User interaction (React component)
         │
         ▼
-Zustand store action
-        │
-        ▼
+Custom hook or component action
+  │
+  ▼
 window.electronAPI.<channel>(payload)   ← preload bridge
         │  (IPC invoke)
         ▼
@@ -220,11 +218,14 @@ if (response.success) {
 
 ## 6. PDF Storage Strategy
 
-- PDFs are stored at: `{userData}/facturas/<tipo>/<entidad>/[Entidad] - [nombre original].pdf`
+- PDFs are stored at: `{userData}/facturas/<tipo>/<entidad>/[Proveedor|Client] - [nombre original sanitizado].pdf`
   - `<tipo>`: `compra` or `venta`
-  - `<entidad>`: sanitised `razón_social` (spaces replaced with underscores, special characters removed)
+  - `<entidad>`: sanitised `razón_social` (safe for Windows paths)
+- Stored names are collision-safe; when needed, the main process appends numeric suffixes (`(1)`, `(2)`, ...) before `.pdf`.
+- Upload validation in main process enforces `.pdf` extension, `%PDF` signature, and file size ≤ 50 MB.
+- The table `facturas_pdf` stores metadata and `ruta_relativa`; file content remains on disk.
 - Thumbnail generation uses PDF.js `getPage(1).render()` on a canvas in the renderer and is kicked off lazily (when the thumbnail enters the viewport) to avoid blocking.
-- Thumbnails are cached as PNG files at `{userData}/facturas/.thumbs/<hash>.png` where `<hash>` is the SHA-256 of the full PDF path.
+- The renderer retrieves bytes with `facturas:getPDFBytes`; the main process validates that requested paths stay within `{userData}/facturas`.
 
 ---
 
