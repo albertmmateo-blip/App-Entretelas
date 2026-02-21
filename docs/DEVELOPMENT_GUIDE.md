@@ -39,15 +39,16 @@ npm run rebuild-natives
 
 ## 3. Available Scripts
 
-| Script          | Command                   | Description                                                           |
-| --------------- | ------------------------- | --------------------------------------------------------------------- |
-| Dev             | `npm run dev`             | Starts Vite dev server + Electron with hot reload                     |
-| Build           | `npm run build`           | Compiles renderer (Vite) + packages Electron app via electron-builder |
-| Dist            | `npm run dist`            | Produces a Windows installer (NSIS) in `dist/`                        |
-| Test            | `npm test`                | Runs Vitest (unit + component tests)                                  |
-| Lint            | `npm run lint`            | ESLint + Prettier check                                               |
-| Lint fix        | `npm run lint:fix`        | ESLint auto-fix + Prettier format                                     |
-| Rebuild natives | `npm run rebuild-natives` | Recompiles native Node modules for the current Electron version       |
+| Script          | Command                        | Description                                                           |
+| --------------- | ------------------------------ | --------------------------------------------------------------------- |
+| Dev             | `npm run dev`                  | Rebuilds native modules for Electron, then starts Vite + Electron     |
+| Build           | `npm run build`                | Compiles renderer (Vite) + packages Electron app via electron-builder |
+| Dist            | `npm run dist`                 | Produces a Windows installer (NSIS) in `dist/`                        |
+| Test            | `npm test`                     | Rebuilds native modules for Node, then runs Vitest                    |
+| Lint            | `npm run lint`                 | ESLint + Prettier check                                               |
+| Lint fix        | `npm run lint:fix`             | ESLint auto-fix + Prettier format                                     |
+| Rebuild (Node)  | `npm run rebuild-natives:node` | Recompiles native modules for the current Node runtime                |
+| Rebuild natives | `npm run rebuild-natives`      | Recompiles native Node modules for the current Electron version       |
 
 ---
 
@@ -384,12 +385,13 @@ npm run lint:fix
 
 ## 11. Troubleshooting
 
-| Problem                           | Solution                                                                            |
-| --------------------------------- | ----------------------------------------------------------------------------------- |
-| `better-sqlite3` fails to install | Run `npm run rebuild-natives`; ensure Visual Studio Build Tools 2022 are installed  |
-| Blank white window on dev start   | Wait for the Vite server to fully start; Electron retries automatically             |
-| PDFs not loading                  | Check that `ENTRETELAS_DATA_DIR` points to an existing directory                    |
-| Gmail webview blocked             | Ensure the Content Security Policy in `index.html` allows `https://mail.google.com` |
+| Problem                                          | Solution                                                                                   |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `better-sqlite3` fails to install                | Run `npm run rebuild-natives`; ensure Visual Studio Build Tools 2022 are installed         |
+| `NODE_MODULE_VERSION` mismatch between app/tests | Run `npm run dev` before app use (Electron ABI) and `npm test` before test runs (Node ABI) |
+| Blank white window on dev start                  | Wait for the Vite server to fully start; Electron retries automatically                    |
+| PDFs not loading                                 | Check that `ENTRETELAS_DATA_DIR` points to an existing directory                           |
+| Gmail webview blocked                            | Ensure the Content Security Policy in `index.html` allows `https://mail.google.com`        |
 
 ### Electron 30 Compatibility
 
