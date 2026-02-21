@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import errorMessages from '../utils/errorMessages';
 import useToast from './useToast';
 
-const MODULES = ['notas', 'llamar', 'encargar'];
+const MODULES = ['notas', 'llamar', 'encargar', 'proveedores', 'clientes'];
 const stores = {};
 
 const createCrudStore = (moduleName) =>
