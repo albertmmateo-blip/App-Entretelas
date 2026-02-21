@@ -22,6 +22,21 @@ export default defineConfig({
   build: {
     outDir: path.join(__dirname, 'dist-renderer'),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) {
+            return;
+          }
+
+          if (id.includes('pdfjs-dist')) {
+            return 'vendor-pdf';
+          }
+
+          return 'vendor';
+        },
+      },
+    },
   },
   server: {
     port: 5173,
