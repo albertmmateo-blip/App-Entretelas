@@ -7,10 +7,36 @@ import { formatEuroAmount } from '../../utils/euroAmount';
 import { buildFacturasQuarterSummary } from '../../utils/facturasQuarterSummary';
 import ProveedorForm from './ProveedorForm';
 
+function hasOverduePayment(row, todayKey) {
+  if (row.pagada === 1 || row.pagada === true || row.pagada === '1') {
+    return false;
+  }
+
+  if (!row.vencimiento) {
+    return true;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(row.vencimiento)) {
+    return row.vencimiento <= todayKey;
+  }
+
+  const dueDate = new Date(row.vencimiento);
+  if (Number.isNaN(dueDate.getTime())) {
+    return true;
+  }
+
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+
+  return dueDate <= today;
+}
+
 function ProveedoresListView({ tipo = 'compra' }) {
   const navigate = useNavigate();
   const { entries, loading, fetchAll } = useCRUD('proveedores');
   const [searchQuery, setSearchQuery] = useState('');
+  const [folderCounts, setFolderCounts] = useState({});
+  const [foldersWithDuePayment, setFoldersWithDuePayment] = useState({});
   const [quarterSummary, setQuarterSummary] = useState(() => buildFacturasQuarterSummary());
   const basePath = `/contabilidad/${tipo}`;
   const sectionTitle = tipo === 'arreglos' ? 'Contabilidad Arreglos' : 'Contabilidad Compra';
@@ -28,33 +54,87 @@ function ProveedoresListView({ tipo = 'compra' }) {
 
       if (!entries.length) {
         if (!cancelled) {
+          setFolderCounts({});
+          setFoldersWithDuePayment({});
           setQuarterSummary(buildFacturasQuarterSummary());
         }
         return;
       }
 
       if (tipo !== 'compra') {
-        if (!cancelled) setQuarterSummary(buildFacturasQuarterSummary());
+        if (!cancelled) {
+          setFolderCounts(
+            Object.fromEntries(
+              entries.map((proveedor) => [proveedor.id, proveedor.facturas_count ?? 0])
+            )
+          );
+          setFoldersWithDuePayment(
+            Object.fromEntries(entries.map((proveedor) => [proveedor.id, false]))
+          );
+          setQuarterSummary(buildFacturasQuarterSummary());
+        }
         return;
       }
 
       if (!facturasApi?.getAllForEntidad) {
-        if (!cancelled) setQuarterSummary(buildFacturasQuarterSummary());
+        if (!cancelled) {
+          setFolderCounts(
+            Object.fromEntries(
+              entries.map((proveedor) => [proveedor.id, proveedor.facturas_count ?? 0])
+            )
+          );
+          setFoldersWithDuePayment(
+            Object.fromEntries(entries.map((proveedor) => [proveedor.id, false]))
+          );
+          setQuarterSummary(buildFacturasQuarterSummary());
+        }
         return;
       }
 
       try {
-        const response = await facturasApi.getAllForEntidad({ tipo });
+        const todayKey = new Date().toISOString().slice(0, 10);
+        const rowsByProveedor = await Promise.all(
+          entries.map(async (proveedor) => {
+            try {
+              const folderResponse = await facturasApi.getAllForEntidad({
+                tipo,
+                entidadId: proveedor.id,
+              });
+
+              return folderResponse.success ? folderResponse.data || [] : [];
+            } catch (error) {
+              return [];
+            }
+          })
+        );
+        const allRows = rowsByProveedor.flat();
 
         if (!cancelled) {
-          setQuarterSummary(
-            response.success
-              ? buildFacturasQuarterSummary(response.data || [])
-              : buildFacturasQuarterSummary()
+          setFolderCounts(
+            Object.fromEntries(
+              entries.map((proveedor, index) => [proveedor.id, rowsByProveedor[index]?.length ?? 0])
+            )
           );
+          setFoldersWithDuePayment(
+            Object.fromEntries(
+              entries.map((proveedor, index) => [
+                proveedor.id,
+                (rowsByProveedor[index] || []).some((row) => hasOverduePayment(row, todayKey)),
+              ])
+            )
+          );
+          setQuarterSummary(buildFacturasQuarterSummary(allRows));
         }
       } catch (error) {
         if (!cancelled) {
+          setFolderCounts(
+            Object.fromEntries(
+              entries.map((proveedor) => [proveedor.id, proveedor.facturas_count ?? 0])
+            )
+          );
+          setFoldersWithDuePayment(
+            Object.fromEntries(entries.map((proveedor) => [proveedor.id, false]))
+          );
           setQuarterSummary(buildFacturasQuarterSummary());
         }
       }
@@ -135,7 +215,19 @@ function ProveedoresListView({ tipo = 'compra' }) {
                 className="px-3 py-1.5 border border-neutral-200 rounded bg-white hover:border-primary hover:text-primary transition-colors text-sm text-neutral-700 flex items-center gap-3"
                 aria-label={`Abrir carpeta de ${proveedor.razon_social}`}
               >
-                <span className="font-medium">{`📁 ${proveedor.razon_social}`}</span>
+                <span className="font-medium flex items-center gap-2">
+                  <span>{`📁 ${proveedor.razon_social}`}</span>
+                  {foldersWithDuePayment[proveedor.id] && (
+                    <span
+                      className="inline-block w-2.5 h-2.5 rounded-full bg-danger"
+                      title="Tiene pagos vencidos"
+                      aria-label="Tiene pagos vencidos"
+                    />
+                  )}
+                </span>
+                <span className="text-xs font-semibold text-primary whitespace-nowrap">
+                  {folderCounts[proveedor.id] ?? 0}
+                </span>
               </button>
             ))}
           </div>

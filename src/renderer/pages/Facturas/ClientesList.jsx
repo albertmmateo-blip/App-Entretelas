@@ -26,10 +26,36 @@ function getDescuentoBadge(descuentoPorcentaje) {
   return label === 'Sin descuento' ? null : label;
 }
 
+function hasOverduePayment(row, todayKey) {
+  if (row.pagada === 1 || row.pagada === true || row.pagada === '1') {
+    return false;
+  }
+
+  if (!row.vencimiento) {
+    return true;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(row.vencimiento)) {
+    return row.vencimiento <= todayKey;
+  }
+
+  const dueDate = new Date(row.vencimiento);
+  if (Number.isNaN(dueDate.getTime())) {
+    return true;
+  }
+
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+
+  return dueDate <= today;
+}
+
 function ClientesListView() {
   const navigate = useNavigate();
   const { entries, loading, fetchAll } = useCRUD('clientes');
   const [searchQuery, setSearchQuery] = useState('');
+  const [folderCounts, setFolderCounts] = useState({});
+  const [foldersWithDuePayment, setFoldersWithDuePayment] = useState({});
   const [quarterSummary, setQuarterSummary] = useState(() => buildFacturasQuarterSummary());
 
   useEffect(() => {
@@ -44,28 +70,68 @@ function ClientesListView() {
 
       if (!entries.length) {
         if (!cancelled) {
+          setFolderCounts({});
+          setFoldersWithDuePayment({});
           setQuarterSummary(buildFacturasQuarterSummary());
         }
         return;
       }
 
       if (!facturasApi?.getAllForEntidad) {
-        if (!cancelled) setQuarterSummary(buildFacturasQuarterSummary());
+        if (!cancelled) {
+          setFolderCounts(
+            Object.fromEntries(entries.map((cliente) => [cliente.id, cliente.facturas_count ?? 0]))
+          );
+          setFoldersWithDuePayment(
+            Object.fromEntries(entries.map((cliente) => [cliente.id, false]))
+          );
+          setQuarterSummary(buildFacturasQuarterSummary());
+        }
         return;
       }
 
       try {
-        const response = await facturasApi.getAllForEntidad({ tipo: 'venta' });
+        const todayKey = new Date().toISOString().slice(0, 10);
+        const rowsByCliente = await Promise.all(
+          entries.map(async (cliente) => {
+            try {
+              const folderResponse = await facturasApi.getAllForEntidad({
+                tipo: 'venta',
+                entidadId: cliente.id,
+              });
+
+              return folderResponse.success ? folderResponse.data || [] : [];
+            } catch (error) {
+              return [];
+            }
+          })
+        );
+        const allRows = rowsByCliente.flat();
 
         if (!cancelled) {
-          setQuarterSummary(
-            response.success
-              ? buildFacturasQuarterSummary(response.data || [])
-              : buildFacturasQuarterSummary()
+          setFolderCounts(
+            Object.fromEntries(
+              entries.map((cliente, index) => [cliente.id, rowsByCliente[index]?.length ?? 0])
+            )
           );
+          setFoldersWithDuePayment(
+            Object.fromEntries(
+              entries.map((cliente, index) => [
+                cliente.id,
+                (rowsByCliente[index] || []).some((row) => hasOverduePayment(row, todayKey)),
+              ])
+            )
+          );
+          setQuarterSummary(buildFacturasQuarterSummary(allRows));
         }
       } catch (error) {
         if (!cancelled) {
+          setFolderCounts(
+            Object.fromEntries(entries.map((cliente) => [cliente.id, cliente.facturas_count ?? 0]))
+          );
+          setFoldersWithDuePayment(
+            Object.fromEntries(entries.map((cliente) => [cliente.id, false]))
+          );
           setQuarterSummary(buildFacturasQuarterSummary());
         }
       }
@@ -153,6 +219,16 @@ function ClientesListView() {
                       {getDescuentoBadge(cliente.descuento_porcentaje)}
                     </span>
                   )}
+                  {foldersWithDuePayment[cliente.id] && (
+                    <span
+                      className="inline-block w-2.5 h-2.5 rounded-full bg-danger"
+                      title="Tiene pagos vencidos"
+                      aria-label="Tiene pagos vencidos"
+                    />
+                  )}
+                </span>
+                <span className="text-xs font-semibold text-primary whitespace-nowrap">
+                  {folderCounts[cliente.id] ?? 0}
                 </span>
               </button>
             ))}
