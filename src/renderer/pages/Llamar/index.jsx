@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { EntriesGrid, EntryCard, EmptyState, LoadingState } from '../../components/entries';
 import useCRUD from '../../hooks/useCRUD';
+import { formatDateTime } from '../../utils/formatDateTime';
 import LlamarForm from './LlamarForm';
 
 function LlamarList() {
@@ -122,9 +123,7 @@ function LlamarList() {
                     <span className="font-medium">Nombre:</span> {llamar.nombre}
                   </div>
                 )}
-                <div className="text-neutral-500">
-                  {new Date(llamar.fecha_creacion).toLocaleDateString('es-ES')}
-                </div>
+                <div className="text-neutral-500">{formatDateTime(llamar.fecha_creacion)}</div>
               </div>
             </EntryCard>
           ))}

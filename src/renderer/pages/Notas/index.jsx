@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { EntriesGrid, EntryCard, EmptyState, LoadingState } from '../../components/entries';
 import useCRUD from '../../hooks/useCRUD';
+import { formatDateTime } from '../../utils/formatDateTime';
 import NotasForm from './NotasForm';
 
 function NotasList() {
@@ -121,9 +122,7 @@ function NotasList() {
                 {nota.descripcion && (
                   <div className="text-neutral-600 line-clamp-2">{nota.descripcion}</div>
                 )}
-                <div className="text-neutral-500">
-                  {new Date(nota.fecha_creacion).toLocaleDateString('es-ES')}
-                </div>
+                <div className="text-neutral-500">{formatDateTime(nota.fecha_creacion)}</div>
               </div>
             </EntryCard>
           ))}

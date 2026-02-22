@@ -204,7 +204,7 @@ describe('Urgente page', () => {
     });
   });
 
-  it('displays date created in Spanish locale', async () => {
+  it('displays date and time created in Spanish locale', async () => {
     mockIPCResponse(
       'notas:getAll',
       successResponse([makeNota({ fecha_creacion: '2026-01-15T10:00:00.000Z' })])
@@ -215,7 +215,7 @@ describe('Urgente page', () => {
     renderUrgente();
 
     await waitFor(() => {
-      expect(screen.getByText(/15\/1\/2026/i)).toBeInTheDocument();
+      expect(screen.getByText(/15\/1\/2026.*\d{2}:\d{2}/i)).toBeInTheDocument();
     });
   });
 

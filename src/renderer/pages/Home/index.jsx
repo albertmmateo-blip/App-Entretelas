@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import DataTable from '../../components/DataTable';
 import entretelarLogo from '../../assets/entretelar-logo.png';
+import { formatDateTime } from '../../utils/formatDateTime';
 
 const MODULE_ICONS = { notas: '📝', llamar: '📞', encargar: '📦' };
 const MODULE_NAMES = { notas: 'Notas', llamar: 'Llamar', encargar: 'Encargar' };
@@ -55,15 +56,11 @@ const COLUMNS = [
   },
   {
     key: 'fecha_creacion',
-    label: 'Fecha',
+    label: 'Fecha y hora',
     sortable: true,
     sortValue: (row) => row.fecha_creacion ?? '',
     render: (value) =>
-      value ? (
-        new Date(value).toLocaleDateString('es-ES')
-      ) : (
-        <span className="text-neutral-400">—</span>
-      ),
+      value ? formatDateTime(value) : <span className="text-neutral-400">—</span>,
   },
 ];
 

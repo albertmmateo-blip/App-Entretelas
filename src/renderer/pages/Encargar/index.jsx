@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { EntriesGrid, EntryCard, EmptyState, LoadingState } from '../../components/entries';
 import useCRUD from '../../hooks/useCRUD';
+import { formatDateTime } from '../../utils/formatDateTime';
 import ProveedorForm from '../Facturas/ProveedorForm';
 import EncargarForm from './EncargarForm';
 
@@ -134,9 +135,7 @@ function EncargarFoldersView() {
                   <span className="font-medium">Entradas:</span>{' '}
                   {entriesCountByProveedor[proveedor.id] || 0}
                 </div>
-                <div className="text-neutral-500">
-                  {new Date(proveedor.fecha_creacion).toLocaleDateString('es-ES')}
-                </div>
+                <div className="text-neutral-500">{formatDateTime(proveedor.fecha_creacion)}</div>
               </div>
             </EntryCard>
           ))}
@@ -322,9 +321,7 @@ function EncargarProveedorView() {
                     <span className="font-medium">Ref. Interna:</span> {encargar.ref_interna}
                   </div>
                 )}
-                <div className="text-neutral-500">
-                  {new Date(encargar.fecha_creacion).toLocaleDateString('es-ES')}
-                </div>
+                <div className="text-neutral-500">{formatDateTime(encargar.fecha_creacion)}</div>
               </div>
             </EntryCard>
           ))}

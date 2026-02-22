@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useCRUD from '../../hooks/useCRUD';
+import { formatDateTime } from '../../utils/formatDateTime';
 
 const MODULE_LABELS = { notas: 'Notas', llamar: 'Llamar', encargar: 'Encargar' };
 
@@ -175,9 +176,7 @@ function Urgente() {
                       Contacto: {getContactField('notas', entry)}
                     </p>
                   )}
-                  <p className="text-xs text-neutral-500">
-                    {new Date(entry.fecha_creacion).toLocaleDateString('es-ES')}
-                  </p>
+                  <p className="text-xs text-neutral-500">{formatDateTime(entry.fecha_creacion)}</p>
                 </div>
                 <button
                   type="button"
@@ -235,9 +234,7 @@ function Urgente() {
                       Contacto: {getContactField('llamar', entry)}
                     </p>
                   )}
-                  <p className="text-xs text-neutral-500">
-                    {new Date(entry.fecha_creacion).toLocaleDateString('es-ES')}
-                  </p>
+                  <p className="text-xs text-neutral-500">{formatDateTime(entry.fecha_creacion)}</p>
                 </div>
                 <button
                   type="button"
@@ -295,9 +292,7 @@ function Urgente() {
                       Proveedor: {getContactField('encargar', entry)}
                     </p>
                   )}
-                  <p className="text-xs text-neutral-500">
-                    {new Date(entry.fecha_creacion).toLocaleDateString('es-ES')}
-                  </p>
+                  <p className="text-xs text-neutral-500">{formatDateTime(entry.fecha_creacion)}</p>
                 </div>
                 <button
                   type="button"
