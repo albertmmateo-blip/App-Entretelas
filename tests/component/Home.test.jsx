@@ -66,9 +66,9 @@ describe('Home page', () => {
     teardownIPCMock();
   });
 
-  it('renders the Home heading', () => {
+  it('renders the top logo banner', () => {
     renderHome();
-    expect(screen.getByRole('heading', { name: 'Home' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Entretelar' })).toBeInTheDocument();
   });
 
   it('renders module quick-nav links', () => {

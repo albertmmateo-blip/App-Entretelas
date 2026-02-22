@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import DataTable from '../../components/DataTable';
+import entretelarLogo from '../../assets/entretelar-logo.png';
 
 const MODULE_ICONS = { notas: '📝', llamar: '📞', encargar: '📦' };
 const MODULE_NAMES = { notas: 'Notas', llamar: 'Llamar', encargar: 'Encargar' };
@@ -119,6 +120,7 @@ function Home() {
   const navigate = useNavigate();
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showLogo, setShowLogo] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [moduleFilter, setModuleFilter] = useState('all');
   const [urgenteFilter, setUrgenteFilter] = useState('all');
@@ -167,8 +169,19 @@ function Home() {
 
   return (
     <div className="p-6">
-      {/* Page heading */}
-      <h1 className="text-2xl font-bold text-neutral-900 mb-6">Home</h1>
+      {/* Top logo banner */}
+      {showLogo && (
+        <div className="mb-6 flex justify-center">
+          <img
+            src={entretelarLogo}
+            alt="Entretelar"
+            className="w-full max-w-[180px] md:max-w-[210px] h-auto mix-blend-multiply"
+            onError={() => {
+              setShowLogo(false);
+            }}
+          />
+        </div>
+      )}
 
       {/* Module quick-nav panel */}
       <div className="grid grid-cols-3 md:grid-cols-6 gap-4 mb-6">
