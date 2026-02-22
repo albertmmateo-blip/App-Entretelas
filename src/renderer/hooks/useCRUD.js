@@ -3,10 +3,26 @@ import { create } from 'zustand';
 import errorMessages from '../utils/errorMessages';
 import useToast from './useToast';
 
-const MODULES = ['notas', 'llamar', 'encargar', 'proveedores', 'clientes'];
+const MODULES = ['notas', 'llamar', 'encargar', 'arreglos', 'proveedores', 'clientes'];
 const stores = {};
 
 const idsMatch = (left, right) => String(left) === String(right);
+
+const resolveModuleAPI = (moduleName) => window.electronAPI?.[moduleName];
+
+const getRuntimeErrorMessage = (error) => {
+  const message = String(error?.message || '');
+
+  if (
+    message.includes('No handler registered for') ||
+    message.includes('is not a function') ||
+    message.includes('Cannot read properties of undefined')
+  ) {
+    return errorMessages.IPC_UNAVAILABLE;
+  }
+
+  return errorMessages.DB_ERROR;
+};
 
 const createCrudStore = (moduleName) =>
   create((set, get) => ({
@@ -17,7 +33,18 @@ const createCrudStore = (moduleName) =>
     fetchAll: async (showToast) => {
       set({ loading: true, error: null });
       try {
-        const response = await window.electronAPI[moduleName].getAll();
+        const moduleAPI = resolveModuleAPI(moduleName);
+        if (!moduleAPI?.getAll) {
+          const error = {
+            code: 'IPC_UNAVAILABLE',
+            message: `Missing electronAPI.${moduleName}.getAll`,
+          };
+          set({ error, loading: false });
+          showToast?.(errorMessages.IPC_UNAVAILABLE, 'error');
+          return null;
+        }
+
+        const response = await moduleAPI.getAll();
 
         if (response.success) {
           set({ entries: response.data, loading: false });
@@ -30,7 +57,7 @@ const createCrudStore = (moduleName) =>
         return null;
       } catch (error) {
         set({ error, loading: false });
-        showToast?.(errorMessages.DB_ERROR, 'error');
+        showToast?.(getRuntimeErrorMessage(error), 'error');
         return null;
       }
     },
@@ -38,7 +65,18 @@ const createCrudStore = (moduleName) =>
     createEntry: async (data, showToast) => {
       set({ loading: true, error: null });
       try {
-        const response = await window.electronAPI[moduleName].create(data);
+        const moduleAPI = resolveModuleAPI(moduleName);
+        if (!moduleAPI?.create) {
+          const error = {
+            code: 'IPC_UNAVAILABLE',
+            message: `Missing electronAPI.${moduleName}.create`,
+          };
+          set({ error, loading: false });
+          showToast?.(errorMessages.IPC_UNAVAILABLE, 'error');
+          return null;
+        }
+
+        const response = await moduleAPI.create(data);
 
         if (response.success) {
           set((state) => ({
@@ -55,7 +93,7 @@ const createCrudStore = (moduleName) =>
         return null;
       } catch (error) {
         set({ error, loading: false });
-        showToast?.(errorMessages.DB_ERROR, 'error');
+        showToast?.(getRuntimeErrorMessage(error), 'error');
         return null;
       }
     },
@@ -63,7 +101,18 @@ const createCrudStore = (moduleName) =>
     updateEntry: async (id, data, showToast) => {
       set({ loading: true, error: null });
       try {
-        const response = await window.electronAPI[moduleName].update(id, data);
+        const moduleAPI = resolveModuleAPI(moduleName);
+        if (!moduleAPI?.update) {
+          const error = {
+            code: 'IPC_UNAVAILABLE',
+            message: `Missing electronAPI.${moduleName}.update`,
+          };
+          set({ error, loading: false });
+          showToast?.(errorMessages.IPC_UNAVAILABLE, 'error');
+          return null;
+        }
+
+        const response = await moduleAPI.update(id, data);
 
         if (response.success) {
           set((state) => ({
@@ -82,7 +131,7 @@ const createCrudStore = (moduleName) =>
         return null;
       } catch (error) {
         set({ error, loading: false });
-        showToast?.(errorMessages.DB_ERROR, 'error');
+        showToast?.(getRuntimeErrorMessage(error), 'error');
         return null;
       }
     },
@@ -90,7 +139,18 @@ const createCrudStore = (moduleName) =>
     deleteEntry: async (id, showToast) => {
       set({ loading: true, error: null });
       try {
-        const response = await window.electronAPI[moduleName].delete(id);
+        const moduleAPI = resolveModuleAPI(moduleName);
+        if (!moduleAPI?.delete) {
+          const error = {
+            code: 'IPC_UNAVAILABLE',
+            message: `Missing electronAPI.${moduleName}.delete`,
+          };
+          set({ error, loading: false });
+          showToast?.(errorMessages.IPC_UNAVAILABLE, 'error');
+          return false;
+        }
+
+        const response = await moduleAPI.delete(id);
 
         if (response.success) {
           set((state) => ({
@@ -107,7 +167,7 @@ const createCrudStore = (moduleName) =>
         return false;
       } catch (error) {
         set({ error, loading: false });
-        showToast?.(errorMessages.DB_ERROR, 'error');
+        showToast?.(getRuntimeErrorMessage(error), 'error');
         return false;
       }
     },
@@ -121,7 +181,14 @@ const createCrudStore = (moduleName) =>
       }));
 
       try {
-        const response = await window.electronAPI[moduleName].update(id, { urgente });
+        const moduleAPI = resolveModuleAPI(moduleName);
+        if (!moduleAPI?.update) {
+          set({ entries: previousEntries });
+          showToast?.(errorMessages.IPC_UNAVAILABLE, 'error');
+          return false;
+        }
+
+        const response = await moduleAPI.update(id, { urgente });
 
         if (response.success) {
           set((state) => ({
@@ -138,7 +205,7 @@ const createCrudStore = (moduleName) =>
         return false;
       } catch (error) {
         set({ entries: previousEntries });
-        showToast?.(errorMessages.DB_ERROR, 'error');
+        showToast?.(getRuntimeErrorMessage(error), 'error');
         return false;
       }
     },

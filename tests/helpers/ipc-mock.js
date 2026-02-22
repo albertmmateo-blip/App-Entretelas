@@ -68,6 +68,12 @@ export function createMockElectronAPI() {
       update: createMockHandler('encargar:update'),
       delete: createMockHandler('encargar:delete'),
     },
+    arreglos: {
+      getAll: createMockHandler('arreglos:getAll'),
+      create: createMockHandler('arreglos:create'),
+      update: createMockHandler('arreglos:update'),
+      delete: createMockHandler('arreglos:delete'),
+    },
     proveedores: {
       getAll: createMockHandler('proveedores:getAll'),
       create: createMockHandler('proveedores:create'),

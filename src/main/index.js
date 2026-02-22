@@ -6,6 +6,7 @@ const { registerDbHandlers } = require('./ipc/db');
 const { registerNotasHandlers } = require('./ipc/notas');
 const { registerLlamarHandlers } = require('./ipc/llamar');
 const { registerEncargarHandlers } = require('./ipc/encargar');
+const { registerArreglosHandlers } = require('./ipc/arreglos');
 const { registerProveedoresHandlers } = require('./ipc/proveedores');
 const { registerClientesHandlers } = require('./ipc/clientes');
 const { registerFacturasHandlers } = require('./ipc/facturas');
@@ -136,6 +137,7 @@ if (!gotTheLock) {
     registerNotasHandlers();
     registerLlamarHandlers();
     registerEncargarHandlers();
+    registerArreglosHandlers();
     registerProveedoresHandlers();
     registerClientesHandlers();
     registerFacturasHandlers();

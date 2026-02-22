@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import ProveedoresList from './ProveedoresList';
 import ClientesList from './ClientesList';
+import ArreglosList from './ArreglosList';
 import useToast from '../../hooks/useToast';
 
 const OFFICE_EXTENSIONS = ['.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx'];
@@ -197,7 +198,7 @@ function Contabilidad() {
   }
 
   if (pathname.startsWith('/contabilidad/arreglos')) {
-    return <ProveedoresList tipo="arreglos" />;
+    return <ArreglosList />;
   }
 
   return (
@@ -251,7 +252,7 @@ function Contabilidad() {
         >
           <span className="text-6xl mb-4">📁</span>
           <span className="text-lg font-semibold text-neutral-900">Arreglos</span>
-          <span className="text-sm text-neutral-500 mt-1">Proveedores</span>
+          <span className="text-sm text-neutral-500 mt-1">Entradas</span>
         </button>
 
         {officeFiles.map((file) => (

@@ -92,11 +92,8 @@ export function AppLayout() {
           <Route path="/contabilidad/venta/:clienteId" element={<ContabilidadRoute />} />
           <Route path="/contabilidad/venta/:clienteId/editar" element={<ContabilidadRoute />} />
           <Route path="/contabilidad/arreglos" element={<ContabilidadRoute />} />
-          <Route path="/contabilidad/arreglos/:proveedorId" element={<ContabilidadRoute />} />
-          <Route
-            path="/contabilidad/arreglos/:proveedorId/editar"
-            element={<ContabilidadRoute />}
-          />
+          <Route path="/contabilidad/arreglos/nueva" element={<ContabilidadRoute />} />
+          <Route path="/contabilidad/arreglos/:id" element={<ContabilidadRoute />} />
 
           <Route path="/facturas" element={<ContabilidadRoute />} />
           <Route path="/facturas/compra" element={<ContabilidadRoute />} />

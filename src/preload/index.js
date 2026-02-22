@@ -32,6 +32,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     update: (id, data) => ipcRenderer.invoke('encargar:update', id, data),
     delete: (id) => ipcRenderer.invoke('encargar:delete', id),
   },
+  // Arreglos module
+  arreglos: {
+    getAll: () => ipcRenderer.invoke('arreglos:getAll'),
+    create: (data) => ipcRenderer.invoke('arreglos:create', data),
+    update: (id, data) => ipcRenderer.invoke('arreglos:update', id, data),
+    delete: (id) => ipcRenderer.invoke('arreglos:delete', id),
+  },
   // Proveedores module
   proveedores: {
     getAll: () => ipcRenderer.invoke('proveedores:getAll'),
