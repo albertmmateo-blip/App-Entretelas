@@ -17,7 +17,7 @@ function ClienteForm() {
   }, [entries.length, fetchAll, isEdit]);
 
   const existingCliente = useMemo(
-    () => (isEdit ? entries.find((c) => c.id === parseInt(clienteId, 10)) : null),
+    () => (isEdit ? entries.find((c) => Number(c.id) === Number.parseInt(clienteId, 10)) : null),
     [entries, clienteId, isEdit]
   );
 
@@ -31,39 +31,66 @@ function ClienteForm() {
         required: true,
         maxLength: 50,
       },
+      {
+        name: 'descuento_porcentaje',
+        label: 'Descuento',
+        type: 'select',
+        required: true,
+        options: [
+          { value: '0', label: 'Sin descuento' },
+          { value: '8', label: '8%' },
+          { value: '10', label: '10%' },
+          { value: '20', label: '20% (Personal)' },
+        ],
+      },
       { name: 'nif', label: 'NIF', type: 'text', required: false, maxLength: 20 },
       { name: 'direccion', label: 'Dirección', type: 'text', required: false, maxLength: 255 },
     ],
     []
   );
 
-  const initialValues = useMemo(
-    () =>
-      existingCliente || {
-        razon_social: '',
-        numero_cliente: '',
-        nif: '',
-        direccion: '',
-      },
-    [existingCliente]
-  );
+  const initialValues = useMemo(() => {
+    if (existingCliente) {
+      return {
+        ...existingCliente,
+        descuento_porcentaje: String(existingCliente.descuento_porcentaje ?? 0),
+      };
+    }
+
+    return {
+      razon_social: '',
+      numero_cliente: '',
+      descuento_porcentaje: '0',
+      nif: '',
+      direccion: '',
+    };
+  }, [existingCliente]);
 
   const handleSubmit = async (values) => {
+    const parsedDescuento = Number.parseInt(values.descuento_porcentaje, 10);
+
     const payload = {
       razon_social: values.razon_social,
       numero_cliente: values.numero_cliente,
+      descuento_porcentaje: Number.isInteger(parsedDescuento) ? parsedDescuento : 0,
       nif: values.nif || null,
       direccion: values.direccion || null,
     };
 
     if (isEdit) {
       const result = await update(parseInt(clienteId, 10), payload);
-      if (result) navigate(`/contabilidad/venta/${clienteId}`);
+      if (result) {
+        await fetchAll();
+        navigate(`/contabilidad/venta/${clienteId}`);
+      }
       return result;
     }
 
     const result = await create(payload);
-    if (result) navigate('/contabilidad/venta');
+    if (result) {
+      await fetchAll();
+      navigate('/contabilidad/venta');
+    }
     return result;
   };
 

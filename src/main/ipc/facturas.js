@@ -535,6 +535,66 @@ function registerFacturasHandlers(deps = {}) {
   });
 
   /**
+   * Handler: facturas:getStatsByTipo
+   * Returns aggregated stats by entidad for a tipo.
+   * @param {object} params - Query parameters
+   * @param {string} params.tipo - 'compra', 'venta', 'arreglos', or 'contabilidad'
+   * @returns {Promise<{ success: boolean, data?: Array<{entityId: number, fileCount: number, totalImporteIvaRe: number}>, error?: object }>}
+   */
+  ipc.handle('facturas:getStatsByTipo', async (event, params) => {
+    try {
+      const { tipo } = params || {};
+
+      if (!tipo) {
+        return {
+          success: false,
+          error: { code: 'INVALID_INPUT', message: 'tipo is required' },
+        };
+      }
+
+      if (!FACTURAS_TYPES.has(tipo)) {
+        return {
+          success: false,
+          error: {
+            code: 'INVALID_INPUT',
+            message: 'tipo must be "compra", "venta", "arreglos", or "contabilidad"',
+          },
+        };
+      }
+
+      const db = getDb();
+      const rows = db
+        .prepare(
+          `
+        SELECT
+          entidad_id AS entityId,
+          COUNT(*) AS fileCount,
+          COALESCE(SUM(COALESCE(importe_iva_re, 0)), 0) AS totalImporteIvaRe
+        FROM facturas_pdf
+        WHERE tipo = ?
+        GROUP BY entidad_id
+        ORDER BY entidad_id ASC
+      `
+        )
+        .all(tipo);
+
+      return {
+        success: true,
+        data: rows,
+      };
+    } catch (error) {
+      console.error('Error in facturas:getStatsByTipo:', error);
+      return {
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: error.message || 'Failed to get factura stats',
+        },
+      };
+    }
+  });
+
+  /**
    * Handler: facturas:updatePDFMetadata
    * Updates editable metadata fields for a PDF invoice.
    * @param {number} id - ID of the facturas_pdf record

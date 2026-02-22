@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import PDFThumbnail from './PDFThumbnail';
 import ConfirmDialog from './ConfirmDialog';
 import useToast from '../hooks/useToast';
+import { formatEuroAmount, parseEuroAmount } from '../utils/euroAmount';
 
 const MAX_UPLOAD_SIZE_BYTES = 52428800;
 const ALLOWED_EXTENSIONS = [
@@ -48,22 +49,6 @@ function normalizeDateForInput(value) {
   return parsed.toISOString().slice(0, 10);
 }
 
-function formatAmount(value) {
-  if (value === null || value === undefined || value === '') {
-    return '—';
-  }
-
-  const numericValue = Number(value);
-  if (!Number.isFinite(numericValue)) {
-    return String(value);
-  }
-
-  return numericValue.toLocaleString('es-ES', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
 function isPdfFile(filename) {
   return getFileExtension(filename) === '.pdf';
 }
@@ -101,6 +86,11 @@ function PDFUploadSection({
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const { showToast } = useToast();
   const acceptedExtensions = officeOnly ? OFFICE_EXTENSIONS : ALLOWED_EXTENSIONS;
+  const amountWithTaxesLabel = tipo === 'venta' ? 'Importe+IVA' : 'Importe+IVA+RE';
+  const totalImporteIvaRe = useMemo(
+    () => pdfs.reduce((sum, pdf) => sum + parseEuroAmount(pdf.importe_iva_re), 0),
+    [pdfs]
+  );
 
   const fetchPDFs = useCallback(async () => {
     if (tipo !== 'contabilidad' && !entidadId) {
@@ -334,9 +324,16 @@ function PDFUploadSection({
   return (
     <div className="bg-neutral-100 border border-neutral-200 rounded-lg p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-neutral-900">
-          {sectionLabel} ({pdfs.length})
-        </h3>
+        <div className="flex items-center gap-3 min-w-0">
+          <h3 className="text-lg font-semibold text-neutral-900">
+            {sectionLabel} ({pdfs.length})
+          </h3>
+          {(tipo === 'compra' || tipo === 'venta') && (
+            <span className="text-sm font-semibold text-primary whitespace-nowrap">
+              {amountWithTaxesLabel}: {formatEuroAmount(totalImporteIvaRe)}
+            </span>
+          )}
+        </div>
         <label
           htmlFor="pdf-upload"
           className={`px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors cursor-pointer ${
@@ -398,9 +395,19 @@ function PDFUploadSection({
                   <p className="text-xs text-neutral-700 mt-1">
                     Fecha: {pdf.fecha ? normalizeDateForInput(pdf.fecha) : '—'}
                   </p>
-                  <p className="text-xs text-neutral-700">Importe: {formatAmount(pdf.importe)}</p>
                   <p className="text-xs text-neutral-700">
-                    Importe+IVA+RE: {formatAmount(pdf.importe_iva_re)}
+                    Importe:{' '}
+                    {pdf.importe === null || pdf.importe === undefined || pdf.importe === ''
+                      ? '—'
+                      : formatEuroAmount(pdf.importe)}
+                  </p>
+                  <p className="text-xs text-neutral-700">
+                    {amountWithTaxesLabel}:{' '}
+                    {pdf.importe_iva_re === null ||
+                    pdf.importe_iva_re === undefined ||
+                    pdf.importe_iva_re === ''
+                      ? '—'
+                      : formatEuroAmount(pdf.importe_iva_re)}
                   </p>
                   <p className="text-xs text-neutral-700">
                     Vencimiento: {pdf.vencimiento ? normalizeDateForInput(pdf.vencimiento) : '—'}
@@ -434,21 +441,25 @@ function PDFUploadSection({
                         className="w-full text-xs px-2 py-1 border border-neutral-300 rounded focus:outline-none focus:ring-1 focus:ring-primary"
                       />
                       <input
-                        type="text"
+                        type="number"
+                        step="0.01"
+                        inputMode="decimal"
                         value={metadataForm.importe}
                         onChange={(event) =>
                           setMetadataForm((prev) => ({ ...prev, importe: event.target.value }))
                         }
-                        placeholder="Importe"
+                        placeholder="Importe (ej. 123.45)"
                         className="w-full text-xs px-2 py-1 border border-neutral-300 rounded focus:outline-none focus:ring-1 focus:ring-primary"
                       />
                       <input
-                        type="text"
+                        type="number"
+                        step="0.01"
+                        inputMode="decimal"
                         value={metadataForm.importeIvaRe}
                         onChange={(event) =>
                           setMetadataForm((prev) => ({ ...prev, importeIvaRe: event.target.value }))
                         }
-                        placeholder="Importe+IVA+RE"
+                        placeholder={`${amountWithTaxesLabel} (ej. 150.75)`}
                         className="w-full text-xs px-2 py-1 border border-neutral-300 rounded focus:outline-none focus:ring-1 focus:ring-primary"
                       />
                       <input

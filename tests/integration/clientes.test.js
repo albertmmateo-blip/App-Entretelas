@@ -73,6 +73,8 @@ describe('Clientes IPC Handlers', () => {
       expect(response.data[0]).toHaveProperty('id');
       expect(response.data[0]).toHaveProperty('numero_cliente');
       expect(response.data[0]).toHaveProperty('fecha_creacion');
+      expect(response.data[0]).toHaveProperty('descuento_porcentaje');
+      expect(response.data[0].descuento_porcentaje).toBe(0);
       expect(response.data[0]).toHaveProperty('facturas_count');
       expect(response.data[0].facturas_count).toBe(0);
     });
@@ -183,12 +185,43 @@ describe('Clientes IPC Handlers', () => {
       expect(response.data.id).toBeDefined();
       expect(response.data.razon_social).toBe('New Cliente');
       expect(response.data.numero_cliente).toBe('CLI-999');
+      expect(response.data.descuento_porcentaje).toBe(0);
 
       // Verify in database
       const cliente = db.prepare('SELECT * FROM clientes WHERE id = ?').get(response.data.id);
       expect(cliente).toBeDefined();
       expect(cliente.razon_social).toBe('New Cliente');
       expect(cliente.numero_cliente).toBe('CLI-999');
+      expect(cliente.descuento_porcentaje).toBe(0);
+    });
+
+    it('should create a cliente with descuento_porcentaje tier', async () => {
+      const clienteData = {
+        razon_social: 'Discount Cliente',
+        numero_cliente: 'CLI-DSC',
+        descuento_porcentaje: 10,
+      };
+
+      const handler = mockHandlers['clientes:create'];
+      const response = await handler(null, clienteData);
+
+      expect(response.success).toBe(true);
+      expect(response.data.descuento_porcentaje).toBe(10);
+    });
+
+    it('should fail when descuento_porcentaje is not a valid tier', async () => {
+      const clienteData = {
+        razon_social: 'Invalid Discount Cliente',
+        numero_cliente: 'CLI-BAD-DSC',
+        descuento_porcentaje: 7,
+      };
+
+      const handler = mockHandlers['clientes:create'];
+      const response = await handler(null, clienteData);
+
+      expect(response.success).toBe(false);
+      expect(response.error.code).toBe('INVALID_INPUT');
+      expect(response.error.message).toContain('descuento_porcentaje');
     });
 
     it('should trim whitespace from string fields', async () => {
@@ -318,6 +351,58 @@ describe('Clientes IPC Handlers', () => {
       expect(response.data.razon_social).toBe('Updated Name');
       expect(response.data.direccion).toBe('Updated Address');
       expect(response.data.numero_cliente).toBe('CLI-001'); // Should remain unchanged
+      expect(response.data.descuento_porcentaje).toBe(0);
+    });
+
+    it('should update descuento_porcentaje with valid tier', async () => {
+      const testClientes = [
+        createCliente({ razon_social: 'Discount Update', numero_cliente: 'CLI-010' }),
+      ];
+      seedTestData(db, 'clientes', testClientes);
+      const clienteId = db.prepare('SELECT id FROM clientes LIMIT 1').get().id;
+
+      const updateData = {
+        descuento_porcentaje: 20,
+      };
+
+      const handler = mockHandlers['clientes:update'];
+      const response = await handler(null, clienteId, updateData);
+
+      expect(response.success).toBe(true);
+      expect(response.data.descuento_porcentaje).toBe(20);
+    });
+
+    it('should normalize string descuento_porcentaje values on update', async () => {
+      const testClientes = [
+        createCliente({ razon_social: 'Discount String Update', numero_cliente: 'CLI-012' }),
+      ];
+      seedTestData(db, 'clientes', testClientes);
+      const clienteId = db.prepare('SELECT id FROM clientes LIMIT 1').get().id;
+
+      const handler = mockHandlers['clientes:update'];
+      const response = await handler(null, clienteId, { descuento_porcentaje: '8' });
+
+      expect(response.success).toBe(true);
+      expect(response.data.descuento_porcentaje).toBe(8);
+    });
+
+    it('should fail when updating descuento_porcentaje with invalid tier', async () => {
+      const testClientes = [
+        createCliente({ razon_social: 'Discount Invalid Update', numero_cliente: 'CLI-011' }),
+      ];
+      seedTestData(db, 'clientes', testClientes);
+      const clienteId = db.prepare('SELECT id FROM clientes LIMIT 1').get().id;
+
+      const updateData = {
+        descuento_porcentaje: 5,
+      };
+
+      const handler = mockHandlers['clientes:update'];
+      const response = await handler(null, clienteId, updateData);
+
+      expect(response.success).toBe(false);
+      expect(response.error.code).toBe('INVALID_INPUT');
+      expect(response.error.message).toContain('descuento_porcentaje');
     });
 
     it('should update only provided fields', async () => {

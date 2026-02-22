@@ -4,6 +4,7 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import PDFUploadSection from '../../components/PDFUploadSection';
 import { EntriesGrid, EntryCard, EmptyState, LoadingState } from '../../components/entries';
 import useCRUD from '../../hooks/useCRUD';
+import { formatEuroAmount, parseEuroAmount } from '../../utils/euroAmount';
 import ProveedorForm from './ProveedorForm';
 
 function ProveedoresListView({ tipo = 'compra' }) {
@@ -12,10 +13,12 @@ function ProveedoresListView({ tipo = 'compra' }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [menuState, setMenuState] = useState(null);
-  const [folderCounts, setFolderCounts] = useState({});
+  const [folderStats, setFolderStats] = useState({});
+  const [totalImporteIvaRe, setTotalImporteIvaRe] = useState(0);
   const basePath = `/contabilidad/${tipo}`;
   const sectionTitle = tipo === 'arreglos' ? 'Contabilidad Arreglos' : 'Contabilidad Compra';
   const uploadedLabel = tipo === 'arreglos' ? 'Archivos subidos' : 'Facturas subidas';
+  const isCompra = tipo === 'compra';
 
   useEffect(() => {
     fetchAll();
@@ -38,23 +41,91 @@ function ProveedoresListView({ tipo = 'compra' }) {
 
       if (!entries.length) {
         if (!cancelled) {
-          setFolderCounts({});
+          setFolderStats({});
+          setTotalImporteIvaRe(0);
         }
         return;
+      }
+
+      if (tipo !== 'compra') {
+        if (!cancelled) {
+          setFolderStats(
+            Object.fromEntries(
+              entries.map((proveedor) => [
+                proveedor.id,
+                {
+                  count: proveedor.facturas_count ?? 0,
+                  totalIvaRe: 0,
+                },
+              ])
+            )
+          );
+          setTotalImporteIvaRe(0);
+        }
+        return;
+      }
+
+      if (facturasApi?.getStatsByTipo) {
+        try {
+          const response = await facturasApi.getStatsByTipo({ tipo });
+
+          if (response.success) {
+            const statsFromApi = Object.fromEntries(
+              (response.data || []).map((row) => [
+                row.entityId,
+                {
+                  count: row.fileCount ?? 0,
+                  totalIvaRe: parseEuroAmount(row.totalImporteIvaRe),
+                },
+              ])
+            );
+
+            const mergedStats = Object.fromEntries(
+              entries.map((proveedor) => [
+                proveedor.id,
+                {
+                  count: statsFromApi[proveedor.id]?.count ?? proveedor.facturas_count ?? 0,
+                  totalIvaRe: statsFromApi[proveedor.id]?.totalIvaRe ?? 0,
+                },
+              ])
+            );
+
+            const overallTotal = Object.values(mergedStats).reduce(
+              (sum, stat) => sum + parseEuroAmount(stat.totalIvaRe),
+              0
+            );
+
+            if (!cancelled) {
+              setFolderStats(mergedStats);
+              setTotalImporteIvaRe(overallTotal);
+            }
+
+            return;
+          }
+        } catch (error) {
+          // Fall back to per-entidad query below
+        }
       }
 
       if (!facturasApi?.getAllForEntidad) {
         if (!cancelled) {
-          setFolderCounts(
+          setFolderStats(
             Object.fromEntries(
-              entries.map((proveedor) => [proveedor.id, proveedor.facturas_count ?? 0])
+              entries.map((proveedor) => [
+                proveedor.id,
+                {
+                  count: proveedor.facturas_count ?? 0,
+                  totalIvaRe: 0,
+                },
+              ])
             )
           );
+          setTotalImporteIvaRe(0);
         }
         return;
       }
 
-      const countPairs = await Promise.all(
+      const statsPairs = await Promise.all(
         entries.map(async (proveedor) => {
           const fallbackCount = proveedor.facturas_count ?? 0;
           try {
@@ -64,18 +135,48 @@ function ProveedoresListView({ tipo = 'compra' }) {
             });
 
             if (response.success) {
-              return [proveedor.id, (response.data || []).length];
+              const rows = response.data || [];
+              const totalIvaRe = rows.reduce(
+                (sum, row) => sum + parseEuroAmount(row.importe_iva_re),
+                0
+              );
+              return [
+                proveedor.id,
+                {
+                  count: rows.length,
+                  totalIvaRe,
+                },
+              ];
             }
           } catch (error) {
-            return [proveedor.id, fallbackCount];
+            return [
+              proveedor.id,
+              {
+                count: fallbackCount,
+                totalIvaRe: 0,
+              },
+            ];
           }
 
-          return [proveedor.id, fallbackCount];
+          return [
+            proveedor.id,
+            {
+              count: fallbackCount,
+              totalIvaRe: 0,
+            },
+          ];
         })
       );
 
       if (!cancelled) {
-        setFolderCounts(Object.fromEntries(countPairs));
+        const statsByProveedor = Object.fromEntries(statsPairs);
+        const overallTotal = Object.values(statsByProveedor).reduce(
+          (sum, stat) => sum + parseEuroAmount(stat.totalIvaRe),
+          0
+        );
+
+        setFolderStats(statsByProveedor);
+        setTotalImporteIvaRe(overallTotal);
       }
     };
 
@@ -158,13 +259,26 @@ function ProveedoresListView({ tipo = 'compra' }) {
                 key={`shortcut-${proveedor.id}`}
                 type="button"
                 onClick={() => navigate(`${basePath}/${proveedor.id}`)}
-                className="px-3 py-1.5 border border-neutral-200 rounded bg-white hover:border-primary hover:text-primary transition-colors text-sm text-neutral-700"
+                className="px-3 py-1.5 border border-neutral-200 rounded bg-white hover:border-primary hover:text-primary transition-colors text-sm text-neutral-700 flex items-center gap-3"
                 aria-label={`Abrir carpeta de ${proveedor.razon_social}`}
               >
-                {`📁 ${proveedor.razon_social}`}
+                <span className="font-medium">{`📁 ${proveedor.razon_social}`}</span>
+                {isCompra && (
+                  <span className="text-xs font-semibold text-primary whitespace-nowrap">
+                    {formatEuroAmount(folderStats[proveedor.id]?.totalIvaRe ?? 0)}
+                  </span>
+                )}
               </button>
             ))}
           </div>
+          {isCompra && (
+            <div className="mt-3 px-3 py-2 rounded border border-neutral-200 bg-white text-sm text-neutral-700">
+              <span className="font-medium">Total Importe + IVA + RE (todas las carpetas): </span>
+              <span className="font-semibold text-primary">
+                {formatEuroAmount(totalImporteIvaRe)}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
@@ -183,8 +297,13 @@ function ProveedoresListView({ tipo = 'compra' }) {
               onClick={() => navigate(`${basePath}/${proveedor.id}`)}
               onActionClick={(e) => setMenuState({ proveedor, x: e.clientX, y: e.clientY })}
             >
-              <h3 className="text-lg font-semibold mb-2 text-neutral-900">
-                {proveedor.razon_social}
+              <h3 className="text-lg font-semibold mb-2 text-neutral-900 flex items-start justify-between gap-2">
+                <span className="min-w-0 break-words">{proveedor.razon_social}</span>
+                {isCompra && (
+                  <span className="shrink-0 text-sm font-semibold text-primary">
+                    {formatEuroAmount(folderStats[proveedor.id]?.totalIvaRe ?? 0)}
+                  </span>
+                )}
               </h3>
               <div className="space-y-1 text-sm text-neutral-700">
                 {proveedor.nif && (
@@ -199,8 +318,14 @@ function ProveedoresListView({ tipo = 'compra' }) {
                 )}
                 <div>
                   <span className="font-medium">{uploadedLabel}:</span>{' '}
-                  {folderCounts[proveedor.id] ?? proveedor.facturas_count ?? 0}
+                  {folderStats[proveedor.id]?.count ?? proveedor.facturas_count ?? 0}
                 </div>
+                {isCompra && (
+                  <div>
+                    <span className="font-medium">Importe + IVA + RE:</span>{' '}
+                    {formatEuroAmount(folderStats[proveedor.id]?.totalIvaRe ?? 0)}
+                  </div>
+                )}
                 <div className="text-neutral-500">
                   {new Date(proveedor.fecha_creacion).toLocaleDateString('es-ES')}
                 </div>

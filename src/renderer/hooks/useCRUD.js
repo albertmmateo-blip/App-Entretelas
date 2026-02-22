@@ -6,6 +6,8 @@ import useToast from './useToast';
 const MODULES = ['notas', 'llamar', 'encargar', 'proveedores', 'clientes'];
 const stores = {};
 
+const idsMatch = (left, right) => String(left) === String(right);
+
 const createCrudStore = (moduleName) =>
   create((set, get) => ({
     entries: [],
@@ -65,7 +67,9 @@ const createCrudStore = (moduleName) =>
 
         if (response.success) {
           set((state) => ({
-            entries: state.entries.map((entry) => (entry.id === id ? response.data : entry)),
+            entries: state.entries.map((entry) =>
+              idsMatch(entry.id, response.data?.id ?? id) ? response.data : entry
+            ),
             loading: false,
           }));
           showToast?.('Guardado correctamente', 'success');
@@ -90,7 +94,7 @@ const createCrudStore = (moduleName) =>
 
         if (response.success) {
           set((state) => ({
-            entries: state.entries.filter((entry) => entry.id !== id),
+            entries: state.entries.filter((entry) => !idsMatch(entry.id, id)),
             loading: false,
           }));
           showToast?.('Eliminado correctamente', 'success');
@@ -112,7 +116,7 @@ const createCrudStore = (moduleName) =>
       const previousEntries = get().entries;
       set((state) => ({
         entries: state.entries.map((entry) =>
-          entry.id === id ? { ...entry, urgente: urgente ? 1 : 0 } : entry
+          idsMatch(entry.id, id) ? { ...entry, urgente: urgente ? 1 : 0 } : entry
         ),
       }));
 
@@ -121,7 +125,9 @@ const createCrudStore = (moduleName) =>
 
         if (response.success) {
           set((state) => ({
-            entries: state.entries.map((entry) => (entry.id === id ? response.data : entry)),
+            entries: state.entries.map((entry) =>
+              idsMatch(entry.id, response.data?.id ?? id) ? response.data : entry
+            ),
           }));
           return true;
         }

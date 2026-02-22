@@ -51,6 +51,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     uploadPDF: (params) => ipcRenderer.invoke('facturas:uploadPDF', params),
     deletePDF: (id) => ipcRenderer.invoke('facturas:deletePDF', id),
     getAllForEntidad: (params) => ipcRenderer.invoke('facturas:getAllForEntidad', params),
+    getStatsByTipo: (params) => ipcRenderer.invoke('facturas:getStatsByTipo', params),
     updatePDFMetadata: (id, data) => ipcRenderer.invoke('facturas:updatePDFMetadata', id, data),
     getPDFBytes: (pdfPath) => ipcRenderer.invoke('facturas:getPDFBytes', pdfPath),
     openStoredFile: (relativePath) => ipcRenderer.invoke('facturas:openStoredFile', relativePath),

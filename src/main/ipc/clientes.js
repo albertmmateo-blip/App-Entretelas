@@ -1,6 +1,17 @@
 const { ipcMain } = require('electron');
 const { getDatabase } = require('../db/connection');
 
+const ALLOWED_DESCUENTO_PORCENTAJES = [0, 8, 10, 20];
+
+function normalizeDescuentoPorcentaje(value) {
+  if (value === null || value === undefined || value === '') {
+    return undefined;
+  }
+
+  const normalized = typeof value === 'string' ? Number.parseInt(value, 10) : value;
+  return Number.isInteger(normalized) ? normalized : NaN;
+}
+
 /**
  * Validates cliente input data.
  * @param {Object} data - The cliente data to validate
@@ -101,6 +112,21 @@ function validateClienteInput(data) {
     }
   }
 
+  // Validate descuento_porcentaje (optional, one of allowed tiers)
+  if (data.descuento_porcentaje !== null && data.descuento_porcentaje !== undefined) {
+    const descuento = normalizeDescuentoPorcentaje(data.descuento_porcentaje);
+
+    if (!Number.isInteger(descuento) || !ALLOWED_DESCUENTO_PORCENTAJES.includes(descuento)) {
+      return {
+        valid: false,
+        error: {
+          code: 'INVALID_INPUT',
+          message: 'descuento_porcentaje must be one of: 0, 8, 10, 20',
+        },
+      };
+    }
+  }
+
   return { valid: true };
 }
 
@@ -194,14 +220,15 @@ function registerClientesHandlers(deps = {}) {
       const numeroCliente = data.numero_cliente.trim();
       const direccion = data.direccion ? data.direccion.trim() : null;
       const nif = data.nif ? data.nif.trim() : null;
+      const descuentoPorcentaje = normalizeDescuentoPorcentaje(data.descuento_porcentaje) ?? 0;
 
       // Insert cliente
       const stmt = db.prepare(`
-        INSERT INTO clientes (razon_social, numero_cliente, direccion, nif)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO clientes (razon_social, numero_cliente, direccion, nif, descuento_porcentaje)
+        VALUES (?, ?, ?, ?, ?)
       `);
 
-      const result = stmt.run(razonSocial, numeroCliente, direccion, nif);
+      const result = stmt.run(razonSocial, numeroCliente, direccion, nif, descuentoPorcentaje);
 
       // Fetch the created cliente
       const cliente = db.prepare('SELECT * FROM clientes WHERE id = ?').get(result.lastInsertRowid);
@@ -295,6 +322,13 @@ function registerClientesHandlers(deps = {}) {
         nif = undefined;
       }
 
+      let descuentoPorcentaje;
+      if (data.descuento_porcentaje !== undefined) {
+        descuentoPorcentaje = normalizeDescuentoPorcentaje(data.descuento_porcentaje);
+      } else {
+        descuentoPorcentaje = undefined;
+      }
+
       // Build update query dynamically based on provided fields
       const updates = [];
       const values = [];
@@ -332,6 +366,10 @@ function registerClientesHandlers(deps = {}) {
       if (nif !== undefined) {
         updates.push('nif = ?');
         values.push(nif);
+      }
+      if (descuentoPorcentaje !== undefined) {
+        updates.push('descuento_porcentaje = ?');
+        values.push(descuentoPorcentaje);
       }
 
       if (updates.length === 0) {

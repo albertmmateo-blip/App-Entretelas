@@ -410,6 +410,62 @@ describe('Facturas IPC Handlers', () => {
     });
   });
 
+  describe('facturas:getStatsByTipo', () => {
+    it('should return grouped counts and importe totals by entidad', async () => {
+      const uploadHandler = mockHandlers['facturas:uploadPDF'];
+
+      const uploadResponseA = await uploadHandler(null, {
+        tipo: 'compra',
+        entidadId: testProviderId,
+        entidadNombre: 'Test Proveedor',
+        filePath: testPDFPath,
+      });
+
+      const uploadResponseB = await uploadHandler(null, {
+        tipo: 'compra',
+        entidadId: testProviderId,
+        entidadNombre: 'Test Proveedor',
+        filePath: testPDFPath,
+      });
+
+      expect(uploadResponseA.success).toBe(true);
+      expect(uploadResponseB.success).toBe(true);
+
+      const updateHandler = mockHandlers['facturas:updatePDFMetadata'];
+      await updateHandler(null, uploadResponseA.data.id, {
+        fecha: '2026-04-01',
+        importe: '100.00',
+        importeIvaRe: '121.60',
+        vencimiento: '2026-04-30',
+        pagada: false,
+      });
+      await updateHandler(null, uploadResponseB.data.id, {
+        fecha: '2026-04-01',
+        importe: '50.00',
+        importeIvaRe: '60.50',
+        vencimiento: '2026-04-30',
+        pagada: false,
+      });
+
+      const statsHandler = mockHandlers['facturas:getStatsByTipo'];
+      const response = await statsHandler(null, { tipo: 'compra' });
+
+      expect(response.success).toBe(true);
+      expect(response.data).toHaveLength(1);
+      expect(response.data[0].entityId).toBe(testProviderId);
+      expect(response.data[0].fileCount).toBe(2);
+      expect(response.data[0].totalImporteIvaRe).toBeCloseTo(182.1, 5);
+    });
+
+    it('should return INVALID_INPUT for missing tipo', async () => {
+      const statsHandler = mockHandlers['facturas:getStatsByTipo'];
+      const response = await statsHandler(null, {});
+
+      expect(response.success).toBe(false);
+      expect(response.error.code).toBe('INVALID_INPUT');
+    });
+  });
+
   describe('facturas:updatePDFMetadata', () => {
     it('should update invoice metadata and payment status', async () => {
       const uploadHandler = mockHandlers['facturas:uploadPDF'];
