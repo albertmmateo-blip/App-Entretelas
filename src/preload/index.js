@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   system: {
     openExternal: (url) => ipcRenderer.invoke('system:openExternal', url),
+    openArreglosMonthlySummariesWindow: (scope) =>
+      ipcRenderer.invoke('system:openArreglosMonthlySummariesWindow', scope),
   },
   // Notas module
   notas: {

@@ -2,6 +2,16 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 const ITEMS_PER_PAGE = 100;
 
+function getRowBackgroundClass(isUrgente, rowIndex) {
+  if (isUrgente) {
+    return 'bg-danger/10 hover:bg-danger/15';
+  }
+  if (rowIndex % 2 === 1) {
+    return 'bg-sky-50/80 hover:bg-sky-100/70';
+  }
+  return 'bg-white hover:bg-sky-100/70';
+}
+
 function DataTable({ columns, data, onRowClick, renderActions, initialSort, rowClassName }) {
   const sortableColumns = columns.filter((col) => col.sortable);
   const defaultSortFromColumns = sortableColumns.length
@@ -85,35 +95,40 @@ function DataTable({ columns, data, onRowClick, renderActions, initialSort, rowC
   };
 
   return (
-    <div className="bg-neutral-100 rounded-lg shadow overflow-hidden">
+    <div className="bg-white border border-neutral-200 rounded-xl shadow-sm overflow-hidden">
       <table className="w-full">
-        <thead className="bg-neutral-50 border-b border-neutral-200">
+        <thead className="bg-sky-200 border-b border-sky-300">
           <tr>
             {columns.map((column) => (
-              <th key={column.key} className="px-4 py-3 text-left">
+              <th key={column.key} className="px-4 py-3 text-right">
                 {column.sortable ? (
                   <button
                     type="button"
                     onClick={() => handleSort(column.key)}
-                    className="text-sm font-semibold text-neutral-700 hover:text-neutral-900 flex items-center gap-1"
+                    className="w-full text-xs font-semibold uppercase tracking-wide text-neutral-600 hover:text-neutral-900 flex items-center justify-end gap-1 transition-colors"
                   >
                     {column.label}
                     {renderSortIndicator(column)}
                   </button>
                 ) : (
-                  <span className="text-sm font-semibold text-neutral-700">{column.label}</span>
+                  <span className="block text-xs font-semibold uppercase tracking-wide text-neutral-600 text-right">
+                    {column.label}
+                  </span>
                 )}
               </th>
             ))}
             {renderActions && (
               <th className="px-4 py-3 text-center">
-                <span className="text-sm font-semibold text-neutral-700">Acciones</span>
+                <span className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
+                  Acciones
+                </span>
               </th>
             )}
           </tr>
         </thead>
         <tbody>
           {paginatedData.map((row, index) => {
+            const isUrgente = Boolean(row.urgente);
             // Create a unique key that handles cases where multiple data sources
             // (e.g., different modules) might have overlapping IDs
             const rowKey =
@@ -122,10 +137,15 @@ function DataTable({ columns, data, onRowClick, renderActions, initialSort, rowC
               <tr
                 key={rowKey}
                 onClick={() => onRowClick?.(row)}
-                className={`border-b border-neutral-100 hover:bg-neutral-50 cursor-pointer ${rowClassName ? rowClassName(row) : ''}`}
+                className={`border-b border-neutral-100 last:border-b-0 ${getRowBackgroundClass(isUrgente, index)} transition-colors ${onRowClick ? 'cursor-pointer' : ''} ${rowClassName ? rowClassName(row) : ''}`}
               >
                 {columns.map((column) => (
-                  <td key={column.key} className="px-4 py-3 text-sm text-neutral-700">
+                  <td
+                    key={column.key}
+                    className={`px-4 py-3 text-sm text-neutral-800 align-top text-right ${
+                      isUrgente ? 'font-medium' : ''
+                    }`}
+                  >
                     {renderCellContent(column, row)}
                   </td>
                 ))}
@@ -137,7 +157,7 @@ function DataTable({ columns, data, onRowClick, renderActions, initialSort, rowC
                         e.stopPropagation();
                         setMenuState({ row, x: e.clientX, y: e.clientY });
                       }}
-                      className="text-neutral-500 hover:text-neutral-700 px-2 py-1"
+                      className="text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 rounded px-2 py-1 transition-colors"
                       aria-label="Abrir menú de acciones"
                     >
                       ⋮
@@ -151,7 +171,7 @@ function DataTable({ columns, data, onRowClick, renderActions, initialSort, rowC
       </table>
 
       {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-4 mt-4 mb-4">
+        <div className="flex justify-center items-center gap-4 px-4 py-3 bg-neutral-50/60 border-t border-neutral-200">
           <button
             type="button"
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
@@ -176,7 +196,7 @@ function DataTable({ columns, data, onRowClick, renderActions, initialSort, rowC
 
       {menuState && renderActions && (
         <div
-          className="fixed bg-neutral-100 border border-neutral-200 rounded-lg shadow-lg py-1 z-50"
+          className="fixed bg-white border border-neutral-200 rounded-lg shadow-lg py-1 z-50"
           style={{ top: menuState.y, left: menuState.x }}
         >
           {renderActions(menuState.row).map((action) => (

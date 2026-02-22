@@ -49,6 +49,9 @@ export function createMockElectronAPI() {
   const mockAPI = {
     system: {
       openExternal: createMockHandler('system:openExternal'),
+      openArreglosMonthlySummariesWindow: createMockHandler(
+        'system:openArreglosMonthlySummariesWindow'
+      ),
     },
     notas: {
       getAll: createMockHandler('notas:getAll'),

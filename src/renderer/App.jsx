@@ -92,8 +92,21 @@ export function AppLayout() {
           <Route path="/contabilidad/venta/:clienteId" element={<ContabilidadRoute />} />
           <Route path="/contabilidad/venta/:clienteId/editar" element={<ContabilidadRoute />} />
           <Route path="/contabilidad/arreglos" element={<ContabilidadRoute />} />
+          <Route path="/contabilidad/arreglos/carpeta/:albaran" element={<ContabilidadRoute />} />
           <Route path="/contabilidad/arreglos/nueva" element={<ContabilidadRoute />} />
+          <Route
+            path="/contabilidad/arreglos/carpeta/:albaran/nueva"
+            element={<ContabilidadRoute />}
+          />
           <Route path="/contabilidad/arreglos/:id" element={<ContabilidadRoute />} />
+          <Route
+            path="/contabilidad/arreglos/carpeta/:albaran/:id"
+            element={<ContabilidadRoute />}
+          />
+          <Route
+            path="/contabilidad/arreglos/resumenes-mensuales"
+            element={<ContabilidadRoute />}
+          />
 
           <Route path="/facturas" element={<ContabilidadRoute />} />
           <Route path="/facturas/compra" element={<ContabilidadRoute />} />

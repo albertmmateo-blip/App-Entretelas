@@ -4,8 +4,32 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import DataTable from '../../components/DataTable';
 import useCRUD from '../../hooks/useCRUD';
 import { formatEuroAmount, parseEuroAmount } from '../../utils/euroAmount';
+import {
+  ALBARAN_OPTIONS,
+  buildMonthlySummary,
+  monthKeyFromFecha,
+  monthLabelFromKey,
+  normalizeFolderValue,
+  splitArreglosTotal,
+} from '../../utils/arreglosMonthlySummary';
 
-const ALBARAN_OPTIONS = ['Entretelas', 'Isa', 'Loli'];
+async function openMonthlySummaryWindow(scope = 'all') {
+  const systemApi = window.electronAPI?.system;
+  const popupUrl = `/#/contabilidad/arreglos/resumenes-mensuales?scope=${encodeURIComponent(scope)}`;
+
+  if (systemApi?.openArreglosMonthlySummariesWindow) {
+    try {
+      const response = await systemApi.openArreglosMonthlySummariesWindow(scope);
+      if (response?.success) {
+        return;
+      }
+    } catch {
+      // fall through to popup fallback
+    }
+  }
+
+  window.open(popupUrl, '_blank', 'popup=yes,width=960,height=760,resizable=yes');
+}
 
 const COLUMNS = [
   {
@@ -51,21 +75,66 @@ const COLUMNS = [
 
 function ArreglosListView() {
   const navigate = useNavigate();
+  const { albaran } = useParams();
   const { entries, loading, fetchAll, delete: deleteArreglo } = useCRUD('arreglos');
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  const selectedFolder = useMemo(() => normalizeFolderValue(albaran), [albaran]);
+  const listBasePath = selectedFolder
+    ? `/contabilidad/arreglos/carpeta/${selectedFolder}`
+    : '/contabilidad/arreglos';
 
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
 
-  const filteredEntries = useMemo(() => {
-    if (!searchQuery.trim()) {
+  const entriesInScope = useMemo(() => {
+    if (!selectedFolder) {
       return entries;
     }
 
+    return entries.filter((entry) => entry.albaran === selectedFolder);
+  }, [entries, selectedFolder]);
+
+  const folderCurrentMonthStats = useMemo(() => {
+    const now = new Date();
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    return Object.fromEntries(
+      ALBARAN_OPTIONS.map((folder) => {
+        const folderEntriesThisMonth = entries.filter(
+          (entry) => entry.albaran === folder && monthKeyFromFecha(entry.fecha) === currentMonthKey
+        );
+        const totalImporte = folderEntriesThisMonth.reduce(
+          (sum, entry) => sum + parseEuroAmount(entry.importe),
+          0
+        );
+
+        return [
+          folder,
+          {
+            count: folderEntriesThisMonth.length,
+            totalImporte,
+          },
+        ];
+      })
+    );
+  }, [entries]);
+
+  const currentMonthLabel = useMemo(() => {
+    const now = new Date();
+    const key = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    return monthLabelFromKey(key);
+  }, []);
+
+  const filteredEntries = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return entriesInScope;
+    }
+
     const query = searchQuery.toLowerCase();
-    return entries.filter((entry) => {
+    return entriesInScope.filter((entry) => {
       const values = [
         entry.albaran,
         entry.fecha,
@@ -77,7 +146,7 @@ function ArreglosListView() {
 
       return values.some((value) => value && String(value).toLowerCase().includes(query));
     });
-  }, [entries, searchQuery]);
+  }, [entriesInScope, searchQuery]);
 
   const handleDelete = async (id) => {
     const success = await deleteArreglo(id);
@@ -93,10 +162,17 @@ function ArreglosListView() {
         <div className="ml-auto flex items-center gap-2">
           <button
             type="button"
-            onClick={() => navigate('/contabilidad/arreglos/nueva')}
+            onClick={() => navigate(`${listBasePath}/nueva`)}
             className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
           >
             + Nueva entrada
+          </button>
+          <button
+            type="button"
+            onClick={() => openMonthlySummaryWindow(selectedFolder || 'all')}
+            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+          >
+            Resumenes mensuales
           </button>
           <button
             type="button"
@@ -109,9 +185,82 @@ function ArreglosListView() {
       </div>
 
       <div className="mb-4">
+        <div className="flex flex-wrap gap-2">
+          {ALBARAN_OPTIONS.map((folder) => {
+            const isActive = selectedFolder === folder;
+
+            return (
+              <button
+                key={folder}
+                type="button"
+                onClick={() => navigate(`/contabilidad/arreglos/carpeta/${folder}`)}
+                className={`px-3 py-1.5 border rounded transition-colors text-sm ${
+                  isActive
+                    ? 'bg-primary text-white border-primary'
+                    : 'bg-white text-neutral-700 border-neutral-200 hover:border-primary hover:text-primary'
+                }`}
+              >
+                {folder}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => navigate('/contabilidad/arreglos')}
+            className={`px-3 py-1.5 border rounded transition-colors text-sm ${
+              !selectedFolder
+                ? 'bg-primary text-white border-primary'
+                : 'bg-white text-neutral-700 border-neutral-200 hover:border-primary hover:text-primary'
+            }`}
+          >
+            Todas
+          </button>
+        </div>
+      </div>
+
+      <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+        {ALBARAN_OPTIONS.map((folder) => {
+          const stats = folderCurrentMonthStats[folder] || { count: 0, totalImporte: 0 };
+          const split = splitArreglosTotal(stats.totalImporte);
+
+          return (
+            <div key={folder} className="px-3 py-2 rounded border border-neutral-200 bg-white">
+              <div className="text-sm font-medium text-neutral-900">{folder}</div>
+              <div className="text-xs text-neutral-500 leading-tight">{currentMonthLabel}</div>
+              <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div>
+                  <div className="text-[11px] text-neutral-500 leading-tight">Total</div>
+                  <div className="text-base font-semibold text-primary leading-tight">
+                    {formatEuroAmount(split.total)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-neutral-500 leading-tight">{folder} (65%)</div>
+                  <div className="text-base font-semibold text-primary leading-tight">
+                    {formatEuroAmount(split.folderShare)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-neutral-500 leading-tight">Tienda (35%)</div>
+                  <div className="text-base font-semibold text-primary leading-tight">
+                    {formatEuroAmount(split.tiendaShare)}
+                  </div>
+                </div>
+              </div>
+              <div className="text-xs text-neutral-500 mt-1 leading-tight">
+                {stats.count} entrada{stats.count !== 1 ? 's' : ''}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mb-4">
         <input
           type="search"
-          placeholder="Buscar en arreglos..."
+          placeholder={
+            selectedFolder ? `Buscar en arreglos (${selectedFolder})...` : 'Buscar en arreglos...'
+          }
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           data-search-input
@@ -140,12 +289,12 @@ function ArreglosListView() {
         <DataTable
           columns={COLUMNS}
           data={filteredEntries}
-          onRowClick={(row) => navigate(`/contabilidad/arreglos/${row.id}`)}
+          onRowClick={(row) => navigate(`${listBasePath}/${row.id}`)}
           initialSort={{ key: 'fecha', direction: 'desc' }}
           renderActions={(row) => [
             {
               label: 'Editar',
-              onClick: () => navigate(`/contabilidad/arreglos/${row.id}`),
+              onClick: () => navigate(`${listBasePath}/${row.id}`),
             },
             {
               label: 'Eliminar',
@@ -172,7 +321,11 @@ function ArreglosListView() {
 
 function ArreglosForm() {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id, albaran } = useParams();
+  const scopedFolder = useMemo(() => normalizeFolderValue(albaran), [albaran]);
+  const listBasePath = scopedFolder
+    ? `/contabilidad/arreglos/carpeta/${scopedFolder}`
+    : '/contabilidad/arreglos';
   const isEdit = id && id !== 'nueva';
   const { entries, fetchAll, create, update } = useCRUD('arreglos');
   const existingEntry = useMemo(
@@ -181,7 +334,7 @@ function ArreglosForm() {
   );
 
   const [formData, setFormData] = useState({
-    albaran: 'Entretelas',
+    albaran: scopedFolder || 'Entretelas',
     fecha: new Date().toISOString().slice(0, 10),
     numero: '',
     cliente: '',
@@ -196,6 +349,17 @@ function ArreglosForm() {
       fetchAll();
     }
   }, [entries.length, fetchAll, isEdit]);
+
+  useEffect(() => {
+    if (!scopedFolder || existingEntry) {
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      albaran: scopedFolder,
+    }));
+  }, [existingEntry, scopedFolder]);
 
   useEffect(() => {
     if (!existingEntry) {
@@ -280,7 +444,7 @@ function ArreglosForm() {
     setSaving(false);
 
     if (result) {
-      navigate('/contabilidad/arreglos');
+      navigate(listBasePath);
     }
   };
 
@@ -293,7 +457,7 @@ function ArreglosForm() {
         <div className="ml-auto">
           <button
             type="button"
-            onClick={() => navigate('/contabilidad/arreglos')}
+            onClick={() => navigate(listBasePath)}
             className="px-3 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
           >
             ← Volver
@@ -310,6 +474,7 @@ function ArreglosForm() {
               name="albaran"
               value={formData.albaran}
               onChange={handleFieldChange}
+              disabled={Boolean(scopedFolder)}
               className="mt-2 w-full px-4 py-2 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
             >
               {ALBARAN_OPTIONS.map((option) => (
@@ -391,10 +556,10 @@ function ArreglosForm() {
               type="text"
               name="importe"
               inputMode="decimal"
-              placeholder="0.00 €"
               value={formData.importe}
               onChange={handleFieldChange}
               onBlur={handleImporteBlur}
+              onFocus={(event) => event.target.select()}
               className="mt-2 w-full px-4 py-2 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
             />
           </label>
@@ -404,7 +569,7 @@ function ArreglosForm() {
         <div className="flex justify-end gap-3 pt-4 border-t border-neutral-200">
           <button
             type="button"
-            onClick={() => navigate('/contabilidad/arreglos')}
+            onClick={() => navigate(listBasePath)}
             className="px-4 py-2 border border-neutral-200 rounded hover:bg-neutral-50 transition-colors"
           >
             Cancelar
@@ -422,10 +587,139 @@ function ArreglosForm() {
   );
 }
 
+function ArreglosMonthlySummariesPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { entries, loading, fetchAll } = useCRUD('arreglos');
+
+  const scope = useMemo(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const rawScope = searchParams.get('scope');
+    if (!rawScope || rawScope === 'all') {
+      return 'all';
+    }
+
+    return normalizeFolderValue(rawScope) || 'all';
+  }, [location.search]);
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
+  const scopedEntries = useMemo(() => {
+    if (scope === 'all') {
+      return entries;
+    }
+
+    return entries.filter((entry) => entry.albaran === scope);
+  }, [entries, scope]);
+
+  const monthlyRows = useMemo(() => buildMonthlySummary(scopedEntries), [scopedEntries]);
+
+  return (
+    <div className="p-6 max-w-5xl mx-auto">
+      <div className="flex items-center mb-4">
+        <h1 className="text-2xl font-bold text-neutral-900 flex-1">
+          Resumenes mensuales {scope === 'all' ? 'de Arreglos' : `de ${scope}`}
+        </h1>
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="px-3 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+        >
+          ← Volver
+        </button>
+      </div>
+
+      {loading && <div className="text-sm text-neutral-500 py-8 text-center">Cargando...</div>}
+
+      {!loading && monthlyRows.length === 0 && (
+        <div className="flex flex-col items-center py-16 text-neutral-400">
+          <span className="text-5xl mb-4">📭</span>
+          <p className="text-lg font-medium">No hay datos para mostrar resúmenes mensuales</p>
+        </div>
+      )}
+
+      {!loading && monthlyRows.length > 0 && (
+        <DataTable
+          columns={[
+            {
+              key: 'monthLabel',
+              label: 'Mes',
+              sortable: true,
+              sortValue: (row) => row.monthKey,
+            },
+            {
+              key: 'count',
+              label: 'Entradas',
+              sortable: true,
+            },
+            {
+              key: 'totalImporte',
+              label: 'Total',
+              sortable: true,
+              render: (value) => formatEuroAmount(value),
+              sortValue: (row) => row.totalImporte,
+            },
+            {
+              key: 'entretelas',
+              label: 'Entretelas',
+              sortable: true,
+              render: (_value, row) =>
+                formatEuroAmount(splitArreglosTotal(row.entretelas).folderShare),
+              sortValue: (row) => splitArreglosTotal(row.entretelas).folderShare,
+            },
+            {
+              key: 'isa',
+              label: 'Isa',
+              sortable: true,
+              render: (_value, row) => formatEuroAmount(splitArreglosTotal(row.isa).folderShare),
+              sortValue: (row) => splitArreglosTotal(row.isa).folderShare,
+            },
+            {
+              key: 'loli',
+              label: 'Loli',
+              sortable: true,
+              render: (_value, row) => formatEuroAmount(splitArreglosTotal(row.loli).folderShare),
+              sortValue: (row) => splitArreglosTotal(row.loli).folderShare,
+            },
+            {
+              key: 'tiendaShare',
+              label: 'Tienda',
+              sortable: true,
+              render: (_value, row) => {
+                const tiendaShare =
+                  splitArreglosTotal(row.entretelas).tiendaShare +
+                  splitArreglosTotal(row.isa).tiendaShare +
+                  splitArreglosTotal(row.loli).tiendaShare;
+                return formatEuroAmount(tiendaShare);
+              },
+              sortValue: (row) => {
+                return (
+                  splitArreglosTotal(row.entretelas).tiendaShare +
+                  splitArreglosTotal(row.isa).tiendaShare +
+                  splitArreglosTotal(row.loli).tiendaShare
+                );
+              },
+            },
+          ]}
+          data={monthlyRows}
+          initialSort={{ key: 'monthLabel', direction: 'desc' }}
+        />
+      )}
+    </div>
+  );
+}
+
 function ArreglosList() {
   const location = useLocation();
   const { id } = useParams();
+  const isMonthlySummaryRoute = location.pathname.includes('/resumenes-mensuales');
   const isNewRoute = location.pathname.endsWith('/nueva');
+
+  if (isMonthlySummaryRoute) {
+    return <ArreglosMonthlySummariesPage />;
+  }
 
   if (isNewRoute || id) {
     return <ArreglosForm />;
