@@ -1,6 +1,6 @@
 {
   "name": "app-entretelas",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Desktop business-manager application built with **Electron + React + SQLite**.",
   "main": "src/main/index.js",
   "scripts": {

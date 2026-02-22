@@ -102,6 +102,31 @@ In production the app uses `app.getPath('userData')` automatically.
 
 ## 7. Building a Distributable
 
+### Quick release installer guide (latest version only)
+
+Use this checklist each time you prepare a production installer.
+
+1. Bump the app version in `package.json` (must be higher than the previous release).
+2. Keep `build.appId` unchanged (`com.entretelas.app`) so Windows recognizes upgrades as the same app.
+3. Build the installer:
+
+```powershell
+npm run dist
+```
+
+4. Verify the generated file in `dist/` matches the new version (`App-Entretelas Setup x.y.z.exe`).
+5. Test upgrade path on a machine with the previous version installed:
+
+- Run the new installer.
+- Confirm it upgrades/replaces the existing install.
+- Open the app and confirm the version shown in About/metadata is the new one.
+
+Important notes:
+
+- Never reuse an old version number for a new installer.
+- Do not change `build.appId` between releases.
+- Keep one installer per version in your release artifacts and publish only the newest installer to users.
+
 Confirmed electron-builder configuration in `package.json` under the `build` key:
 
 ```json

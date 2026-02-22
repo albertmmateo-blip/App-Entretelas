@@ -40,6 +40,10 @@ npm run lint
 npm run build
 ```
 
+### Release installer (quick)
+
+- For a fast release checklist (including how to ensure users install the latest version), see [docs/DEVELOPMENT_GUIDE.md §7](docs/DEVELOPMENT_GUIDE.md#7-building-a-distributable).
+
 ### Testing note
 
 - `npm run test:coverage` runs **Vitest** unit/component/integration suites and excludes `tests/e2e/**`.

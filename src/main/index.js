@@ -38,6 +38,7 @@ function createWindow() {
     y: mainWindowState.y,
     width: mainWindowState.width,
     height: mainWindowState.height,
+    icon: getTrayIconPath(),
     title: 'App-Entretelas',
     webPreferences: {
       contextIsolation: true,
