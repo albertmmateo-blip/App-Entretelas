@@ -39,6 +39,17 @@ test.describe('Encargar E2E', () => {
     await closeApp(app);
   });
 
+  test('navigates to correct forms from Nueva entrada and Nueva carpeta buttons', async () => {
+    await page.getByRole('button', { name: '+ Nueva entrada' }).click();
+    await expect(page.getByRole('heading', { name: 'Nueva entrada', exact: true })).toBeVisible();
+
+    await page.goBack();
+    await expect(page.getByRole('heading', { name: 'Encargar', exact: true })).toBeVisible();
+
+    await page.getByRole('button', { name: '+ Nueva carpeta' }).click();
+    await expect(page.getByRole('heading', { name: 'Nuevo proveedor', exact: true })).toBeVisible();
+  });
+
   test('create, mark urgent, and delete encargar entry', async () => {
     await page.evaluate(async () => {
       const proveedores = await window.electronAPI.proveedores.getAll();

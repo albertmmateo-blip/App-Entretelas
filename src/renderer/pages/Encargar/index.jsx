@@ -386,10 +386,12 @@ function EncargarProveedorView() {
 function Encargar() {
   const location = useLocation();
   const { id, proveedorId } = useParams();
+  const isNewEntryRoute = location.pathname === '/encargar/nueva';
+  const isNewProveedorRoute = location.pathname === '/encargar/proveedor/nuevo';
   const isProveedorEditRoute = location.pathname.endsWith('/editar');
 
   if (location.pathname.includes('/encargar/proveedor')) {
-    if (proveedorId === 'nuevo' || (proveedorId && isProveedorEditRoute)) {
+    if (isNewProveedorRoute || (proveedorId && isProveedorEditRoute)) {
       return <ProveedorForm basePath="/encargar" showPDFSection={false} />;
     }
 
@@ -398,7 +400,7 @@ function Encargar() {
     }
   }
 
-  if (id === 'nueva' || id) {
+  if (isNewEntryRoute || id) {
     return <EncargarForm />;
   }
 
