@@ -78,7 +78,10 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "include": "build/installer/installer.nsh",
+      "installerSidebar": "build/installer/welcome-sidebar.bmp",
+      "uninstallerSidebar": "build/installer/welcome-sidebar.bmp"
     }
   },
   "dependencies": {
