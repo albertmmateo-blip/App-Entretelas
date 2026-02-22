@@ -408,6 +408,34 @@ describe('Facturas IPC Handlers', () => {
       expect(response.data).toHaveLength(1);
       expect(response.data[0].tipo).toBe('contabilidad');
     });
+
+    it('should return all compra files without entidadId', async () => {
+      const uploadHandler = mockHandlers['facturas:uploadPDF'];
+
+      await uploadHandler(null, {
+        tipo: 'compra',
+        entidadId: testProviderId,
+        entidadNombre: 'Test Proveedor',
+        filePath: testPDFPath,
+      });
+
+      const secondPDFPath = path.join(mockUserDataPath, 'test-invoice-3.pdf');
+      fs.writeFileSync(secondPDFPath, Buffer.from('%PDF-1.4\nTest 3'));
+
+      await uploadHandler(null, {
+        tipo: 'compra',
+        entidadId: testProviderId,
+        entidadNombre: 'Test Proveedor',
+        filePath: secondPDFPath,
+      });
+
+      const handler = mockHandlers['facturas:getAllForEntidad'];
+      const response = await handler(null, { tipo: 'compra' });
+
+      expect(response.success).toBe(true);
+      expect(response.data).toHaveLength(2);
+      expect(response.data.every((row) => row.tipo === 'compra')).toBe(true);
+    });
   });
 
   describe('facturas:getStatsByTipo', () => {

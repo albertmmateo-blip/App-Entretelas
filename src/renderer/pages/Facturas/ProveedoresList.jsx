@@ -1,37 +1,24 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import ConfirmDialog from '../../components/ConfirmDialog';
 import PDFUploadSection from '../../components/PDFUploadSection';
-import { EntriesGrid, EntryCard, EmptyState, LoadingState } from '../../components/entries';
+import { EmptyState, LoadingState } from '../../components/entries';
 import useCRUD from '../../hooks/useCRUD';
-import { formatEuroAmount, parseEuroAmount } from '../../utils/euroAmount';
+import { formatEuroAmount } from '../../utils/euroAmount';
+import { buildFacturasQuarterSummary } from '../../utils/facturasQuarterSummary';
 import ProveedorForm from './ProveedorForm';
 
 function ProveedoresListView({ tipo = 'compra' }) {
   const navigate = useNavigate();
-  const { entries, loading, fetchAll, delete: deleteProveedor } = useCRUD('proveedores');
+  const { entries, loading, fetchAll } = useCRUD('proveedores');
   const [searchQuery, setSearchQuery] = useState('');
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [menuState, setMenuState] = useState(null);
-  const [folderStats, setFolderStats] = useState({});
-  const [totalImporteIvaRe, setTotalImporteIvaRe] = useState(0);
+  const [quarterSummary, setQuarterSummary] = useState(() => buildFacturasQuarterSummary());
   const basePath = `/contabilidad/${tipo}`;
   const sectionTitle = tipo === 'arreglos' ? 'Contabilidad Arreglos' : 'Contabilidad Compra';
-  const uploadedLabel = tipo === 'arreglos' ? 'Archivos subidos' : 'Facturas subidas';
   const isCompra = tipo === 'compra';
 
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
-
-  useEffect(() => {
-    const handleClick = () => setMenuState(null);
-    if (menuState) {
-      document.addEventListener('click', handleClick);
-      return () => document.removeEventListener('click', handleClick);
-    }
-    return undefined;
-  }, [menuState]);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,142 +28,35 @@ function ProveedoresListView({ tipo = 'compra' }) {
 
       if (!entries.length) {
         if (!cancelled) {
-          setFolderStats({});
-          setTotalImporteIvaRe(0);
+          setQuarterSummary(buildFacturasQuarterSummary());
         }
         return;
       }
 
       if (tipo !== 'compra') {
-        if (!cancelled) {
-          setFolderStats(
-            Object.fromEntries(
-              entries.map((proveedor) => [
-                proveedor.id,
-                {
-                  count: proveedor.facturas_count ?? 0,
-                  totalIvaRe: 0,
-                },
-              ])
-            )
-          );
-          setTotalImporteIvaRe(0);
-        }
+        if (!cancelled) setQuarterSummary(buildFacturasQuarterSummary());
         return;
-      }
-
-      if (facturasApi?.getStatsByTipo) {
-        try {
-          const response = await facturasApi.getStatsByTipo({ tipo });
-
-          if (response.success) {
-            const statsFromApi = Object.fromEntries(
-              (response.data || []).map((row) => [
-                row.entityId,
-                {
-                  count: row.fileCount ?? 0,
-                  totalIvaRe: parseEuroAmount(row.totalImporteIvaRe),
-                },
-              ])
-            );
-
-            const mergedStats = Object.fromEntries(
-              entries.map((proveedor) => [
-                proveedor.id,
-                {
-                  count: statsFromApi[proveedor.id]?.count ?? proveedor.facturas_count ?? 0,
-                  totalIvaRe: statsFromApi[proveedor.id]?.totalIvaRe ?? 0,
-                },
-              ])
-            );
-
-            const overallTotal = Object.values(mergedStats).reduce(
-              (sum, stat) => sum + parseEuroAmount(stat.totalIvaRe),
-              0
-            );
-
-            if (!cancelled) {
-              setFolderStats(mergedStats);
-              setTotalImporteIvaRe(overallTotal);
-            }
-
-            return;
-          }
-        } catch (error) {
-          // Fall back to per-entidad query below
-        }
       }
 
       if (!facturasApi?.getAllForEntidad) {
-        if (!cancelled) {
-          setFolderStats(
-            Object.fromEntries(
-              entries.map((proveedor) => [
-                proveedor.id,
-                {
-                  count: proveedor.facturas_count ?? 0,
-                  totalIvaRe: 0,
-                },
-              ])
-            )
-          );
-          setTotalImporteIvaRe(0);
-        }
+        if (!cancelled) setQuarterSummary(buildFacturasQuarterSummary());
         return;
       }
 
-      const statsPairs = await Promise.all(
-        entries.map(async (proveedor) => {
-          const fallbackCount = proveedor.facturas_count ?? 0;
-          try {
-            const response = await facturasApi.getAllForEntidad({
-              tipo,
-              entidadId: proveedor.id,
-            });
+      try {
+        const response = await facturasApi.getAllForEntidad({ tipo });
 
-            if (response.success) {
-              const rows = response.data || [];
-              const totalIvaRe = rows.reduce(
-                (sum, row) => sum + parseEuroAmount(row.importe_iva_re),
-                0
-              );
-              return [
-                proveedor.id,
-                {
-                  count: rows.length,
-                  totalIvaRe,
-                },
-              ];
-            }
-          } catch (error) {
-            return [
-              proveedor.id,
-              {
-                count: fallbackCount,
-                totalIvaRe: 0,
-              },
-            ];
-          }
-
-          return [
-            proveedor.id,
-            {
-              count: fallbackCount,
-              totalIvaRe: 0,
-            },
-          ];
-        })
-      );
-
-      if (!cancelled) {
-        const statsByProveedor = Object.fromEntries(statsPairs);
-        const overallTotal = Object.values(statsByProveedor).reduce(
-          (sum, stat) => sum + parseEuroAmount(stat.totalIvaRe),
-          0
-        );
-
-        setFolderStats(statsByProveedor);
-        setTotalImporteIvaRe(overallTotal);
+        if (!cancelled) {
+          setQuarterSummary(
+            response.success
+              ? buildFacturasQuarterSummary(response.data || [])
+              : buildFacturasQuarterSummary()
+          );
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setQuarterSummary(buildFacturasQuarterSummary());
+        }
       }
     };
 
@@ -203,13 +83,6 @@ function ProveedoresListView({ tipo = 'compra' }) {
       return a.razon_social.localeCompare(b.razon_social, 'es-ES');
     });
   }, [filteredProveedores]);
-
-  const handleDelete = async (id) => {
-    const success = await deleteProveedor(id);
-    if (success) {
-      setDeleteConfirm(null);
-    }
-  };
 
   if (loading && entries.length === 0) {
     return <LoadingState />;
@@ -263,20 +136,64 @@ function ProveedoresListView({ tipo = 'compra' }) {
                 aria-label={`Abrir carpeta de ${proveedor.razon_social}`}
               >
                 <span className="font-medium">{`📁 ${proveedor.razon_social}`}</span>
-                {isCompra && (
-                  <span className="text-xs font-semibold text-primary whitespace-nowrap">
-                    {formatEuroAmount(folderStats[proveedor.id]?.totalIvaRe ?? 0)}
-                  </span>
-                )}
               </button>
             ))}
           </div>
           {isCompra && (
-            <div className="mt-3 px-3 py-2 rounded border border-neutral-200 bg-white text-sm text-neutral-700">
-              <span className="font-medium">Total Importe + IVA + RE (todas las carpetas): </span>
-              <span className="font-semibold text-primary">
-                {formatEuroAmount(totalImporteIvaRe)}
-              </span>
+            <div className="mt-3 overflow-x-auto border border-neutral-200 rounded-lg bg-neutral-50">
+              <table className="min-w-full text-sm text-left">
+                <thead className="bg-neutral-100 text-neutral-700">
+                  <tr>
+                    <th scope="col" className="px-4 py-2 font-semibold">
+                      Periodo
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-2 font-semibold text-right whitespace-nowrap"
+                    >
+                      Importe+IVA+RE
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {quarterSummary.quarters.map((quarter) => (
+                    <React.Fragment key={quarter.key}>
+                      <tr className="border-t border-neutral-200 bg-white">
+                        <th scope="row" className="px-4 py-2 font-semibold text-neutral-900">
+                          {quarter.key}
+                        </th>
+                        <td className="px-4 py-2 text-right font-semibold text-neutral-900 whitespace-nowrap">
+                          {formatEuroAmount(quarter.total)}
+                        </td>
+                      </tr>
+                      {quarter.months.map((month) => (
+                        <tr
+                          key={`${quarter.key}-${month.monthIndex}`}
+                          className="border-t border-neutral-200/70"
+                        >
+                          <th
+                            scope="row"
+                            className="px-4 py-1.5 pl-8 text-xs font-medium text-neutral-500"
+                          >
+                            {month.label}
+                          </th>
+                          <td className="px-4 py-1.5 text-right text-xs font-medium text-neutral-500 whitespace-nowrap">
+                            {formatEuroAmount(month.total)}
+                          </td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  ))}
+                  <tr className="border-t-2 border-neutral-300 bg-neutral-100/70">
+                    <th scope="row" className="px-4 py-2 font-semibold text-primary">
+                      Total anual
+                    </th>
+                    <td className="px-4 py-2 text-right font-semibold text-primary whitespace-nowrap">
+                      {formatEuroAmount(quarterSummary.annualTotal)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           )}
         </div>
@@ -285,95 +202,6 @@ function ProveedoresListView({ tipo = 'compra' }) {
       {/* Empty state */}
       {sortedProveedores.length === 0 && !loading && (
         <EmptyState icon="📁" title="proveedores" hasSearchQuery={!!searchQuery} />
-      )}
-
-      {/* Grid */}
-      {sortedProveedores.length > 0 && (
-        <EntriesGrid>
-          {sortedProveedores.map((proveedor) => (
-            <EntryCard
-              key={proveedor.id}
-              urgente={false}
-              onClick={() => navigate(`${basePath}/${proveedor.id}`)}
-              onActionClick={(e) => setMenuState({ proveedor, x: e.clientX, y: e.clientY })}
-            >
-              <h3 className="text-lg font-semibold mb-2 text-neutral-900 flex items-start justify-between gap-2">
-                <span className="min-w-0 break-words">{proveedor.razon_social}</span>
-                {isCompra && (
-                  <span className="shrink-0 text-sm font-semibold text-primary">
-                    {formatEuroAmount(folderStats[proveedor.id]?.totalIvaRe ?? 0)}
-                  </span>
-                )}
-              </h3>
-              <div className="space-y-1 text-sm text-neutral-700">
-                {proveedor.nif && (
-                  <div>
-                    <span className="font-medium">NIF:</span> {proveedor.nif}
-                  </div>
-                )}
-                {proveedor.direccion && (
-                  <div>
-                    <span className="font-medium">Dirección:</span> {proveedor.direccion}
-                  </div>
-                )}
-                <div>
-                  <span className="font-medium">{uploadedLabel}:</span>{' '}
-                  {folderStats[proveedor.id]?.count ?? proveedor.facturas_count ?? 0}
-                </div>
-                {isCompra && (
-                  <div>
-                    <span className="font-medium">Importe + IVA + RE:</span>{' '}
-                    {formatEuroAmount(folderStats[proveedor.id]?.totalIvaRe ?? 0)}
-                  </div>
-                )}
-                <div className="text-neutral-500">
-                  {new Date(proveedor.fecha_creacion).toLocaleDateString('es-ES')}
-                </div>
-              </div>
-            </EntryCard>
-          ))}
-        </EntriesGrid>
-      )}
-
-      {/* Actions menu */}
-      {menuState && (
-        <div
-          className="fixed bg-neutral-100 border border-neutral-200 rounded-lg shadow-lg py-1 z-50"
-          style={{ top: menuState.y, left: menuState.x }}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              navigate(`${basePath}/${menuState.proveedor.id}/editar`);
-              setMenuState(null);
-            }}
-            className="block w-full text-left px-4 py-2 text-sm hover:bg-neutral-50 text-neutral-700"
-          >
-            Editar
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setDeleteConfirm(menuState.proveedor);
-              setMenuState(null);
-            }}
-            className="block w-full text-left px-4 py-2 text-sm hover:bg-neutral-50 text-danger hover:bg-danger/5"
-          >
-            Eliminar
-          </button>
-        </div>
-      )}
-
-      {/* Delete confirmation */}
-      {deleteConfirm && (
-        <ConfirmDialog
-          title="¿Eliminar este proveedor?"
-          message="Esta acción no se puede deshacer."
-          onConfirm={() => handleDelete(deleteConfirm.id)}
-          onCancel={() => setDeleteConfirm(null)}
-          confirmText="Eliminar"
-          confirmDanger
-        />
       )}
     </div>
   );
@@ -416,7 +244,7 @@ function ProveedorPDFView({ tipo = 'compra' }) {
             onClick={() => navigate(`${basePath}/${entidadId}/editar`)}
             className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
           >
-            {`Editar proveedor (${titleLabel.toLowerCase()})`}
+            Editar proveedor
           </button>
           <button
             type="button"

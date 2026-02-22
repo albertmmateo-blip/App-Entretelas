@@ -218,7 +218,7 @@ function registerEncargarHandlers(deps = {}) {
           success: false,
           error: {
             code: 'NOT_FOUND',
-            message: 'Proveedor folder not found',
+            message: 'Proveedor not found',
           },
         };
       }
@@ -375,7 +375,7 @@ function registerEncargarHandlers(deps = {}) {
               success: false,
               error: {
                 code: 'NOT_FOUND',
-                message: 'Proveedor folder not found',
+                message: 'Proveedor not found',
               },
             };
           }

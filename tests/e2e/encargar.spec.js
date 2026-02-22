@@ -32,7 +32,9 @@ test.describe('Encargar E2E', () => {
       .getByRole('link', { name: /Encargar/i })
       .click();
     await expect(page.getByRole('heading', { name: 'Encargar', exact: true })).toBeVisible();
-    await expect(getCardByText('Proveedor Encargar')).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Abrir carpeta de Proveedor Encargar' })
+    ).toBeVisible();
   });
 
   test.afterEach(async () => {

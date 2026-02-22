@@ -469,21 +469,21 @@ function registerFacturasHandlers(deps = {}) {
 
   /**
    * Handler: facturas:getAllForEntidad
-   * Gets all PDFs for a specific entidad.
+   * Gets all PDFs for a specific entidad or all PDFs for a tipo.
    * @param {object} params - Query parameters
    * @param {string} params.tipo - 'compra', 'venta', 'arreglos', or 'contabilidad'
-   * @param {number} params.entidadId - ID of the entidad
+   * @param {number} [params.entidadId] - ID of the entidad (optional)
    * @returns {Promise<{ success: boolean, data?: Array, error?: object }>}
    */
   ipc.handle('facturas:getAllForEntidad', async (event, params) => {
     try {
-      const { tipo, entidadId } = params;
-      const isTopLevelContabilidad = tipo === 'contabilidad';
+      const { tipo, entidadId } = params || {};
+      const hasEntidadId = Number.isInteger(entidadId) && entidadId > 0;
 
-      if (!tipo || (!isTopLevelContabilidad && !entidadId)) {
+      if (!tipo) {
         return {
           success: false,
-          error: { code: 'INVALID_INPUT', message: 'tipo and entidadId are required' },
+          error: { code: 'INVALID_INPUT', message: 'tipo is required' },
         };
       }
 
@@ -498,17 +498,8 @@ function registerFacturasHandlers(deps = {}) {
       }
 
       const db = getDb();
-      const rows = isTopLevelContabilidad
+      const rows = hasEntidadId
         ? db
-            .prepare(
-              `
-        SELECT * FROM facturas_pdf
-        WHERE tipo = ?
-        ORDER BY fecha_subida DESC
-      `
-            )
-            .all(tipo)
-        : db
             .prepare(
               `
         SELECT * FROM facturas_pdf
@@ -516,7 +507,16 @@ function registerFacturasHandlers(deps = {}) {
         ORDER BY fecha_subida DESC
       `
             )
-            .all(tipo, entidadId);
+            .all(tipo, entidadId)
+        : db
+            .prepare(
+              `
+        SELECT * FROM facturas_pdf
+        WHERE tipo = ?
+        ORDER BY fecha_subida DESC
+      `
+            )
+            .all(tipo);
 
       return {
         success: true,

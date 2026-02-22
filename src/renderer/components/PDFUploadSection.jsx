@@ -22,6 +22,26 @@ const ALLOWED_EXTENSIONS = [
   '.odp',
 ];
 const OFFICE_EXTENSIONS = ['.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx'];
+const QUARTERS = [
+  { key: 'T1', monthIndexes: [0, 1, 2] },
+  { key: 'T2', monthIndexes: [3, 4, 5] },
+  { key: 'T3', monthIndexes: [6, 7, 8] },
+  { key: 'T4', monthIndexes: [9, 10, 11] },
+];
+const MONTH_NAMES = [
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Septiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
+];
 
 function getFileExtension(filename) {
   const lastDotIndex = filename.lastIndexOf('.');
@@ -51,6 +71,27 @@ function normalizeDateForInput(value) {
 
 function isPdfFile(filename) {
   return getFileExtension(filename) === '.pdf';
+}
+
+function getMonthIndexFromInvoice(pdf) {
+  const source = pdf.fecha || pdf.fecha_subida;
+  if (!source) {
+    return null;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(source)) {
+    const monthPart = Number.parseInt(source.slice(5, 7), 10);
+    if (monthPart >= 1 && monthPart <= 12) {
+      return monthPart - 1;
+    }
+  }
+
+  const parsed = new Date(source);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return parsed.getMonth();
 }
 
 /**
@@ -91,6 +132,32 @@ function PDFUploadSection({
     () => pdfs.reduce((sum, pdf) => sum + parseEuroAmount(pdf.importe_iva_re), 0),
     [pdfs]
   );
+  const quarterSummary = useMemo(() => {
+    const monthTotals = Array.from({ length: 12 }, () => 0);
+
+    pdfs.forEach((pdf) => {
+      const monthIndex = getMonthIndexFromInvoice(pdf);
+      if (monthIndex === null) {
+        return;
+      }
+
+      monthTotals[monthIndex] += parseEuroAmount(pdf.importe_iva_re);
+    });
+
+    return QUARTERS.map((quarter) => {
+      const months = quarter.monthIndexes.map((monthIndex) => ({
+        monthIndex,
+        label: MONTH_NAMES[monthIndex],
+        total: monthTotals[monthIndex],
+      }));
+
+      return {
+        key: quarter.key,
+        total: months.reduce((sum, month) => sum + month.total, 0),
+        months,
+      };
+    });
+  }, [pdfs]);
 
   const fetchPDFs = useCallback(async () => {
     if (tipo !== 'contabilidad' && !entidadId) {
@@ -328,11 +395,6 @@ function PDFUploadSection({
           <h3 className="text-lg font-semibold text-neutral-900">
             {sectionLabel} ({pdfs.length})
           </h3>
-          {(tipo === 'compra' || tipo === 'venta') && (
-            <span className="text-sm font-semibold text-primary whitespace-nowrap">
-              {amountWithTaxesLabel}: {formatEuroAmount(totalImporteIvaRe)}
-            </span>
-          )}
         </div>
         <label
           htmlFor="pdf-upload"
@@ -352,6 +414,61 @@ function PDFUploadSection({
           />
         </label>
       </div>
+
+      {(tipo === 'compra' || tipo === 'venta') && (
+        <div className="mb-4 overflow-x-auto border border-neutral-200 rounded-lg bg-neutral-50">
+          <table className="min-w-full text-sm text-left">
+            <thead className="bg-neutral-100 text-neutral-700">
+              <tr>
+                <th scope="col" className="px-4 py-2 font-semibold">
+                  Periodo
+                </th>
+                <th scope="col" className="px-4 py-2 font-semibold text-right whitespace-nowrap">
+                  {amountWithTaxesLabel}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {quarterSummary.map((quarter) => (
+                <React.Fragment key={quarter.key}>
+                  <tr className="border-t border-neutral-200 bg-white">
+                    <th scope="row" className="px-4 py-2 font-semibold text-neutral-900">
+                      {quarter.key}
+                    </th>
+                    <td className="px-4 py-2 text-right font-semibold text-neutral-900 whitespace-nowrap">
+                      {formatEuroAmount(quarter.total)}
+                    </td>
+                  </tr>
+                  {quarter.months.map((month) => (
+                    <tr
+                      key={`${quarter.key}-${month.monthIndex}`}
+                      className="border-t border-neutral-200/70"
+                    >
+                      <th
+                        scope="row"
+                        className="px-4 py-1.5 pl-8 text-xs font-medium text-neutral-500"
+                      >
+                        {month.label}
+                      </th>
+                      <td className="px-4 py-1.5 text-right text-xs font-medium text-neutral-500 whitespace-nowrap">
+                        {formatEuroAmount(month.total)}
+                      </td>
+                    </tr>
+                  ))}
+                </React.Fragment>
+              ))}
+              <tr className="border-t-2 border-neutral-300 bg-neutral-100/70">
+                <th scope="row" className="px-4 py-2 font-semibold text-primary">
+                  Total anual
+                </th>
+                <td className="px-4 py-2 text-right font-semibold text-primary whitespace-nowrap">
+                  {formatEuroAmount(totalImporteIvaRe)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {loading && (
         <div className="text-center py-8">

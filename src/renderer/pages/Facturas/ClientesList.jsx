@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import ConfirmDialog from '../../components/ConfirmDialog';
 import PDFUploadSection from '../../components/PDFUploadSection';
-import { EntriesGrid, EntryCard, EmptyState, LoadingState } from '../../components/entries';
+import { EmptyState, LoadingState } from '../../components/entries';
 import useCRUD from '../../hooks/useCRUD';
-import { formatEuroAmount, parseEuroAmount } from '../../utils/euroAmount';
+import { formatEuroAmount } from '../../utils/euroAmount';
+import { buildFacturasQuarterSummary } from '../../utils/facturasQuarterSummary';
 import ClienteForm from './ClienteForm';
 
 function getDescuentoLabel(descuentoPorcentaje) {
@@ -28,25 +28,13 @@ function getDescuentoBadge(descuentoPorcentaje) {
 
 function ClientesListView() {
   const navigate = useNavigate();
-  const { entries, loading, fetchAll, delete: deleteCliente } = useCRUD('clientes');
+  const { entries, loading, fetchAll } = useCRUD('clientes');
   const [searchQuery, setSearchQuery] = useState('');
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [menuState, setMenuState] = useState(null);
-  const [folderStats, setFolderStats] = useState({});
-  const [totalImporteIva, setTotalImporteIva] = useState(0);
+  const [quarterSummary, setQuarterSummary] = useState(() => buildFacturasQuarterSummary());
 
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
-
-  useEffect(() => {
-    const handleClick = () => setMenuState(null);
-    if (menuState) {
-      document.addEventListener('click', handleClick);
-      return () => document.removeEventListener('click', handleClick);
-    }
-    return undefined;
-  }, [menuState]);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,125 +44,30 @@ function ClientesListView() {
 
       if (!entries.length) {
         if (!cancelled) {
-          setFolderStats({});
-          setTotalImporteIva(0);
+          setQuarterSummary(buildFacturasQuarterSummary());
         }
         return;
-      }
-
-      if (facturasApi?.getStatsByTipo) {
-        try {
-          const response = await facturasApi.getStatsByTipo({ tipo: 'venta' });
-
-          if (response.success) {
-            const statsFromApi = Object.fromEntries(
-              (response.data || []).map((row) => [
-                row.entityId,
-                {
-                  count: row.fileCount ?? 0,
-                  totalIva: parseEuroAmount(row.totalImporteIvaRe),
-                },
-              ])
-            );
-
-            const mergedStats = Object.fromEntries(
-              entries.map((cliente) => [
-                cliente.id,
-                {
-                  count: statsFromApi[cliente.id]?.count ?? cliente.facturas_count ?? 0,
-                  totalIva: statsFromApi[cliente.id]?.totalIva ?? 0,
-                },
-              ])
-            );
-
-            const overallTotal = Object.values(mergedStats).reduce(
-              (sum, stat) => sum + parseEuroAmount(stat.totalIva),
-              0
-            );
-
-            if (!cancelled) {
-              setFolderStats(mergedStats);
-              setTotalImporteIva(overallTotal);
-            }
-
-            return;
-          }
-        } catch (error) {
-          // Fall back to per-entidad query below
-        }
       }
 
       if (!facturasApi?.getAllForEntidad) {
-        if (!cancelled) {
-          setFolderStats(
-            Object.fromEntries(
-              entries.map((cliente) => [
-                cliente.id,
-                {
-                  count: cliente.facturas_count ?? 0,
-                  totalIva: 0,
-                },
-              ])
-            )
-          );
-          setTotalImporteIva(0);
-        }
+        if (!cancelled) setQuarterSummary(buildFacturasQuarterSummary());
         return;
       }
 
-      const statsPairs = await Promise.all(
-        entries.map(async (cliente) => {
-          const fallbackCount = cliente.facturas_count ?? 0;
-          try {
-            const response = await facturasApi.getAllForEntidad({
-              tipo: 'venta',
-              entidadId: cliente.id,
-            });
+      try {
+        const response = await facturasApi.getAllForEntidad({ tipo: 'venta' });
 
-            if (response.success) {
-              const rows = response.data || [];
-              const totalIva = rows.reduce(
-                (sum, row) => sum + parseEuroAmount(row.importe_iva_re),
-                0
-              );
-
-              return [
-                cliente.id,
-                {
-                  count: rows.length,
-                  totalIva,
-                },
-              ];
-            }
-          } catch (error) {
-            return [
-              cliente.id,
-              {
-                count: fallbackCount,
-                totalIva: 0,
-              },
-            ];
-          }
-
-          return [
-            cliente.id,
-            {
-              count: fallbackCount,
-              totalIva: 0,
-            },
-          ];
-        })
-      );
-
-      if (!cancelled) {
-        const statsByCliente = Object.fromEntries(statsPairs);
-        const overallTotal = Object.values(statsByCliente).reduce(
-          (sum, stat) => sum + parseEuroAmount(stat.totalIva),
-          0
-        );
-
-        setFolderStats(statsByCliente);
-        setTotalImporteIva(overallTotal);
+        if (!cancelled) {
+          setQuarterSummary(
+            response.success
+              ? buildFacturasQuarterSummary(response.data || [])
+              : buildFacturasQuarterSummary()
+          );
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setQuarterSummary(buildFacturasQuarterSummary());
+        }
       }
     };
 
@@ -202,13 +95,6 @@ function ClientesListView() {
       return a.razon_social.localeCompare(b.razon_social, 'es-ES');
     });
   }, [filteredClientes]);
-
-  const handleDelete = async (id) => {
-    const success = await deleteCliente(id);
-    if (success) {
-      setDeleteConfirm(null);
-    }
-  };
 
   if (loading && entries.length === 0) {
     return <LoadingState />;
@@ -268,15 +154,61 @@ function ClientesListView() {
                     </span>
                   )}
                 </span>
-                <span className="text-xs font-semibold text-primary whitespace-nowrap">
-                  {formatEuroAmount(folderStats[cliente.id]?.totalIva ?? 0)}
-                </span>
               </button>
             ))}
           </div>
-          <div className="mt-3 px-3 py-2 rounded border border-neutral-200 bg-white text-sm text-neutral-700">
-            <span className="font-medium">Total Importe + IVA (todas las carpetas): </span>
-            <span className="font-semibold text-primary">{formatEuroAmount(totalImporteIva)}</span>
+
+          <div className="mt-3 overflow-x-auto border border-neutral-200 rounded-lg bg-neutral-50">
+            <table className="min-w-full text-sm text-left">
+              <thead className="bg-neutral-100 text-neutral-700">
+                <tr>
+                  <th scope="col" className="px-4 py-2 font-semibold">
+                    Periodo
+                  </th>
+                  <th scope="col" className="px-4 py-2 font-semibold text-right whitespace-nowrap">
+                    Importe+IVA
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {quarterSummary.quarters.map((quarter) => (
+                  <React.Fragment key={quarter.key}>
+                    <tr className="border-t border-neutral-200 bg-white">
+                      <th scope="row" className="px-4 py-2 font-semibold text-neutral-900">
+                        {quarter.key}
+                      </th>
+                      <td className="px-4 py-2 text-right font-semibold text-neutral-900 whitespace-nowrap">
+                        {formatEuroAmount(quarter.total)}
+                      </td>
+                    </tr>
+                    {quarter.months.map((month) => (
+                      <tr
+                        key={`${quarter.key}-${month.monthIndex}`}
+                        className="border-t border-neutral-200/70"
+                      >
+                        <th
+                          scope="row"
+                          className="px-4 py-1.5 pl-8 text-xs font-medium text-neutral-500"
+                        >
+                          {month.label}
+                        </th>
+                        <td className="px-4 py-1.5 text-right text-xs font-medium text-neutral-500 whitespace-nowrap">
+                          {formatEuroAmount(month.total)}
+                        </td>
+                      </tr>
+                    ))}
+                  </React.Fragment>
+                ))}
+                <tr className="border-t-2 border-neutral-300 bg-neutral-100/70">
+                  <th scope="row" className="px-4 py-2 font-semibold text-primary">
+                    Total anual
+                  </th>
+                  <td className="px-4 py-2 text-right font-semibold text-primary whitespace-nowrap">
+                    {formatEuroAmount(quarterSummary.annualTotal)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -284,102 +216,6 @@ function ClientesListView() {
       {/* Empty state */}
       {sortedClientes.length === 0 && !loading && (
         <EmptyState icon="📁" title="clientes" hasSearchQuery={!!searchQuery} />
-      )}
-
-      {/* Grid */}
-      {sortedClientes.length > 0 && (
-        <EntriesGrid>
-          {sortedClientes.map((cliente) => (
-            <EntryCard
-              key={cliente.id}
-              urgente={false}
-              onClick={() => navigate(`/contabilidad/venta/${cliente.id}`)}
-              onActionClick={(e) => setMenuState({ cliente, x: e.clientX, y: e.clientY })}
-            >
-              <h3 className="text-lg font-semibold mb-2 text-neutral-900 flex items-start justify-between gap-2">
-                <span className="min-w-0 break-words flex items-center gap-2">
-                  <span>{cliente.razon_social}</span>
-                  {getDescuentoBadge(cliente.descuento_porcentaje) && (
-                    <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-                      {getDescuentoBadge(cliente.descuento_porcentaje)}
-                    </span>
-                  )}
-                </span>
-                <span className="shrink-0 text-sm font-semibold text-primary">
-                  {formatEuroAmount(folderStats[cliente.id]?.totalIva ?? 0)}
-                </span>
-              </h3>
-              <div className="space-y-1 text-sm text-neutral-700">
-                <div>
-                  <span className="font-medium">Nº Cliente:</span> {cliente.numero_cliente}
-                </div>
-                {cliente.nif && (
-                  <div>
-                    <span className="font-medium">NIF:</span> {cliente.nif}
-                  </div>
-                )}
-                {cliente.direccion && (
-                  <div>
-                    <span className="font-medium">Dirección:</span> {cliente.direccion}
-                  </div>
-                )}
-                <div>
-                  <span className="font-medium">Archivos subidos:</span>{' '}
-                  {folderStats[cliente.id]?.count ?? cliente.facturas_count ?? 0}
-                </div>
-                <div>
-                  <span className="font-medium">Importe + IVA:</span>{' '}
-                  {formatEuroAmount(folderStats[cliente.id]?.totalIva ?? 0)}
-                </div>
-                <div className="text-neutral-500">
-                  <span className="font-medium">Creado:</span>{' '}
-                  {new Date(cliente.fecha_creacion).toLocaleDateString('es-ES')}
-                </div>
-              </div>
-            </EntryCard>
-          ))}
-        </EntriesGrid>
-      )}
-
-      {/* Actions menu */}
-      {menuState && (
-        <div
-          className="fixed bg-neutral-100 border border-neutral-200 rounded-lg shadow-lg py-1 z-50"
-          style={{ top: menuState.y, left: menuState.x }}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              navigate(`/contabilidad/venta/${menuState.cliente.id}/editar`);
-              setMenuState(null);
-            }}
-            className="block w-full text-left px-4 py-2 text-sm hover:bg-neutral-50 text-neutral-700"
-          >
-            Editar
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setDeleteConfirm(menuState.cliente);
-              setMenuState(null);
-            }}
-            className="block w-full text-left px-4 py-2 text-sm hover:bg-neutral-50 text-danger hover:bg-danger/5"
-          >
-            Eliminar
-          </button>
-        </div>
-      )}
-
-      {/* Delete confirmation */}
-      {deleteConfirm && (
-        <ConfirmDialog
-          title="¿Eliminar este cliente?"
-          message="Esta acción no se puede deshacer."
-          onConfirm={() => handleDelete(deleteConfirm.id)}
-          onCancel={() => setDeleteConfirm(null)}
-          confirmText="Eliminar"
-          confirmDanger
-        />
       )}
     </div>
   );

@@ -111,25 +111,25 @@ describe('Facturas flow routing', () => {
     useCRUDMock.mockReset();
   });
 
-  it('opens proveedor PDF folder on card click and not edit form', () => {
+  it('opens proveedor PDF folder on shortcut click and not edit form', () => {
     setupCRUDMock({ proveedores: proveedoresFixture(1) });
 
     renderProveedores('/contabilidad/compra');
 
-    fireEvent.click(screen.getByText('Proveedor 0001'));
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir carpeta de Proveedor 0001' }));
 
     expect(screen.getByTestId('location-display')).toHaveTextContent('/contabilidad/compra/1');
     expect(screen.getByTestId('pdf-upload-section')).toHaveTextContent('compra:1:Proveedor 0001');
     expect(screen.queryByRole('button', { name: 'Guardar' })).not.toBeInTheDocument();
   });
 
-  it('opens proveedor edit form only from Editar action', () => {
+  it('opens proveedor edit form only from proveedor detail action', () => {
     setupCRUDMock({ proveedores: proveedoresFixture(1) });
 
     renderProveedores('/contabilidad/compra');
 
-    fireEvent.click(screen.getByLabelText('Abrir menú de acciones'));
-    fireEvent.click(screen.getByRole('button', { name: 'Editar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir carpeta de Proveedor 0001' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Editar proveedor' }));
 
     expect(screen.getByTestId('location-display')).toHaveTextContent(
       '/contabilidad/compra/1/editar'
@@ -156,34 +156,38 @@ describe('Facturas flow routing', () => {
 
     renderProveedores('/contabilidad/compra');
 
-    expect(screen.getByText('Proveedor 0001')).toBeInTheDocument();
-    expect(screen.getByText('Proveedor 0500')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Abrir carpeta de Proveedor 0001' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Abrir carpeta de Proveedor 0500' })
+    ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText('Proveedor 0500'));
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir carpeta de Proveedor 0500' }));
 
     expect(screen.getByTestId('location-display')).toHaveTextContent('/contabilidad/compra/500');
     expect(screen.getByTestId('pdf-upload-section')).toHaveTextContent('compra:500:Proveedor 0500');
   });
 
-  it('opens cliente PDF folder on card click and not edit form', () => {
+  it('opens cliente PDF folder on shortcut click and not edit form', () => {
     setupCRUDMock({ clientes: clientesFixture(1) });
 
     renderClientes('/contabilidad/venta');
 
-    fireEvent.click(screen.getByText('Cliente 0001'));
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir carpeta de Cliente 0001' }));
 
     expect(screen.getByTestId('location-display')).toHaveTextContent('/contabilidad/venta/1');
     expect(screen.getByTestId('pdf-upload-section')).toHaveTextContent('venta:1:Cliente 0001');
     expect(screen.queryByRole('button', { name: 'Guardar' })).not.toBeInTheDocument();
   });
 
-  it('opens cliente edit form only from Editar action', () => {
+  it('opens cliente edit form only from cliente detail action', () => {
     setupCRUDMock({ clientes: clientesFixture(1) });
 
     renderClientes('/contabilidad/venta');
 
-    fireEvent.click(screen.getByLabelText('Abrir menú de acciones'));
-    fireEvent.click(screen.getByRole('button', { name: 'Editar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir carpeta de Cliente 0001' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Editar cliente' }));
 
     expect(screen.getByTestId('location-display')).toHaveTextContent(
       '/contabilidad/venta/1/editar'

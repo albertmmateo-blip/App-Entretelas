@@ -9,25 +9,14 @@ import EncargarForm from './EncargarForm';
 
 function EncargarFoldersView() {
   const navigate = useNavigate();
-  const { entries, loading, fetchAll, delete: deleteProveedor } = useCRUD('proveedores');
+  const { entries, loading, fetchAll } = useCRUD('proveedores');
   const { entries: encargarEntries, fetchAll: fetchEncargar } = useCRUD('encargar');
   const [searchQuery, setSearchQuery] = useState('');
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [menuState, setMenuState] = useState(null);
 
   useEffect(() => {
     fetchAll();
     fetchEncargar();
   }, [fetchAll, fetchEncargar]);
-
-  useEffect(() => {
-    const handleClick = () => setMenuState(null);
-    if (menuState) {
-      document.addEventListener('click', handleClick);
-      return () => document.removeEventListener('click', handleClick);
-    }
-    return undefined;
-  }, [menuState]);
 
   const filteredProveedores = useMemo(() => {
     if (!searchQuery.trim()) return entries;
@@ -100,13 +89,6 @@ function EncargarFoldersView() {
       });
   }, [encargarEntries, proveedoresById, searchQuery, visibleProveedorIds]);
 
-  const handleDelete = async (id) => {
-    const success = await deleteProveedor(id);
-    if (success) {
-      setDeleteConfirm(null);
-    }
-  };
-
   if (loading && entries.length === 0) {
     return <LoadingState />;
   }
@@ -173,41 +155,6 @@ function EncargarFoldersView() {
         <EmptyState icon="📁" title="proveedores" hasSearchQuery={!!searchQuery} />
       )}
 
-      {/* Grid */}
-      {sortedProveedores.length > 0 && (
-        <EntriesGrid>
-          {sortedProveedores.map((proveedor) => (
-            <EntryCard
-              key={proveedor.id}
-              urgente={false}
-              onClick={() => navigate(`/encargar/proveedor/${proveedor.id}`)}
-              onActionClick={(e) => setMenuState({ proveedor, x: e.clientX, y: e.clientY })}
-            >
-              <h3 className="text-lg font-semibold mb-2 text-neutral-900">
-                {proveedor.razon_social}
-              </h3>
-              <div className="space-y-1 text-sm text-neutral-700">
-                {proveedor.nif && (
-                  <div>
-                    <span className="font-medium">NIF:</span> {proveedor.nif}
-                  </div>
-                )}
-                {proveedor.direccion && (
-                  <div>
-                    <span className="font-medium">Dirección:</span> {proveedor.direccion}
-                  </div>
-                )}
-                <div>
-                  <span className="font-medium">Entradas:</span>{' '}
-                  {entriesCountByProveedor[proveedor.id] || 0}
-                </div>
-                <div className="text-neutral-500">{formatDateTime(proveedor.fecha_creacion)}</div>
-              </div>
-            </EntryCard>
-          ))}
-        </EntriesGrid>
-      )}
-
       {/* Entries list below folders */}
       {sortedProveedores.length > 0 && (
         <div className="mt-6">
@@ -235,7 +182,7 @@ function EncargarFoldersView() {
                           {encargar.articulo || 'Sin artículo'}
                         </div>
                         <div className="text-sm text-neutral-700 mt-0.5 break-words">
-                          {proveedor?.razon_social || 'Sin carpeta'}
+                          {proveedor?.razon_social || 'Sin proveedor'}
                           {encargar.ref_interna ? ` · Ref: ${encargar.ref_interna}` : ''}
                         </div>
                       </div>
@@ -249,47 +196,6 @@ function EncargarFoldersView() {
             </div>
           )}
         </div>
-      )}
-
-      {/* Actions menu */}
-      {menuState && (
-        <div
-          className="fixed bg-neutral-100 border border-neutral-200 rounded-lg shadow-lg py-1 z-50"
-          style={{ top: menuState.y, left: menuState.x }}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              navigate(`/encargar/proveedor/${menuState.proveedor.id}/editar`);
-              setMenuState(null);
-            }}
-            className="block w-full text-left px-4 py-2 text-sm hover:bg-neutral-50 text-neutral-700"
-          >
-            Editar
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setDeleteConfirm(menuState.proveedor);
-              setMenuState(null);
-            }}
-            className="block w-full text-left px-4 py-2 text-sm hover:bg-neutral-50 text-danger hover:bg-danger/5"
-          >
-            Eliminar
-          </button>
-        </div>
-      )}
-
-      {/* Delete confirmation */}
-      {deleteConfirm && (
-        <ConfirmDialog
-          title="¿Eliminar este proveedor?"
-          message="Esta acción no se puede deshacer."
-          onConfirm={() => handleDelete(deleteConfirm.id)}
-          onCancel={() => setDeleteConfirm(null)}
-          confirmText="Eliminar"
-          confirmDanger
-        />
       )}
     </div>
   );
@@ -384,13 +290,22 @@ function EncargarProveedorView() {
             {proveedor?.razon_social || `Proveedor ${entidadId}`}
           </h1>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate('/encargar/nueva')}
-          className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
-        >
-          + Nueva entrada
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => navigate(`/encargar/proveedor/${entidadId}/editar`)}
+            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+          >
+            Editar proveedor
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/encargar/nueva')}
+            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+          >
+            + Nueva entrada
+          </button>
+        </div>
       </div>
 
       <div className="mb-4">

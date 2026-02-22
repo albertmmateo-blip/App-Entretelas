@@ -231,4 +231,30 @@ describe('Encargar flow routing', () => {
     expect(screen.getByRole('heading', { name: 'Entradas' })).toBeInTheDocument();
     expect(screen.getByText('No hay entradas para mostrar.')).toBeInTheDocument();
   });
+
+  it('shows edit proveedor action on proveedor page and navigates to edit route', async () => {
+    setupCRUDMock({
+      proveedores: [
+        { id: 1, razon_social: 'Proveedor A', fecha_creacion: '2026-01-01T00:00:00.000Z' },
+      ],
+      encargar: [
+        {
+          id: 31,
+          proveedor_id: 1,
+          articulo: 'Tela Negra',
+          urgente: 0,
+          fecha_creacion: '2026-01-09T10:00:00.000Z',
+        },
+      ],
+    });
+
+    renderEncargar('/encargar/proveedor/1');
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Editar proveedor' }));
+
+    expect(screen.getByTestId('location-display')).toHaveTextContent(
+      '/encargar/proveedor/1/editar'
+    );
+  });
 });
