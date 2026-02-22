@@ -73,6 +73,31 @@ const COLUMNS = [
   },
 ];
 
+const ALBARAN_COLOR_STYLES = {
+  Entretelas: {
+    strongTextColor: 'var(--logo-orange)',
+    softBackground: 'rgba(232, 119, 34, 0.12)',
+    softBorder: 'rgba(232, 119, 34, 0.35)',
+    rowClassName: '!bg-[#f9ddc7] hover:!bg-[#f4c79d]',
+  },
+  Isa: {
+    strongTextColor: '#248532',
+    softBackground: 'rgba(36, 133, 50, 0.12)',
+    softBorder: 'rgba(36, 133, 50, 0.35)',
+    rowClassName: '!bg-[#d9efdd] hover:!bg-[#bfe2c6]',
+  },
+  Loli: {
+    strongTextColor: '#85243c',
+    softBackground: 'rgba(133, 36, 60, 0.12)',
+    softBorder: 'rgba(133, 36, 60, 0.35)',
+    rowClassName: '!bg-[#efd4dc] hover:!bg-[#e0b2c0]',
+  },
+};
+
+function getAlbaranColorStyles(folder) {
+  return ALBARAN_COLOR_STYLES[folder] || null;
+}
+
 function ArreglosListView() {
   const navigate = useNavigate();
   const { albaran } = useParams();
@@ -222,32 +247,51 @@ function ArreglosListView() {
         {ALBARAN_OPTIONS.map((folder) => {
           const stats = folderCurrentMonthStats[folder] || { count: 0, totalImporte: 0 };
           const split = splitArreglosTotal(stats.totalImporte);
+          const colorStyles = getAlbaranColorStyles(folder);
 
           return (
-            <div key={folder} className="px-3 py-2 rounded border border-neutral-200 bg-white">
-              <div className="text-sm font-medium text-neutral-900">{folder}</div>
-              <div className="text-xs text-neutral-500 leading-tight">{currentMonthLabel}</div>
+            <div
+              key={folder}
+              className="px-3 py-2 rounded border"
+              style={{
+                backgroundColor: colorStyles?.softBackground,
+                borderColor: colorStyles?.softBorder,
+              }}
+            >
+              <div className="text-sm font-medium" style={{ color: colorStyles?.strongTextColor }}>
+                {folder}
+              </div>
+              <div className="text-xs text-neutral-600 leading-tight">{currentMonthLabel}</div>
               <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div>
-                  <div className="text-[11px] text-neutral-500 leading-tight">Total</div>
-                  <div className="text-base font-semibold text-primary leading-tight">
+                  <div className="text-[11px] text-neutral-600 leading-tight">Total</div>
+                  <div
+                    className="text-base font-semibold leading-tight"
+                    style={{ color: colorStyles?.strongTextColor }}
+                  >
                     {formatEuroAmount(split.total)}
                   </div>
                 </div>
                 <div>
-                  <div className="text-[11px] text-neutral-500 leading-tight">{folder} (65%)</div>
-                  <div className="text-base font-semibold text-primary leading-tight">
+                  <div className="text-[11px] text-neutral-600 leading-tight">{folder} (65%)</div>
+                  <div
+                    className="text-base font-semibold leading-tight"
+                    style={{ color: colorStyles?.strongTextColor }}
+                  >
                     {formatEuroAmount(split.folderShare)}
                   </div>
                 </div>
                 <div>
-                  <div className="text-[11px] text-neutral-500 leading-tight">Tienda (35%)</div>
-                  <div className="text-base font-semibold text-primary leading-tight">
+                  <div className="text-[11px] text-neutral-600 leading-tight">Tienda (35%)</div>
+                  <div
+                    className="text-base font-semibold leading-tight"
+                    style={{ color: colorStyles?.strongTextColor }}
+                  >
                     {formatEuroAmount(split.tiendaShare)}
                   </div>
                 </div>
               </div>
-              <div className="text-xs text-neutral-500 mt-1 leading-tight">
+              <div className="text-xs text-neutral-600 mt-1 leading-tight">
                 {stats.count} entrada{stats.count !== 1 ? 's' : ''}
               </div>
             </div>
@@ -291,6 +335,7 @@ function ArreglosListView() {
           data={filteredEntries}
           onRowClick={(row) => navigate(`${listBasePath}/${row.id}`)}
           initialSort={{ key: 'fecha', direction: 'desc' }}
+          rowClassName={(row) => getAlbaranColorStyles(row.albaran)?.rowClassName || ''}
           renderActions={(row) => [
             {
               label: 'Editar',
