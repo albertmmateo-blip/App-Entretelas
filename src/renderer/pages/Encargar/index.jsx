@@ -56,6 +56,50 @@ function EncargarFoldersView() {
     }, {});
   }, [encargarEntries]);
 
+  const proveedoresById = useMemo(
+    () => Object.fromEntries(entries.map((proveedor) => [proveedor.id, proveedor])),
+    [entries]
+  );
+
+  const visibleProveedorIds = useMemo(
+    () => new Set(sortedProveedores.map((proveedor) => proveedor.id)),
+    [sortedProveedores]
+  );
+
+  const listedEncargarEntries = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    return encargarEntries
+      .filter((entry) => {
+        if (!entry.proveedor_id || !visibleProveedorIds.has(entry.proveedor_id)) {
+          return false;
+        }
+
+        if (!query) {
+          return true;
+        }
+
+        const proveedor = proveedoresById[entry.proveedor_id];
+
+        return (
+          (entry.articulo && entry.articulo.toLowerCase().includes(query)) ||
+          (entry.ref_interna && entry.ref_interna.toLowerCase().includes(query)) ||
+          (entry.descripcion && entry.descripcion.toLowerCase().includes(query)) ||
+          (entry.ref_proveedor && entry.ref_proveedor.toLowerCase().includes(query)) ||
+          (proveedor?.razon_social && proveedor.razon_social.toLowerCase().includes(query))
+        );
+      })
+      .sort((a, b) => {
+        const aUrgente = a.urgente ? 1 : 0;
+        const bUrgente = b.urgente ? 1 : 0;
+        if (bUrgente !== aUrgente) {
+          return bUrgente - aUrgente;
+        }
+
+        return new Date(b.fecha_creacion) - new Date(a.fecha_creacion);
+      });
+  }, [encargarEntries, proveedoresById, searchQuery, visibleProveedorIds]);
+
   const handleDelete = async (id) => {
     const success = await deleteProveedor(id);
     if (success) {
@@ -102,6 +146,28 @@ function EncargarFoldersView() {
         />
       </div>
 
+      {/* Proveedor folder shortcuts */}
+      {sortedProveedores.length > 0 && (
+        <div className="mb-4">
+          <div className="flex flex-wrap gap-2">
+            {sortedProveedores.map((proveedor) => (
+              <button
+                key={`shortcut-${proveedor.id}`}
+                type="button"
+                onClick={() => navigate(`/encargar/proveedor/${proveedor.id}`)}
+                className="px-3 py-1.5 border border-neutral-200 rounded bg-white hover:border-primary hover:text-primary transition-colors text-sm text-neutral-700 flex items-center gap-3"
+                aria-label={`Abrir carpeta de ${proveedor.razon_social}`}
+              >
+                <span className="font-medium">{`📁 ${proveedor.razon_social}`}</span>
+                <span className="text-xs font-semibold text-primary whitespace-nowrap">
+                  {entriesCountByProveedor[proveedor.id] || 0}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Empty state */}
       {sortedProveedores.length === 0 && !loading && (
         <EmptyState icon="📁" title="proveedores" hasSearchQuery={!!searchQuery} />
@@ -140,6 +206,49 @@ function EncargarFoldersView() {
             </EntryCard>
           ))}
         </EntriesGrid>
+      )}
+
+      {/* Entries list below folders */}
+      {sortedProveedores.length > 0 && (
+        <div className="mt-6">
+          <h2 className="text-lg font-semibold text-neutral-900 mb-2">Entradas</h2>
+          {listedEncargarEntries.length === 0 ? (
+            <div className="px-3 py-2 rounded border border-neutral-200 bg-white text-sm text-neutral-700">
+              No hay entradas para mostrar.
+            </div>
+          ) : (
+            <div className="rounded border border-neutral-200 bg-white divide-y divide-neutral-200">
+              {listedEncargarEntries.map((encargar) => {
+                const proveedor = proveedoresById[encargar.proveedor_id];
+
+                return (
+                  <button
+                    key={`list-${encargar.id}`}
+                    type="button"
+                    onClick={() => navigate(`/encargar/${encargar.id}`)}
+                    className="w-full px-3 py-2 text-left hover:bg-neutral-50 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="font-medium text-neutral-900 break-words">
+                          {encargar.urgente ? '🔴 ' : ''}
+                          {encargar.articulo || 'Sin artículo'}
+                        </div>
+                        <div className="text-sm text-neutral-700 mt-0.5 break-words">
+                          {proveedor?.razon_social || 'Sin carpeta'}
+                          {encargar.ref_interna ? ` · Ref: ${encargar.ref_interna}` : ''}
+                        </div>
+                      </div>
+                      <div className="text-xs text-neutral-500 whitespace-nowrap">
+                        {formatDateTime(encargar.fecha_creacion)}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Actions menu */}

@@ -10,6 +10,7 @@ describe('App', () => {
 
   it('renders the Home page by default', () => {
     render(<App />);
-    expect(screen.getByRole('heading', { name: 'Home' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Entretelar' })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('🔍 Buscar...')).toBeInTheDocument();
   });
 });

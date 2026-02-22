@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import Encargar from '../../src/renderer/pages/Encargar';
 
@@ -101,5 +102,133 @@ describe('Encargar flow routing', () => {
     expect(screen.getByRole('heading', { name: 'Nuevo proveedor' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Guardar' })).toBeInTheDocument();
     expect(screen.getByTestId('location-display')).toHaveTextContent('/encargar/proveedor/nuevo');
+  });
+
+  it('renders folder shortcuts and entries list on /encargar', async () => {
+    setupCRUDMock({
+      proveedores: [
+        { id: 1, razon_social: 'Proveedor A', fecha_creacion: '2026-01-01T00:00:00.000Z' },
+        { id: 2, razon_social: 'Proveedor B', fecha_creacion: '2026-01-02T00:00:00.000Z' },
+      ],
+      encargar: [
+        {
+          id: 10,
+          proveedor_id: 1,
+          articulo: 'Tela Roja',
+          ref_interna: 'TR-001',
+          urgente: 1,
+          fecha_creacion: '2026-01-03T10:00:00.000Z',
+        },
+        {
+          id: 11,
+          proveedor_id: 2,
+          articulo: 'Forro Azul',
+          ref_interna: 'FA-002',
+          urgente: 0,
+          fecha_creacion: '2026-01-04T10:00:00.000Z',
+        },
+      ],
+    });
+
+    renderEncargar('/encargar');
+
+    expect(
+      screen.getByRole('button', { name: 'Abrir carpeta de Proveedor A' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Abrir carpeta de Proveedor B' })
+    ).toBeInTheDocument();
+
+    expect(screen.getByRole('heading', { name: 'Entradas' })).toBeInTheDocument();
+    expect(screen.getByText(/Tela Roja/)).toBeInTheDocument();
+    expect(screen.getByText(/Forro Azul/)).toBeInTheDocument();
+
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: 'Abrir carpeta de Proveedor A' }));
+    expect(screen.getByTestId('location-display')).toHaveTextContent('/encargar/proveedor/1');
+  });
+
+  it('navigates to entry detail when clicking an entry row in list', async () => {
+    setupCRUDMock({
+      proveedores: [
+        { id: 1, razon_social: 'Proveedor A', fecha_creacion: '2026-01-01T00:00:00.000Z' },
+      ],
+      encargar: [
+        {
+          id: 15,
+          proveedor_id: 1,
+          articulo: 'Cremallera Negra',
+          ref_interna: 'CN-015',
+          urgente: 0,
+          fecha_creacion: '2026-01-05T10:00:00.000Z',
+        },
+      ],
+    });
+
+    renderEncargar('/encargar');
+
+    const entryRowButton = screen.getByText('Cremallera Negra').closest('button');
+    expect(entryRowButton).not.toBeNull();
+
+    const user = userEvent.setup();
+    await user.click(entryRowButton);
+
+    expect(screen.getByTestId('location-display')).toHaveTextContent('/encargar/15');
+  });
+
+  it('filters folder shortcuts and entries list by proveedor search', async () => {
+    setupCRUDMock({
+      proveedores: [
+        { id: 1, razon_social: 'Proveedor A', fecha_creacion: '2026-01-01T00:00:00.000Z' },
+        { id: 2, razon_social: 'Proveedor B', fecha_creacion: '2026-01-02T00:00:00.000Z' },
+      ],
+      encargar: [
+        {
+          id: 21,
+          proveedor_id: 1,
+          articulo: 'Botón Dorado',
+          ref_interna: 'BD-021',
+          urgente: 0,
+          fecha_creacion: '2026-01-07T10:00:00.000Z',
+        },
+        {
+          id: 22,
+          proveedor_id: 2,
+          articulo: 'Hilo Verde',
+          ref_interna: 'HV-022',
+          urgente: 0,
+          fecha_creacion: '2026-01-08T10:00:00.000Z',
+        },
+      ],
+    });
+
+    renderEncargar('/encargar');
+
+    const user = userEvent.setup();
+    await user.type(screen.getByPlaceholderText('Buscar proveedor...'), 'Proveedor A');
+
+    expect(
+      screen.getByRole('button', { name: 'Abrir carpeta de Proveedor A' })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Abrir carpeta de Proveedor B' })
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/Botón Dorado/)).toBeInTheDocument();
+    expect(screen.queryByText(/Hilo Verde/)).not.toBeInTheDocument();
+  });
+
+  it('shows empty entries message when folders exist without entries', () => {
+    setupCRUDMock({
+      proveedores: [
+        { id: 1, razon_social: 'Proveedor A', fecha_creacion: '2026-01-01T00:00:00.000Z' },
+      ],
+      encargar: [],
+    });
+
+    renderEncargar('/encargar');
+
+    expect(screen.getByRole('heading', { name: 'Entradas' })).toBeInTheDocument();
+    expect(screen.getByText('No hay entradas para mostrar.')).toBeInTheDocument();
   });
 });
