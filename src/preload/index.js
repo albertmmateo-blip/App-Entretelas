@@ -34,6 +34,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
     update: (id, data) => ipcRenderer.invoke('encargar:update', id, data),
     delete: (id) => ipcRenderer.invoke('encargar:delete', id),
   },
+  encargarCatalogo: {
+    getFolders: (parentId = null) => ipcRenderer.invoke('encargarCatalogo:getFolders', parentId),
+    getFolderById: (id) => ipcRenderer.invoke('encargarCatalogo:getFolderById', id),
+    createFolder: (data) => ipcRenderer.invoke('encargarCatalogo:createFolder', data),
+    getEntries: (folderId) => ipcRenderer.invoke('encargarCatalogo:getEntries', folderId),
+    createEntry: (data) => ipcRenderer.invoke('encargarCatalogo:createEntry', data),
+  },
+  secretCatalogo: {
+    getFolders: (parentId = null) => ipcRenderer.invoke('secretCatalogo:getFolders', parentId),
+    getFolderById: (id) => ipcRenderer.invoke('secretCatalogo:getFolderById', id),
+    createFolder: (data) => ipcRenderer.invoke('secretCatalogo:createFolder', data),
+    getEntries: (folderId) => ipcRenderer.invoke('secretCatalogo:getEntries', folderId),
+    createEntry: (data) => ipcRenderer.invoke('secretCatalogo:createEntry', data),
+  },
   // Arreglos module
   arreglos: {
     getAll: () => ipcRenderer.invoke('arreglos:getAll'),

@@ -161,7 +161,7 @@ function PDFUploadSection({
   const { showToast } = useToast();
   const acceptedExtensions = officeOnly ? OFFICE_EXTENSIONS : ALLOWED_EXTENSIONS;
   const shouldAutoCalculateAmountWithTaxes = tipo === 'compra' || tipo === 'venta';
-  const amountWithTaxesLabel = tipo === 'venta' ? 'Importe+IVA' : 'Importe+IVA+RE';
+  const amountWithTaxesLabel = tipo === 'venta' ? 'Importe + IVA' : 'Importe + IVA + RE';
   const totalImporte = useMemo(
     () => pdfs.reduce((sum, pdf) => sum + parseEuroAmount(pdf.importe), 0),
     [pdfs]

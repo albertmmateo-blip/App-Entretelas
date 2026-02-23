@@ -125,6 +125,7 @@ function ProveedoresListView({ tipo = 'compra' }) {
           .sort((a, b) => getFacturaTimestamp(b) - getFacturaTimestamp(a))
           .map((row) => ({
             id: row.id,
+            entidadId: row.entidad_id,
             fecha: formatFacturaDisplayDate(row),
             proveedor: proveedorNameById[row.entidad_id] || '—',
             numero: getFacturaNumberLabel(row),
@@ -281,7 +282,7 @@ function ProveedoresListView({ tipo = 'compra' }) {
                         scope="col"
                         className="px-4 py-2 font-semibold text-right whitespace-nowrap"
                       >
-                        Importe+impuestos (Compra/Venta)
+                        Importe + IVA + RE
                       </th>
                     </tr>
                   </thead>
@@ -292,7 +293,19 @@ function ProveedoresListView({ tipo = 'compra' }) {
                           <td className="px-4 py-2 text-neutral-700 whitespace-nowrap">
                             {invoice.fecha}
                           </td>
-                          <td className="px-4 py-2 text-neutral-900">{invoice.proveedor}</td>
+                          <td className="px-4 py-2 text-neutral-900">
+                            {invoice.entidadId ? (
+                              <button
+                                type="button"
+                                onClick={() => navigate(`${basePath}/${invoice.entidadId}`)}
+                                className="text-left hover:text-primary hover:underline transition-colors"
+                              >
+                                {invoice.proveedor}
+                              </button>
+                            ) : (
+                              invoice.proveedor
+                            )}
+                          </td>
                           <td className="px-4 py-2 text-neutral-700">{invoice.numero || '—'}</td>
                           <td className="px-4 py-2 text-right text-neutral-900 whitespace-nowrap">
                             {formatEuroAmount(invoice.importe)}
@@ -333,7 +346,7 @@ function ProveedoresListView({ tipo = 'compra' }) {
                       scope="col"
                       className="px-4 py-2 font-semibold text-right whitespace-nowrap"
                     >
-                      Importe+IVA+RE
+                      Importe + IVA + RE
                     </th>
                   </tr>
                 </thead>

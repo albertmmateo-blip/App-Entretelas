@@ -6,6 +6,7 @@ import useCRUD from '../../hooks/useCRUD';
 import { formatDateTime } from '../../utils/formatDateTime';
 import ProveedorForm from '../Facturas/ProveedorForm';
 import EncargarForm from './EncargarForm';
+import Catalogo from './Catalogo';
 
 function EncargarFoldersView() {
   const navigate = useNavigate();
@@ -99,6 +100,13 @@ function EncargarFoldersView() {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold text-neutral-900">Encargar</h1>
         <div className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => navigate('/encargar/catalogo')}
+            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+          >
+            📁 Catálogo
+          </button>
           <button
             type="button"
             onClick={() => navigate('/encargar/proveedor/nuevo')}
@@ -407,9 +415,14 @@ function EncargarProveedorView() {
 function Encargar() {
   const location = useLocation();
   const { id, proveedorId } = useParams();
+  const isCatalogRoute = location.pathname.startsWith('/encargar/catalogo');
   const isNewEntryRoute = location.pathname === '/encargar/nueva';
   const isNewProveedorRoute = location.pathname === '/encargar/proveedor/nuevo';
   const isProveedorEditRoute = location.pathname.endsWith('/editar');
+
+  if (isCatalogRoute) {
+    return <Catalogo />;
+  }
 
   if (location.pathname.includes('/encargar/proveedor')) {
     if (isNewProveedorRoute || (proveedorId && isProveedorEditRoute)) {

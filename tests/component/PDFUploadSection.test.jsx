@@ -204,7 +204,7 @@ describe('PDFUploadSection', () => {
     await waitFor(() => {
       expect(document.body.textContent).toContain('Fecha: 2026-02-19');
       expect(document.body.textContent).toContain('Importe:');
-      expect(document.body.textContent).toContain('Importe+IVA+RE:');
+      expect(document.body.textContent).toContain('Importe + IVA + RE:');
       expect(document.body.textContent).toContain('Vencimiento: 2026-03-15');
       expect(document.body.textContent).toContain('Pendiente');
     });

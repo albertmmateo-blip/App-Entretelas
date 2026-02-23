@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildFacturasQuarterSummary } from '../../src/renderer/utils/facturasQuarterSummary';
 
 describe('facturasQuarterSummary utilities', () => {
-  it('builds compra quarter summary with importe and importe+iva+re totals', () => {
+  it('builds compra quarter summary with importe and importe + iva + re totals', () => {
     const rows = [
       { fecha: '2026-01-10', tipo: 'compra', importe: 100, importe_iva_re: 126.2 },
       { fecha: '2026-02-15', tipo: 'compra', importe: 50, importe_iva_re: 63.1 },

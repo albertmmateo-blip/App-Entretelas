@@ -1,11 +1,12 @@
-import React, { Suspense, lazy } from 'react';
-import { HashRouter, Routes, Route, NavLink } from 'react-router-dom';
+import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { HashRouter, Routes, Route, NavLink, useNavigate } from 'react-router-dom';
 import Home from './pages/Home';
 import Urgente from './pages/Urgente';
 import Notas from './pages/Notas';
 import Llamar from './pages/Llamar';
 import Encargar from './pages/Encargar';
 import Email from './pages/Email';
+import Secret from './pages/Secret';
 
 const Contabilidad = lazy(() => import('./pages/Facturas'));
 
@@ -18,6 +19,17 @@ function ContabilidadRoute() {
 }
 
 export function AppLayout() {
+  const navigate = useNavigate();
+  const [isSecretPromptOpen, setIsSecretPromptOpen] = useState(false);
+  const [secretPassword, setSecretPassword] = useState('');
+  const secretInputRef = useRef(null);
+
+  useEffect(() => {
+    if (isSecretPromptOpen && secretInputRef.current) {
+      secretInputRef.current.focus();
+    }
+  }, [isSecretPromptOpen]);
+
   const navLinks = [
     { path: '/', label: 'Home', icon: '🏠', end: true },
     { path: '/urgente', label: 'URGENTE!', icon: '⚠️' },
@@ -31,7 +43,7 @@ export function AppLayout() {
   return (
     <div className="flex h-screen bg-neutral-50 text-neutral-700">
       {/* Sidebar */}
-      <nav className="w-[78px] bg-primary border-r border-primary-700/25 flex flex-col py-4 shadow-sm">
+      <nav className="relative w-[78px] bg-primary border-r border-primary-700/25 flex flex-col py-4 shadow-sm">
         {navLinks.map(({ path, label, icon, end }) => {
           const isUrgentLink = path === '/urgente';
 
@@ -67,6 +79,16 @@ export function AppLayout() {
             </NavLink>
           );
         })}
+
+        <button
+          type="button"
+          className="absolute bottom-3 left-2 right-2 h-12 rounded-md bg-primary opacity-0"
+          onClick={() => {
+            setSecretPassword('');
+            setIsSecretPromptOpen(true);
+          }}
+          aria-label="Abrir acceso secreto"
+        />
       </nav>
 
       {/* Content area */}
@@ -79,6 +101,11 @@ export function AppLayout() {
           <Route path="/llamar" element={<Llamar />} />
           <Route path="/llamar/:id" element={<Llamar />} />
           <Route path="/encargar" element={<Encargar />} />
+          <Route path="/encargar/catalogo" element={<Encargar />} />
+          <Route path="/encargar/catalogo/nueva" element={<Encargar />} />
+          <Route path="/encargar/catalogo/:folderId" element={<Encargar />} />
+          <Route path="/encargar/catalogo/:folderId/nueva" element={<Encargar />} />
+          <Route path="/encargar/catalogo/:folderId/entrada/nueva" element={<Encargar />} />
           <Route path="/encargar/nueva" element={<Encargar />} />
           <Route path="/encargar/:id" element={<Encargar />} />
           <Route path="/encargar/proveedor/nuevo" element={<Encargar />} />
@@ -116,8 +143,52 @@ export function AppLayout() {
           <Route path="/facturas/venta/:clienteId" element={<ContabilidadRoute />} />
           <Route path="/facturas/venta/:clienteId/editar" element={<ContabilidadRoute />} />
           <Route path="/email" element={<Email />} />
+          <Route path="/mixo" element={<Secret />} />
+          <Route path="/mixo/catalogo" element={<Secret />} />
+          <Route path="/mixo/catalogo/nueva" element={<Secret />} />
+          <Route path="/mixo/catalogo/:folderId" element={<Secret />} />
+          <Route path="/mixo/catalogo/:folderId/nueva" element={<Secret />} />
+          <Route path="/mixo/catalogo/:folderId/entrada/nueva" element={<Secret />} />
         </Routes>
       </main>
+
+      {isSecretPromptOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/45">
+          <button
+            type="button"
+            className="absolute inset-0"
+            onClick={() => {
+              setSecretPassword('');
+              setIsSecretPromptOpen(false);
+            }}
+            aria-label="Cerrar acceso secreto"
+          />
+          <form
+            className="relative z-10 w-[560px] max-w-[88vw]"
+            onSubmit={(event) => {
+              event.preventDefault();
+
+              if (secretPassword === 'mixo') {
+                setSecretPassword('');
+                setIsSecretPromptOpen(false);
+                navigate('/mixo');
+                return;
+              }
+
+              setSecretPassword('');
+              setIsSecretPromptOpen(false);
+            }}
+          >
+            <input
+              ref={secretInputRef}
+              type="password"
+              value={secretPassword}
+              onChange={(event) => setSecretPassword(event.target.value)}
+              className="h-16 w-full border border-success-200 bg-neutral-900 px-5 font-mono text-lg tracking-wider text-success-100 outline-none"
+            />
+          </form>
+        </div>
+      )}
     </div>
   );
 }

@@ -125,6 +125,7 @@ function ClientesListView() {
           .sort((a, b) => getFacturaTimestamp(b) - getFacturaTimestamp(a))
           .map((row) => ({
             id: row.id,
+            entidadId: row.entidad_id,
             fecha: formatFacturaDisplayDate(row),
             proveedor: clienteNameById[row.entidad_id] || '—',
             numero: getFacturaNumberLabel(row),
@@ -272,7 +273,7 @@ function ClientesListView() {
                   Fecha
                 </th>
                 <th scope="col" className="px-4 py-2 font-semibold whitespace-nowrap">
-                  Proveedor
+                  Cliente
                 </th>
                 <th scope="col" className="px-4 py-2 font-semibold whitespace-nowrap">
                   #
@@ -281,7 +282,7 @@ function ClientesListView() {
                   Importe
                 </th>
                 <th scope="col" className="px-4 py-2 font-semibold text-right whitespace-nowrap">
-                  Importe+impuestos (Compra/Venta)
+                  Importe + IVA
                 </th>
               </tr>
             </thead>
@@ -292,7 +293,19 @@ function ClientesListView() {
                     <td className="px-4 py-2 text-neutral-700 whitespace-nowrap">
                       {invoice.fecha}
                     </td>
-                    <td className="px-4 py-2 text-neutral-900">{invoice.proveedor}</td>
+                    <td className="px-4 py-2 text-neutral-900">
+                      {invoice.entidadId ? (
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/contabilidad/venta/${invoice.entidadId}`)}
+                          className="text-left hover:text-primary hover:underline transition-colors"
+                        >
+                          {invoice.proveedor}
+                        </button>
+                      ) : (
+                        invoice.proveedor
+                      )}
+                    </td>
                     <td className="px-4 py-2 text-neutral-700">{invoice.numero || '—'}</td>
                     <td className="px-4 py-2 text-right text-neutral-900 whitespace-nowrap">
                       {formatEuroAmount(invoice.importe)}
@@ -325,7 +338,7 @@ function ClientesListView() {
                 Importe
               </th>
               <th scope="col" className="px-4 py-2 font-semibold text-right whitespace-nowrap">
-                Importe+IVA
+                Importe + IVA
               </th>
             </tr>
           </thead>
