@@ -94,6 +94,39 @@ function getMonthIndexFromInvoice(pdf) {
   return parsed.getMonth();
 }
 
+function parseOptionalAmount(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.replace(',', '.').trim();
+    if (!normalized) {
+      return null;
+    }
+
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function calculateAmountWithTaxesFromImporte(importe, tipo) {
+  const parsedImporte = parseOptionalAmount(importe);
+  if (parsedImporte === null) {
+    return '';
+  }
+
+  const multiplier = tipo === 'venta' ? 1.21 : 1.262;
+  return Number((parsedImporte * multiplier).toFixed(2));
+}
+
 /**
  * PDFUploadSection component
  * Manages PDF uploads and displays thumbnails for an entity (proveedor or cliente)
@@ -127,13 +160,21 @@ function PDFUploadSection({
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const { showToast } = useToast();
   const acceptedExtensions = officeOnly ? OFFICE_EXTENSIONS : ALLOWED_EXTENSIONS;
+  const shouldAutoCalculateAmountWithTaxes = tipo === 'compra' || tipo === 'venta';
   const amountWithTaxesLabel = tipo === 'venta' ? 'Importe+IVA' : 'Importe+IVA+RE';
+  const totalImporte = useMemo(
+    () => pdfs.reduce((sum, pdf) => sum + parseEuroAmount(pdf.importe), 0),
+    [pdfs]
+  );
   const totalImporteIvaRe = useMemo(
     () => pdfs.reduce((sum, pdf) => sum + parseEuroAmount(pdf.importe_iva_re), 0),
     [pdfs]
   );
   const quarterSummary = useMemo(() => {
-    const monthTotals = Array.from({ length: 12 }, () => 0);
+    const monthTotals = Array.from({ length: 12 }, () => ({
+      importe: 0,
+      amountWithTaxes: 0,
+    }));
 
     pdfs.forEach((pdf) => {
       const monthIndex = getMonthIndexFromInvoice(pdf);
@@ -141,7 +182,16 @@ function PDFUploadSection({
         return;
       }
 
-      monthTotals[monthIndex] += parseEuroAmount(pdf.importe_iva_re);
+      const importe = parseOptionalAmount(pdf.importe);
+      const amountWithTaxes = parseOptionalAmount(pdf.importe_iva_re);
+
+      if (importe !== null) {
+        monthTotals[monthIndex].importe += importe;
+      }
+
+      if (amountWithTaxes !== null) {
+        monthTotals[monthIndex].amountWithTaxes += amountWithTaxes;
+      }
     });
 
     return QUARTERS.map((quarter) => {
@@ -153,7 +203,10 @@ function PDFUploadSection({
 
       return {
         key: quarter.key,
-        total: months.reduce((sum, month) => sum + month.total, 0),
+        total: {
+          importe: months.reduce((sum, month) => sum + month.total.importe, 0),
+          amountWithTaxes: months.reduce((sum, month) => sum + month.total.amountWithTaxes, 0),
+        },
         months,
       };
     });
@@ -192,11 +245,14 @@ function PDFUploadSection({
   }, [fetchPDFs]);
 
   const startEditing = (pdf) => {
+    const importeValue = pdf.importe ?? '';
     setEditingPdfId(pdf.id);
     setMetadataForm({
       fecha: normalizeDateForInput(pdf.fecha),
-      importe: pdf.importe ?? '',
-      importeIvaRe: pdf.importe_iva_re ?? '',
+      importe: importeValue,
+      importeIvaRe: shouldAutoCalculateAmountWithTaxes
+        ? calculateAmountWithTaxesFromImporte(importeValue, tipo)
+        : (pdf.importe_iva_re ?? ''),
       vencimiento: normalizeDateForInput(pdf.vencimiento),
       pagada: Boolean(pdf.pagada),
     });
@@ -220,7 +276,9 @@ function PDFUploadSection({
       const response = await window.electronAPI.facturas.updatePDFMetadata(pdfId, {
         fecha: metadataForm.fecha,
         importe: metadataForm.importe,
-        importeIvaRe: metadataForm.importeIvaRe,
+        importeIvaRe: shouldAutoCalculateAmountWithTaxes
+          ? calculateAmountWithTaxesFromImporte(metadataForm.importe, tipo)
+          : metadataForm.importeIvaRe,
         vencimiento: metadataForm.vencimiento,
         pagada: metadataForm.pagada,
       });
@@ -424,6 +482,9 @@ function PDFUploadSection({
                   Periodo
                 </th>
                 <th scope="col" className="px-4 py-2 font-semibold text-right whitespace-nowrap">
+                  Importe
+                </th>
+                <th scope="col" className="px-4 py-2 font-semibold text-right whitespace-nowrap">
                   {amountWithTaxesLabel}
                 </th>
               </tr>
@@ -436,7 +497,10 @@ function PDFUploadSection({
                       {quarter.key}
                     </th>
                     <td className="px-4 py-2 text-right font-semibold text-neutral-900 whitespace-nowrap">
-                      {formatEuroAmount(quarter.total)}
+                      {formatEuroAmount(quarter.total.importe)}
+                    </td>
+                    <td className="px-4 py-2 text-right font-semibold text-neutral-900 whitespace-nowrap">
+                      {formatEuroAmount(quarter.total.amountWithTaxes)}
                     </td>
                   </tr>
                   {quarter.months.map((month) => (
@@ -451,7 +515,10 @@ function PDFUploadSection({
                         {month.label}
                       </th>
                       <td className="px-4 py-1.5 text-right text-xs font-medium text-neutral-500 whitespace-nowrap">
-                        {formatEuroAmount(month.total)}
+                        {formatEuroAmount(month.total.importe)}
+                      </td>
+                      <td className="px-4 py-1.5 text-right text-xs font-medium text-neutral-500 whitespace-nowrap">
+                        {formatEuroAmount(month.total.amountWithTaxes)}
                       </td>
                     </tr>
                   ))}
@@ -461,6 +528,9 @@ function PDFUploadSection({
                 <th scope="row" className="px-4 py-2 font-semibold text-primary">
                   Total anual
                 </th>
+                <td className="px-4 py-2 text-right font-semibold text-primary whitespace-nowrap">
+                  {formatEuroAmount(totalImporte)}
+                </td>
                 <td className="px-4 py-2 text-right font-semibold text-primary whitespace-nowrap">
                   {formatEuroAmount(totalImporteIvaRe)}
                 </td>
@@ -562,9 +632,16 @@ function PDFUploadSection({
                         step="0.01"
                         inputMode="decimal"
                         value={metadataForm.importe}
-                        onChange={(event) =>
-                          setMetadataForm((prev) => ({ ...prev, importe: event.target.value }))
-                        }
+                        onChange={(event) => {
+                          const nextImporte = event.target.value;
+                          setMetadataForm((prev) => ({
+                            ...prev,
+                            importe: nextImporte,
+                            importeIvaRe: shouldAutoCalculateAmountWithTaxes
+                              ? calculateAmountWithTaxesFromImporte(nextImporte, tipo)
+                              : prev.importeIvaRe,
+                          }));
+                        }}
                         placeholder="Importe (ej. 123.45)"
                         className="w-full text-xs px-2 py-1 border border-neutral-300 rounded focus:outline-none focus:ring-1 focus:ring-primary"
                       />
@@ -576,8 +653,13 @@ function PDFUploadSection({
                         onChange={(event) =>
                           setMetadataForm((prev) => ({ ...prev, importeIvaRe: event.target.value }))
                         }
+                        readOnly={shouldAutoCalculateAmountWithTaxes}
                         placeholder={`${amountWithTaxesLabel} (ej. 150.75)`}
-                        className="w-full text-xs px-2 py-1 border border-neutral-300 rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                        className={`w-full text-xs px-2 py-1 border border-neutral-300 rounded focus:outline-none focus:ring-1 focus:ring-primary ${
+                          shouldAutoCalculateAmountWithTaxes
+                            ? 'bg-neutral-100 text-neutral-600 cursor-not-allowed'
+                            : ''
+                        }`}
                       />
                       <input
                         type="date"

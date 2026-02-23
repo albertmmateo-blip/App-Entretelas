@@ -218,7 +218,7 @@ describe('PDFUploadSection', () => {
       expect(updatePDFMetadata).toHaveBeenCalledWith(21, {
         fecha: '2026-02-20',
         importe: 100,
-        importeIvaRe: 121,
+        importeIvaRe: 126.2,
         vencimiento: '2026-03-15',
         pagada: true,
       });

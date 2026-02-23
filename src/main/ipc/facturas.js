@@ -94,6 +94,15 @@ function normalizePaymentStatus(value) {
   throw error;
 }
 
+function calculateImporteWithTaxes(importe, tipo) {
+  if (importe === null) {
+    return null;
+  }
+
+  const multiplier = tipo === 'venta' ? 1.21 : 1.262;
+  return Number((importe * multiplier).toFixed(2));
+}
+
 /**
  * Sanitizes a filename by removing special characters and applying safety rules.
  * @param {string} filename - The filename to sanitize
@@ -619,13 +628,18 @@ function registerFacturasHandlers(deps = {}) {
 
       const db = getDb();
 
-      const exists = db.prepare('SELECT id FROM facturas_pdf WHERE id = ?').get(id);
+      const exists = db.prepare('SELECT id, tipo FROM facturas_pdf WHERE id = ?').get(id);
       if (!exists) {
         return {
           success: false,
           error: { code: 'NOT_FOUND', message: 'PDF record not found' },
         };
       }
+
+      const shouldAutoCalculateImporteIvaRe = exists.tipo === 'compra' || exists.tipo === 'venta';
+      const resolvedImporteIvaRe = shouldAutoCalculateImporteIvaRe
+        ? calculateImporteWithTaxes(importe, exists.tipo)
+        : importeIvaRe;
 
       const stmt = db.prepare(`
         UPDATE facturas_pdf
@@ -637,7 +651,7 @@ function registerFacturasHandlers(deps = {}) {
         WHERE id = ?
       `);
 
-      stmt.run(fecha, importe, importeIvaRe, vencimiento, pagada, id);
+      stmt.run(fecha, importe, resolvedImporteIvaRe, vencimiento, pagada, id);
 
       const updatedRecord = db.prepare('SELECT * FROM facturas_pdf WHERE id = ?').get(id);
 

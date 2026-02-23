@@ -482,7 +482,7 @@ describe('Facturas IPC Handlers', () => {
       expect(response.data).toHaveLength(1);
       expect(response.data[0].entityId).toBe(testProviderId);
       expect(response.data[0].fileCount).toBe(2);
-      expect(response.data[0].totalImporteIvaRe).toBeCloseTo(182.1, 5);
+      expect(response.data[0].totalImporteIvaRe).toBeCloseTo(189.3, 5);
     });
 
     it('should return INVALID_INPUT for missing tipo', async () => {
@@ -518,9 +518,34 @@ describe('Facturas IPC Handlers', () => {
       expect(response.success).toBe(true);
       expect(response.data.fecha).toBe('2026-04-01');
       expect(response.data.importe).toBe(100.5);
-      expect(response.data.importe_iva_re).toBe(121.6);
+      expect(response.data.importe_iva_re).toBe(126.83);
       expect(response.data.vencimiento).toBe('2026-04-30');
       expect(response.data.pagada).toBe(1);
+    });
+
+    it('should auto-calculate venta importe_iva_re from importe', async () => {
+      const uploadHandler = mockHandlers['facturas:uploadPDF'];
+      const uploadResponse = await uploadHandler(null, {
+        tipo: 'venta',
+        entidadId: testProviderId,
+        entidadNombre: 'Test Cliente',
+        filePath: testPDFPath,
+      });
+
+      expect(uploadResponse.success).toBe(true);
+
+      const handler = mockHandlers['facturas:updatePDFMetadata'];
+      const response = await handler(null, uploadResponse.data.id, {
+        fecha: '2026-04-01',
+        importe: '200.00',
+        importeIvaRe: '999.99',
+        vencimiento: '2026-04-30',
+        pagada: false,
+      });
+
+      expect(response.success).toBe(true);
+      expect(response.data.importe).toBe(200);
+      expect(response.data.importe_iva_re).toBe(242);
     });
 
     it('should return INVALID_INPUT for invalid fecha format', async () => {

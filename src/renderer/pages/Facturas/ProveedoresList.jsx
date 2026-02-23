@@ -37,7 +37,7 @@ function ProveedoresListView({ tipo = 'compra' }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [folderCounts, setFolderCounts] = useState({});
   const [foldersWithDuePayment, setFoldersWithDuePayment] = useState({});
-  const [quarterSummary, setQuarterSummary] = useState(() => buildFacturasQuarterSummary());
+  const [quarterSummary, setQuarterSummary] = useState(() => buildFacturasQuarterSummary([], tipo));
   const basePath = `/contabilidad/${tipo}`;
   const sectionTitle = tipo === 'arreglos' ? 'Contabilidad Arreglos' : 'Contabilidad Compra';
   const isCompra = tipo === 'compra';
@@ -56,7 +56,7 @@ function ProveedoresListView({ tipo = 'compra' }) {
         if (!cancelled) {
           setFolderCounts({});
           setFoldersWithDuePayment({});
-          setQuarterSummary(buildFacturasQuarterSummary());
+          setQuarterSummary(buildFacturasQuarterSummary([], tipo));
         }
         return;
       }
@@ -71,7 +71,7 @@ function ProveedoresListView({ tipo = 'compra' }) {
           setFoldersWithDuePayment(
             Object.fromEntries(entries.map((proveedor) => [proveedor.id, false]))
           );
-          setQuarterSummary(buildFacturasQuarterSummary());
+          setQuarterSummary(buildFacturasQuarterSummary([], tipo));
         }
         return;
       }
@@ -86,7 +86,7 @@ function ProveedoresListView({ tipo = 'compra' }) {
           setFoldersWithDuePayment(
             Object.fromEntries(entries.map((proveedor) => [proveedor.id, false]))
           );
-          setQuarterSummary(buildFacturasQuarterSummary());
+          setQuarterSummary(buildFacturasQuarterSummary([], tipo));
         }
         return;
       }
@@ -123,7 +123,7 @@ function ProveedoresListView({ tipo = 'compra' }) {
               ])
             )
           );
-          setQuarterSummary(buildFacturasQuarterSummary(allRows));
+          setQuarterSummary(buildFacturasQuarterSummary(allRows, tipo));
         }
       } catch (error) {
         if (!cancelled) {
@@ -135,7 +135,7 @@ function ProveedoresListView({ tipo = 'compra' }) {
           setFoldersWithDuePayment(
             Object.fromEntries(entries.map((proveedor) => [proveedor.id, false]))
           );
-          setQuarterSummary(buildFacturasQuarterSummary());
+          setQuarterSummary(buildFacturasQuarterSummary([], tipo));
         }
       }
     };
@@ -243,6 +243,12 @@ function ProveedoresListView({ tipo = 'compra' }) {
                       scope="col"
                       className="px-4 py-2 font-semibold text-right whitespace-nowrap"
                     >
+                      Importe
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-2 font-semibold text-right whitespace-nowrap"
+                    >
                       Importe+IVA+RE
                     </th>
                   </tr>
@@ -255,7 +261,10 @@ function ProveedoresListView({ tipo = 'compra' }) {
                           {quarter.key}
                         </th>
                         <td className="px-4 py-2 text-right font-semibold text-neutral-900 whitespace-nowrap">
-                          {formatEuroAmount(quarter.total)}
+                          {formatEuroAmount(quarter.total.importe)}
+                        </td>
+                        <td className="px-4 py-2 text-right font-semibold text-neutral-900 whitespace-nowrap">
+                          {formatEuroAmount(quarter.total.amountWithTaxes)}
                         </td>
                       </tr>
                       {quarter.months.map((month) => (
@@ -270,7 +279,10 @@ function ProveedoresListView({ tipo = 'compra' }) {
                             {month.label}
                           </th>
                           <td className="px-4 py-1.5 text-right text-xs font-medium text-neutral-500 whitespace-nowrap">
-                            {formatEuroAmount(month.total)}
+                            {formatEuroAmount(month.total.importe)}
+                          </td>
+                          <td className="px-4 py-1.5 text-right text-xs font-medium text-neutral-500 whitespace-nowrap">
+                            {formatEuroAmount(month.total.amountWithTaxes)}
                           </td>
                         </tr>
                       ))}
@@ -281,7 +293,10 @@ function ProveedoresListView({ tipo = 'compra' }) {
                       Total anual
                     </th>
                     <td className="px-4 py-2 text-right font-semibold text-primary whitespace-nowrap">
-                      {formatEuroAmount(quarterSummary.annualTotal)}
+                      {formatEuroAmount(quarterSummary.annualTotal.importe)}
+                    </td>
+                    <td className="px-4 py-2 text-right font-semibold text-primary whitespace-nowrap">
+                      {formatEuroAmount(quarterSummary.annualTotal.amountWithTaxes)}
                     </td>
                   </tr>
                 </tbody>

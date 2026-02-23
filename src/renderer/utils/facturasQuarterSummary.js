@@ -22,6 +22,24 @@ export const FACTURAS_MONTH_NAMES = [
   'Diciembre',
 ];
 
+function parseOptionalEuroAmount(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const parsed = parseEuroAmount(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function calculateAmountWithTaxes(importe, tipo) {
+  if (importe === null) {
+    return null;
+  }
+
+  const multiplier = tipo === 'venta' ? 1.21 : 1.262;
+  return importe * multiplier;
+}
+
 function getMonthIndexFromFactura(factura) {
   const source = factura?.fecha || factura?.fecha_subida;
   if (!source) {
@@ -43,8 +61,11 @@ function getMonthIndexFromFactura(factura) {
   return parsed.getMonth();
 }
 
-export function buildFacturasQuarterSummary(rows = []) {
-  const monthTotals = Array.from({ length: 12 }, () => 0);
+export function buildFacturasQuarterSummary(rows = [], tipo = 'compra') {
+  const monthTotals = Array.from({ length: 12 }, () => ({
+    importe: 0,
+    amountWithTaxes: 0,
+  }));
 
   rows.forEach((row) => {
     const monthIndex = getMonthIndexFromFactura(row);
@@ -52,7 +73,18 @@ export function buildFacturasQuarterSummary(rows = []) {
       return;
     }
 
-    monthTotals[monthIndex] += parseEuroAmount(row.importe_iva_re);
+    const importe = parseOptionalEuroAmount(row.importe);
+    const amountWithTaxesFromRow = parseOptionalEuroAmount(row.importe_iva_re);
+    const amountWithTaxes =
+      amountWithTaxesFromRow ?? calculateAmountWithTaxes(importe, row?.tipo || tipo);
+
+    if (importe !== null) {
+      monthTotals[monthIndex].importe += importe;
+    }
+
+    if (amountWithTaxes !== null) {
+      monthTotals[monthIndex].amountWithTaxes += amountWithTaxes;
+    }
   });
 
   const quarters = FACTURAS_QUARTERS.map((quarter) => {
@@ -64,13 +96,19 @@ export function buildFacturasQuarterSummary(rows = []) {
 
     return {
       key: quarter.key,
-      total: months.reduce((sum, month) => sum + month.total, 0),
+      total: {
+        importe: months.reduce((sum, month) => sum + month.total.importe, 0),
+        amountWithTaxes: months.reduce((sum, month) => sum + month.total.amountWithTaxes, 0),
+      },
       months,
     };
   });
 
   return {
     quarters,
-    annualTotal: quarters.reduce((sum, quarter) => sum + quarter.total, 0),
+    annualTotal: {
+      importe: quarters.reduce((sum, quarter) => sum + quarter.total.importe, 0),
+      amountWithTaxes: quarters.reduce((sum, quarter) => sum + quarter.total.amountWithTaxes, 0),
+    },
   };
 }
