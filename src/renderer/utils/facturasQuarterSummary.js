@@ -31,6 +31,45 @@ function parseOptionalEuroAmount(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+export function getFacturaTimestamp(factura) {
+  const source = factura?.fecha || factura?.fecha_subida;
+  if (!source) {
+    return 0;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(source)) {
+    const parsed = new Date(`${source}T00:00:00`);
+    return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+  }
+
+  const parsed = new Date(source);
+  return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+}
+
+export function formatFacturaDisplayDate(factura) {
+  const source = factura?.fecha || factura?.fecha_subida;
+  if (!source) {
+    return '—';
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(source)) {
+    const [year, month, day] = source.split('-');
+    return `${day}/${month}/${year}`;
+  }
+
+  const parsed = new Date(source);
+  if (Number.isNaN(parsed.getTime())) {
+    return String(source);
+  }
+
+  return parsed.toLocaleDateString('es-ES');
+}
+
+export function getFacturaNumberLabel(factura) {
+  const filename = factura?.nombre_original || factura?.nombre_guardado || '';
+  return filename.replace(/\.pdf$/i, '');
+}
+
 function calculateAmountWithTaxes(importe, tipo) {
   if (importe === null) {
     return null;
@@ -38,6 +77,12 @@ function calculateAmountWithTaxes(importe, tipo) {
 
   const multiplier = tipo === 'venta' ? 1.21 : 1.262;
   return importe * multiplier;
+}
+
+export function resolveFacturasAmountWithTaxes(row, tipo = 'compra') {
+  const importe = parseOptionalEuroAmount(row?.importe);
+  const amountWithTaxesFromRow = parseOptionalEuroAmount(row?.importe_iva_re);
+  return amountWithTaxesFromRow ?? calculateAmountWithTaxes(importe, row?.tipo || tipo);
 }
 
 function getMonthIndexFromFactura(factura) {

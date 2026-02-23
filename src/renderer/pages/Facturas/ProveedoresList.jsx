@@ -4,7 +4,13 @@ import PDFUploadSection from '../../components/PDFUploadSection';
 import { EmptyState, LoadingState } from '../../components/entries';
 import useCRUD from '../../hooks/useCRUD';
 import { formatEuroAmount } from '../../utils/euroAmount';
-import { buildFacturasQuarterSummary } from '../../utils/facturasQuarterSummary';
+import {
+  buildFacturasQuarterSummary,
+  formatFacturaDisplayDate,
+  getFacturaNumberLabel,
+  getFacturaTimestamp,
+  resolveFacturasAmountWithTaxes,
+} from '../../utils/facturasQuarterSummary';
 import ProveedorForm from './ProveedorForm';
 
 function hasOverduePayment(row, todayKey) {
@@ -38,6 +44,7 @@ function ProveedoresListView({ tipo = 'compra' }) {
   const [folderCounts, setFolderCounts] = useState({});
   const [foldersWithDuePayment, setFoldersWithDuePayment] = useState({});
   const [quarterSummary, setQuarterSummary] = useState(() => buildFacturasQuarterSummary([], tipo));
+  const [recentInvoices, setRecentInvoices] = useState([]);
   const basePath = `/contabilidad/${tipo}`;
   const sectionTitle = tipo === 'arreglos' ? 'Contabilidad Arreglos' : 'Contabilidad Compra';
   const isCompra = tipo === 'compra';
@@ -57,6 +64,7 @@ function ProveedoresListView({ tipo = 'compra' }) {
           setFolderCounts({});
           setFoldersWithDuePayment({});
           setQuarterSummary(buildFacturasQuarterSummary([], tipo));
+          setRecentInvoices([]);
         }
         return;
       }
@@ -72,6 +80,7 @@ function ProveedoresListView({ tipo = 'compra' }) {
             Object.fromEntries(entries.map((proveedor) => [proveedor.id, false]))
           );
           setQuarterSummary(buildFacturasQuarterSummary([], tipo));
+          setRecentInvoices([]);
         }
         return;
       }
@@ -87,6 +96,7 @@ function ProveedoresListView({ tipo = 'compra' }) {
             Object.fromEntries(entries.map((proveedor) => [proveedor.id, false]))
           );
           setQuarterSummary(buildFacturasQuarterSummary([], tipo));
+          setRecentInvoices([]);
         }
         return;
       }
@@ -108,6 +118,19 @@ function ProveedoresListView({ tipo = 'compra' }) {
           })
         );
         const allRows = rowsByProveedor.flat();
+        const proveedorNameById = Object.fromEntries(
+          entries.map((proveedor) => [proveedor.id, proveedor.razon_social || '—'])
+        );
+        const recentRows = [...allRows]
+          .sort((a, b) => getFacturaTimestamp(b) - getFacturaTimestamp(a))
+          .map((row) => ({
+            id: row.id,
+            fecha: formatFacturaDisplayDate(row),
+            proveedor: proveedorNameById[row.entidad_id] || '—',
+            numero: getFacturaNumberLabel(row),
+            importe: row.importe,
+            amountWithTaxes: resolveFacturasAmountWithTaxes(row, tipo),
+          }));
 
         if (!cancelled) {
           setFolderCounts(
@@ -124,6 +147,7 @@ function ProveedoresListView({ tipo = 'compra' }) {
             )
           );
           setQuarterSummary(buildFacturasQuarterSummary(allRows, tipo));
+          setRecentInvoices(recentRows);
         }
       } catch (error) {
         if (!cancelled) {
@@ -136,6 +160,7 @@ function ProveedoresListView({ tipo = 'compra' }) {
             Object.fromEntries(entries.map((proveedor) => [proveedor.id, false]))
           );
           setQuarterSummary(buildFacturasQuarterSummary([], tipo));
+          setRecentInvoices([]);
         }
       }
     };
@@ -231,6 +256,65 @@ function ProveedoresListView({ tipo = 'compra' }) {
               </button>
             ))}
           </div>
+          {isCompra && (
+            <div className="mt-3 overflow-hidden border border-neutral-200 rounded-lg bg-white">
+              <div className="max-h-56 overflow-auto">
+                <table className="min-w-full text-sm text-left">
+                  <thead className="bg-neutral-100 text-neutral-700 sticky top-0 z-10">
+                    <tr>
+                      <th scope="col" className="px-4 py-2 font-semibold whitespace-nowrap">
+                        Fecha
+                      </th>
+                      <th scope="col" className="px-4 py-2 font-semibold whitespace-nowrap">
+                        Proveedor
+                      </th>
+                      <th scope="col" className="px-4 py-2 font-semibold whitespace-nowrap">
+                        #
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-4 py-2 font-semibold text-right whitespace-nowrap"
+                      >
+                        Importe
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-4 py-2 font-semibold text-right whitespace-nowrap"
+                      >
+                        Importe+impuestos (Compra/Venta)
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentInvoices.length > 0 ? (
+                      recentInvoices.map((invoice) => (
+                        <tr key={invoice.id} className="border-t border-neutral-200">
+                          <td className="px-4 py-2 text-neutral-700 whitespace-nowrap">
+                            {invoice.fecha}
+                          </td>
+                          <td className="px-4 py-2 text-neutral-900">{invoice.proveedor}</td>
+                          <td className="px-4 py-2 text-neutral-700">{invoice.numero || '—'}</td>
+                          <td className="px-4 py-2 text-right text-neutral-900 whitespace-nowrap">
+                            {formatEuroAmount(invoice.importe)}
+                          </td>
+                          <td className="px-4 py-2 text-right text-neutral-900 whitespace-nowrap">
+                            {formatEuroAmount(invoice.amountWithTaxes)}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr className="border-t border-neutral-200">
+                        <td colSpan={5} className="px-4 py-4 text-sm text-neutral-500">
+                          Sin facturas de compra registradas.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {isCompra && (
             <div className="mt-3 overflow-x-auto border border-neutral-200 rounded-lg bg-neutral-50">
               <table className="min-w-full text-sm text-left">
