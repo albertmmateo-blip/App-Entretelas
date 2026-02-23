@@ -35,20 +35,34 @@ npm run rebuild-natives
 # Internally: npx electron-rebuild -f -w better-sqlite3
 ```
 
+If you get Windows lock errors such as `EPERM ... better_sqlite3.node`, run:
+
+```powershell
+npm run cleanup-native-locks
+npm run rebuild-natives
+```
+
 ---
 
 ## 3. Available Scripts
 
-| Script          | Command                        | Description                                                           |
-| --------------- | ------------------------------ | --------------------------------------------------------------------- |
-| Dev             | `npm run dev`                  | Rebuilds native modules for Electron, then starts Vite + Electron     |
-| Build           | `npm run build`                | Compiles renderer (Vite) + packages Electron app via electron-builder |
-| Dist            | `npm run dist`                 | Produces a Windows installer (NSIS) in `dist/`                        |
-| Test            | `npm test`                     | Rebuilds native modules for Node, then runs Vitest                    |
-| Lint            | `npm run lint`                 | ESLint + Prettier check                                               |
-| Lint fix        | `npm run lint:fix`             | ESLint auto-fix + Prettier format                                     |
-| Rebuild (Node)  | `npm run rebuild-natives:node` | Recompiles native modules for the current Node runtime                |
-| Rebuild natives | `npm run rebuild-natives`      | Recompiles native Node modules for the current Electron version       |
+| Script               | Command                        | Description                                                                       |
+| -------------------- | ------------------------------ | --------------------------------------------------------------------------------- |
+| Dev                  | `npm run dev`                  | Rebuilds native modules for Electron, then starts Vite + Electron                 |
+| Build                | `npm run build`                | Compiles renderer (Vite) + packages Electron app via electron-builder             |
+| Dist                 | `npm run dist`                 | Produces a Windows installer (NSIS) in `dist/`                                    |
+| Test                 | `npm test`                     | Rebuilds native modules for Node, then runs Vitest                                |
+| Lint                 | `npm run lint`                 | ESLint + Prettier check                                                           |
+| Lint fix             | `npm run lint:fix`             | ESLint auto-fix + Prettier format                                                 |
+| Cleanup native locks | `npm run cleanup-native-locks` | Stops stale workspace `node/electron` processes and waits for native lock release |
+| Rebuild (Node)       | `npm run rebuild-natives:node` | Runs cleanup, then recompiles native modules for the current Node runtime         |
+| Rebuild natives      | `npm run rebuild-natives`      | Runs cleanup, then recompiles native modules for the current Electron version     |
+
+### Sensitive operational notes (Windows)
+
+- `cleanup-native-locks` uses force-stop for stale workspace `node.exe`/`electron.exe` processes.
+- Save unsaved work in running app windows before invoking rebuild scripts.
+- `postinstall` now warns (instead of failing install) when a native lock blocks rebuild; run `npm run rebuild-natives` manually after cleanup.
 
 ---
 

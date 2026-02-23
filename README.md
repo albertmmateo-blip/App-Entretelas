@@ -40,6 +40,47 @@ npm run lint
 npm run build
 ```
 
+## Windows Native Module Lock Recovery (Important)
+
+On Windows, `better-sqlite3` can fail to rebuild with:
+
+- `EPERM: operation not permitted, unlink ... better_sqlite3.node`
+
+The project now includes an automatic lock-cleanup step before native rebuilds.
+
+### New safety script
+
+- `npm run cleanup-native-locks`
+  - Stops stale `node.exe` / `electron.exe` processes associated with this workspace.
+  - Waits until `better_sqlite3.node` is no longer locked.
+
+### Updated script behavior
+
+- `npm run dev`
+  - Rebuilds native modules for Electron (`better-sqlite3`), then starts Vite + Electron.
+  - This prevents ABI mismatch errors after running Node-based test scripts.
+- `npm run rebuild-natives`
+  - Runs lock cleanup, then executes `electron-rebuild -f -w better-sqlite3`.
+- `npm run rebuild-natives:node`
+  - Runs lock cleanup, then `npm rebuild better-sqlite3`.
+- `npm install`
+  - `postinstall` attempts native rebuild, but if a lock remains it logs a warning instead of hard-failing installation.
+
+### When you still hit `EPERM`
+
+Run:
+
+```bash
+npm run cleanup-native-locks
+npm run rebuild-natives
+npm run dev
+```
+
+### Safety note
+
+- `cleanup-native-locks` force-stops stale app processes to release native-module file locks.
+- Save open work in running app windows before rebuilding natives.
+
 ### Release installer (quick)
 
 - For a fast release checklist (including how to ensure users install the latest version), see [docs/DEVELOPMENT_GUIDE.md §7](docs/DEVELOPMENT_GUIDE.md#7-building-a-distributable).

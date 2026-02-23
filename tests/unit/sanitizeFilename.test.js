@@ -1,8 +1,4 @@
-import { describe, it, expect } from 'vitest';
-
-// Import the sanitizeFilename function
-// Note: We need to mock electron module first
-import { vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('electron', () => ({
   ipcMain: {
@@ -15,7 +11,7 @@ vi.mock('electron', () => ({
 }));
 
 // Now import the module with sanitizeFilename
-const { sanitizeFilename } = await import('../../src/main/ipc/facturas.js');
+const { sanitizeFilename } = await import('../../src/main/ipc/facturas');
 
 describe('sanitizeFilename', () => {
   it('should remove special characters', () => {
@@ -85,7 +81,7 @@ describe('sanitizeFilename', () => {
   });
 
   it('should truncate long names to 200 characters', () => {
-    const longName = 'a'.repeat(250) + '.pdf';
+    const longName = `${'a'.repeat(250)}.pdf`;
     const result = sanitizeFilename(longName);
     expect(result.length).toBe(200);
   });

@@ -145,14 +145,13 @@ function ClientesListView() {
   }, [entries]);
 
   const filteredClientes = useMemo(() => {
-    if (!searchQuery.trim()) return entries;
-    const query = searchQuery.toLowerCase();
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return [];
+
     return entries.filter(
       (cliente) =>
         (cliente.razon_social && cliente.razon_social.toLowerCase().includes(query)) ||
-        (cliente.numero_cliente && cliente.numero_cliente.toLowerCase().includes(query)) ||
-        (cliente.direccion && cliente.direccion.toLowerCase().includes(query)) ||
-        (cliente.nif && cliente.nif.toLowerCase().includes(query))
+        (cliente.numero_cliente && cliente.numero_cliente.toLowerCase().includes(query))
     );
   }, [entries, searchQuery]);
 
@@ -161,6 +160,8 @@ function ClientesListView() {
       return a.razon_social.localeCompare(b.razon_social, 'es-ES');
     });
   }, [filteredClientes]);
+
+  const hasSearchQuery = searchQuery.trim().length > 0;
 
   if (loading && entries.length === 0) {
     return <LoadingState />;
@@ -193,7 +194,7 @@ function ClientesListView() {
       <div className="mb-4">
         <input
           type="search"
-          placeholder="Buscar cliente..."
+          placeholder="Buscar por Razón social o Número de cliente..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           data-search-input
@@ -201,7 +202,7 @@ function ClientesListView() {
         />
       </div>
 
-      {sortedClientes.length > 0 && (
+      {hasSearchQuery && sortedClientes.length > 0 && (
         <div className="mb-4">
           <div className="flex flex-wrap gap-2">
             {sortedClientes.map((cliente) => (
@@ -233,64 +234,64 @@ function ClientesListView() {
               </button>
             ))}
           </div>
-
-          <div className="mt-3 overflow-x-auto border border-neutral-200 rounded-lg bg-neutral-50">
-            <table className="min-w-full text-sm text-left">
-              <thead className="bg-neutral-100 text-neutral-700">
-                <tr>
-                  <th scope="col" className="px-4 py-2 font-semibold">
-                    Periodo
-                  </th>
-                  <th scope="col" className="px-4 py-2 font-semibold text-right whitespace-nowrap">
-                    Importe+IVA
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {quarterSummary.quarters.map((quarter) => (
-                  <React.Fragment key={quarter.key}>
-                    <tr className="border-t border-neutral-200 bg-white">
-                      <th scope="row" className="px-4 py-2 font-semibold text-neutral-900">
-                        {quarter.key}
-                      </th>
-                      <td className="px-4 py-2 text-right font-semibold text-neutral-900 whitespace-nowrap">
-                        {formatEuroAmount(quarter.total)}
-                      </td>
-                    </tr>
-                    {quarter.months.map((month) => (
-                      <tr
-                        key={`${quarter.key}-${month.monthIndex}`}
-                        className="border-t border-neutral-200/70"
-                      >
-                        <th
-                          scope="row"
-                          className="px-4 py-1.5 pl-8 text-xs font-medium text-neutral-500"
-                        >
-                          {month.label}
-                        </th>
-                        <td className="px-4 py-1.5 text-right text-xs font-medium text-neutral-500 whitespace-nowrap">
-                          {formatEuroAmount(month.total)}
-                        </td>
-                      </tr>
-                    ))}
-                  </React.Fragment>
-                ))}
-                <tr className="border-t-2 border-neutral-300 bg-neutral-100/70">
-                  <th scope="row" className="px-4 py-2 font-semibold text-primary">
-                    Total anual
-                  </th>
-                  <td className="px-4 py-2 text-right font-semibold text-primary whitespace-nowrap">
-                    {formatEuroAmount(quarterSummary.annualTotal)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
         </div>
       )}
 
+      <div className="mb-4 mt-3 overflow-x-auto border border-neutral-200 rounded-lg bg-neutral-50">
+        <table className="min-w-full text-sm text-left">
+          <thead className="bg-neutral-100 text-neutral-700">
+            <tr>
+              <th scope="col" className="px-4 py-2 font-semibold">
+                Periodo
+              </th>
+              <th scope="col" className="px-4 py-2 font-semibold text-right whitespace-nowrap">
+                Importe+IVA
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {quarterSummary.quarters.map((quarter) => (
+              <React.Fragment key={quarter.key}>
+                <tr className="border-t border-neutral-200 bg-white">
+                  <th scope="row" className="px-4 py-2 font-semibold text-neutral-900">
+                    {quarter.key}
+                  </th>
+                  <td className="px-4 py-2 text-right font-semibold text-neutral-900 whitespace-nowrap">
+                    {formatEuroAmount(quarter.total)}
+                  </td>
+                </tr>
+                {quarter.months.map((month) => (
+                  <tr
+                    key={`${quarter.key}-${month.monthIndex}`}
+                    className="border-t border-neutral-200/70"
+                  >
+                    <th
+                      scope="row"
+                      className="px-4 py-1.5 pl-8 text-xs font-medium text-neutral-500"
+                    >
+                      {month.label}
+                    </th>
+                    <td className="px-4 py-1.5 text-right text-xs font-medium text-neutral-500 whitespace-nowrap">
+                      {formatEuroAmount(month.total)}
+                    </td>
+                  </tr>
+                ))}
+              </React.Fragment>
+            ))}
+            <tr className="border-t-2 border-neutral-300 bg-neutral-100/70">
+              <th scope="row" className="px-4 py-2 font-semibold text-primary">
+                Total anual
+              </th>
+              <td className="px-4 py-2 text-right font-semibold text-primary whitespace-nowrap">
+                {formatEuroAmount(quarterSummary.annualTotal)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
       {/* Empty state */}
-      {sortedClientes.length === 0 && !loading && (
+      {hasSearchQuery && sortedClientes.length === 0 && !loading && (
         <EmptyState icon="📁" title="clientes" hasSearchQuery={!!searchQuery} />
       )}
     </div>
@@ -314,6 +315,17 @@ function ClientePDFView() {
     () => (entidadId ? entries.find((item) => Number(item.id) === Number(entidadId)) : null),
     [entidadId, entries]
   );
+  const clienteDisplayName = useMemo(() => {
+    if (!cliente) {
+      return '';
+    }
+
+    if (cliente.numero_cliente) {
+      return `${cliente.razon_social} - ${cliente.numero_cliente}`;
+    }
+
+    return cliente.razon_social;
+  }, [cliente]);
 
   if (!entidadId) {
     return null;
@@ -323,9 +335,7 @@ function ClientePDFView() {
     <div className="p-6 max-w-6xl mx-auto">
       <div className="flex items-center mb-6">
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-neutral-900">
-            {cliente?.razon_social || 'Cliente'}
-          </h1>
+          <h1 className="text-2xl font-bold text-neutral-900">{clienteDisplayName || 'Cliente'}</h1>
           {cliente?.fecha_creacion && (
             <p className="text-sm text-neutral-500 mt-1">
               Creado: {new Date(cliente.fecha_creacion).toLocaleDateString('es-ES')}
@@ -356,7 +366,7 @@ function ClientePDFView() {
         <PDFUploadSection
           tipo="venta"
           entidadId={entidadId}
-          entidadNombre={cliente?.razon_social || `Cliente ${entidadId}`}
+          entidadNombre={clienteDisplayName || `Cliente ${entidadId}`}
           sectionLabel="Facturas"
           fileLabel="Factura"
         />

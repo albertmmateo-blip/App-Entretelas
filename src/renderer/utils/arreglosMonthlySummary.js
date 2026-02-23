@@ -2,6 +2,28 @@ import { parseEuroAmount } from './euroAmount';
 
 export const ALBARAN_OPTIONS = ['Entretelas', 'Isa', 'Loli'];
 
+export const ARREGLOS_QUARTERS = [
+  { key: 'T1', monthIndexes: [0, 1, 2] },
+  { key: 'T2', monthIndexes: [3, 4, 5] },
+  { key: 'T3', monthIndexes: [6, 7, 8] },
+  { key: 'T4', monthIndexes: [9, 10, 11] },
+];
+
+export const ARREGLOS_MONTH_NAMES = [
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Septiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
+];
+
 const MONTH_NAME_FORMATTER = new Intl.DateTimeFormat('es-ES', {
   month: 'long',
   year: 'numeric',
@@ -83,6 +105,85 @@ export function buildMonthlySummary(entries) {
       ...row,
       monthLabel: monthLabelFromKey(row.monthKey),
     }));
+}
+
+function createFolderMetrics() {
+  return Object.fromEntries(ALBARAN_OPTIONS.map((folder) => [folder, { amount: 0, count: 0 }]));
+}
+
+function getMonthIndexFromArreglo(entry) {
+  const source = entry?.fecha;
+  if (!source) {
+    return null;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(source)) {
+    const monthPart = Number.parseInt(source.slice(5, 7), 10);
+    if (monthPart >= 1 && monthPart <= 12) {
+      return monthPart - 1;
+    }
+  }
+
+  const parsed = new Date(source);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return parsed.getMonth();
+}
+
+export function buildArreglosQuarterSummary(entries = []) {
+  const monthlyBuckets = Array.from({ length: 12 }, (_, monthIndex) => ({
+    monthIndex,
+    label: ARREGLOS_MONTH_NAMES[monthIndex],
+    total: { amount: 0, count: 0 },
+    folders: createFolderMetrics(),
+  }));
+
+  entries.forEach((entry) => {
+    const folder = normalizeFolderValue(entry?.albaran);
+    const monthIndex = getMonthIndexFromArreglo(entry);
+    if (!folder || monthIndex === null) {
+      return;
+    }
+
+    const amount = parseEuroAmount(entry?.importe);
+    const month = monthlyBuckets[monthIndex];
+    month.total.amount += amount;
+    month.total.count += 1;
+    month.folders[folder].amount += amount;
+    month.folders[folder].count += 1;
+  });
+
+  const quarters = ARREGLOS_QUARTERS.map((quarter) => {
+    const months = quarter.monthIndexes.map((monthIndex) => monthlyBuckets[monthIndex]);
+    const folders = createFolderMetrics();
+
+    months.forEach((month) => {
+      ALBARAN_OPTIONS.forEach((folder) => {
+        folders[folder].amount += month.folders[folder].amount;
+        folders[folder].count += month.folders[folder].count;
+      });
+    });
+
+    return {
+      key: quarter.key,
+      total: {
+        amount: months.reduce((sum, month) => sum + month.total.amount, 0),
+        count: months.reduce((sum, month) => sum + month.total.count, 0),
+      },
+      folders,
+      months,
+    };
+  });
+
+  return {
+    quarters,
+    annualTotal: {
+      amount: quarters.reduce((sum, quarter) => sum + quarter.total.amount, 0),
+      count: quarters.reduce((sum, quarter) => sum + quarter.total.count, 0),
+    },
+  };
 }
 
 export function splitArreglosTotal(totalImporte) {

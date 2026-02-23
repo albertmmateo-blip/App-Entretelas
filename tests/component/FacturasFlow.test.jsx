@@ -174,6 +174,19 @@ describe('Facturas flow routing', () => {
 
     renderClientes('/contabilidad/venta');
 
+    expect(screen.getByRole('columnheader', { name: 'Periodo' })).toBeInTheDocument();
+
+    expect(
+      screen.queryByRole('button', { name: 'Abrir carpeta de Cliente 0001' })
+    ).not.toBeInTheDocument();
+
+    fireEvent.change(
+      screen.getByPlaceholderText('Buscar por Razón social o Número de cliente...'),
+      {
+        target: { value: 'Cliente 0001' },
+      }
+    );
+
     fireEvent.click(screen.getByRole('button', { name: 'Abrir carpeta de Cliente 0001' }));
 
     expect(screen.getByTestId('location-display')).toHaveTextContent('/contabilidad/venta/1');
@@ -185,6 +198,13 @@ describe('Facturas flow routing', () => {
     setupCRUDMock({ clientes: clientesFixture(1) });
 
     renderClientes('/contabilidad/venta');
+
+    fireEvent.change(
+      screen.getByPlaceholderText('Buscar por Razón social o Número de cliente...'),
+      {
+        target: { value: 'C-1' },
+      }
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Abrir carpeta de Cliente 0001' }));
     fireEvent.click(screen.getByRole('button', { name: 'Editar cliente' }));

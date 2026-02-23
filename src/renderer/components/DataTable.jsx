@@ -12,7 +12,21 @@ function getRowBackgroundClass(isUrgente, rowIndex) {
   return 'bg-white hover:bg-sky-100/70';
 }
 
-function DataTable({ columns, data, onRowClick, renderActions, initialSort, rowClassName }) {
+function DataTable({
+  columns,
+  data,
+  onRowClick,
+  renderActions,
+  initialSort,
+  rowClassName,
+  headerCellClassName = '',
+  headerLabelClassName = '',
+  headerRowClassName = '',
+  bodyCellClassName = '',
+  actionCellClassName = '',
+  bodyCellVerticalAlign = 'top',
+}) {
+  const verticalAlignClass = bodyCellVerticalAlign === 'middle' ? 'align-middle' : 'align-top';
   const sortableColumns = columns.filter((col) => col.sortable);
   const defaultSortFromColumns = sortableColumns.length
     ? { key: sortableColumns[0].key, direction: 'asc' }
@@ -97,29 +111,33 @@ function DataTable({ columns, data, onRowClick, renderActions, initialSort, rowC
   return (
     <div className="bg-white border border-neutral-200 rounded-xl shadow-sm overflow-hidden">
       <table className="w-full">
-        <thead className="bg-sky-200 border-b border-sky-300">
+        <thead className={`bg-sky-200 border-b border-sky-300 ${headerRowClassName}`}>
           <tr>
             {columns.map((column) => (
-              <th key={column.key} className="px-4 py-3 text-right">
+              <th key={column.key} className={`px-4 py-3 text-right ${headerCellClassName}`}>
                 {column.sortable ? (
                   <button
                     type="button"
                     onClick={() => handleSort(column.key)}
-                    className="w-full text-xs font-semibold uppercase tracking-wide text-neutral-600 hover:text-neutral-900 flex items-center justify-end gap-1 transition-colors"
+                    className={`w-full text-xs font-semibold uppercase tracking-wide text-neutral-600 hover:text-neutral-900 flex items-center justify-end gap-1 transition-colors ${headerLabelClassName}`}
                   >
                     {column.label}
                     {renderSortIndicator(column)}
                   </button>
                 ) : (
-                  <span className="block text-xs font-semibold uppercase tracking-wide text-neutral-600 text-right">
+                  <span
+                    className={`block text-xs font-semibold uppercase tracking-wide text-neutral-600 text-right ${headerLabelClassName}`}
+                  >
                     {column.label}
                   </span>
                 )}
               </th>
             ))}
             {renderActions && (
-              <th className="px-4 py-3 text-center">
-                <span className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
+              <th className={`px-4 py-3 text-center ${headerCellClassName}`}>
+                <span
+                  className={`text-xs font-semibold uppercase tracking-wide text-neutral-600 ${headerLabelClassName}`}
+                >
                   Acciones
                 </span>
               </th>
@@ -142,7 +160,7 @@ function DataTable({ columns, data, onRowClick, renderActions, initialSort, rowC
                 {columns.map((column) => (
                   <td
                     key={column.key}
-                    className={`px-4 py-3 text-sm text-neutral-800 align-top text-right ${
+                    className={`px-4 py-3 text-sm text-neutral-800 ${verticalAlignClass} text-right ${bodyCellClassName} ${
                       isUrgente ? 'font-medium' : ''
                     }`}
                   >
@@ -150,7 +168,9 @@ function DataTable({ columns, data, onRowClick, renderActions, initialSort, rowC
                   </td>
                 ))}
                 {renderActions && (
-                  <td className="px-4 py-3 text-center">
+                  <td
+                    className={`px-4 py-3 text-center ${verticalAlignClass} ${actionCellClassName || bodyCellClassName}`}
+                  >
                     <button
                       type="button"
                       onClick={(e) => {

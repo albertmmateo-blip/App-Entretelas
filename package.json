@@ -25,9 +25,10 @@
     "lint:fix": "eslint . --ext .js,.jsx --fix && prettier --write \"**/*.{js,jsx,json,css,md}\"",
     "format": "prettier --write \"**/*.{js,jsx,json,css,md}\"",
     "prepare": "husky",
-    "postinstall": "electron-rebuild -f -w better-sqlite3",
-    "rebuild-natives:node": "npm rebuild better-sqlite3",
-    "rebuild-natives": "electron-rebuild -f -w better-sqlite3",
+    "postinstall": "npm run rebuild-natives || echo [WARN] Native rebuild skipped due file lock; run npm run rebuild-natives manually after closing the app.",
+    "cleanup-native-locks": "node scripts/cleanup-native-locks.js",
+    "rebuild-natives:node": "npm run cleanup-native-locks && npm rebuild better-sqlite3",
+    "rebuild-natives": "npm run cleanup-native-locks && electron-rebuild -f -w better-sqlite3",
     "audit:security": "npm audit --production"
   },
   "lint-staged": {

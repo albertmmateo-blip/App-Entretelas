@@ -295,4 +295,45 @@ describe('Arreglos page', () => {
 
     openSpy.mockRestore();
   });
+
+  it('renders quarter/month resumen table without volver button in popup route', () => {
+    useCRUDMock.mockReturnValue({
+      entries: [
+        {
+          id: 1,
+          albaran: 'Entretelas',
+          fecha: '2026-01-10',
+          numero: 'A-001',
+          cliente: 'Cliente 1',
+          arreglo: 'Arreglo 1',
+          importe: 100,
+        },
+        {
+          id: 2,
+          albaran: 'Isa',
+          fecha: '2026-02-15',
+          numero: 'A-002',
+          cliente: 'Cliente 2',
+          arreglo: 'Arreglo 2',
+          importe: 200,
+        },
+      ],
+      loading: false,
+      fetchAll: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn().mockResolvedValue(true),
+    });
+
+    renderArreglos('/contabilidad/arreglos/resumenes-mensuales?scope=all');
+
+    expect(
+      screen.getByRole('heading', { name: 'Resumenes mensuales de Arreglos' })
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Volver/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Periodo' })).toBeInTheDocument();
+    expect(screen.getAllByText(/65,00\s*€\s*\(1\)/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/130,00\s*€\s*\(1\)/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/300,00\s*€\s*\(2\)/).length).toBeGreaterThan(0);
+  });
 });

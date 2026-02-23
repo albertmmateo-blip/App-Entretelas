@@ -6,7 +6,7 @@ import useCRUD from '../../hooks/useCRUD';
 import { formatEuroAmount, parseEuroAmount } from '../../utils/euroAmount';
 import {
   ALBARAN_OPTIONS,
-  buildMonthlySummary,
+  buildArreglosQuarterSummary,
   monthKeyFromFecha,
   monthLabelFromKey,
   normalizeFolderValue,
@@ -335,6 +335,12 @@ function ArreglosListView() {
           data={filteredEntries}
           onRowClick={(row) => navigate(`${listBasePath}/${row.id}`)}
           initialSort={{ key: 'fecha', direction: 'desc' }}
+          headerRowClassName="bg-sky-300 border-sky-400"
+          headerCellClassName="py-2.5"
+          headerLabelClassName="text-base font-extrabold text-neutral-900 tracking-normal"
+          bodyCellVerticalAlign="middle"
+          bodyCellClassName="py-2.5 font-medium"
+          actionCellClassName="py-2.5"
           rowClassName={(row) => getAlbaranColorStyles(row.albaran)?.rowClassName || ''}
           renderActions={(row) => [
             {
@@ -633,7 +639,6 @@ function ArreglosForm() {
 }
 
 function ArreglosMonthlySummariesPage() {
-  const navigate = useNavigate();
   const location = useLocation();
   const { entries, loading, fetchAll } = useCRUD('arreglos');
 
@@ -659,7 +664,12 @@ function ArreglosMonthlySummariesPage() {
     return entries.filter((entry) => entry.albaran === scope);
   }, [entries, scope]);
 
-  const monthlyRows = useMemo(() => buildMonthlySummary(scopedEntries), [scopedEntries]);
+  const quarterSummary = useMemo(() => buildArreglosQuarterSummary(scopedEntries), [scopedEntries]);
+
+  const formatAmountWithCount = (amount, count, applyFolderSplit = true) => {
+    const value = applyFolderSplit ? splitArreglosTotal(amount).folderShare : amount;
+    return `${formatEuroAmount(value)} (${count})`;
+  };
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -667,90 +677,172 @@ function ArreglosMonthlySummariesPage() {
         <h1 className="text-2xl font-bold text-neutral-900 flex-1">
           Resumenes mensuales {scope === 'all' ? 'de Arreglos' : `de ${scope}`}
         </h1>
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="px-3 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
-        >
-          ← Volver
-        </button>
       </div>
 
       {loading && <div className="text-sm text-neutral-500 py-8 text-center">Cargando...</div>}
 
-      {!loading && monthlyRows.length === 0 && (
+      {!loading && quarterSummary.annualTotal.count === 0 && (
         <div className="flex flex-col items-center py-16 text-neutral-400">
           <span className="text-5xl mb-4">📭</span>
           <p className="text-lg font-medium">No hay datos para mostrar resúmenes mensuales</p>
         </div>
       )}
 
-      {!loading && monthlyRows.length > 0 && (
-        <DataTable
-          columns={[
-            {
-              key: 'monthLabel',
-              label: 'Mes',
-              sortable: true,
-              sortValue: (row) => row.monthKey,
-            },
-            {
-              key: 'count',
-              label: 'Entradas',
-              sortable: true,
-            },
-            {
-              key: 'totalImporte',
-              label: 'Total',
-              sortable: true,
-              render: (value) => formatEuroAmount(value),
-              sortValue: (row) => row.totalImporte,
-            },
-            {
-              key: 'entretelas',
-              label: 'Entretelas',
-              sortable: true,
-              render: (_value, row) =>
-                formatEuroAmount(splitArreglosTotal(row.entretelas).folderShare),
-              sortValue: (row) => splitArreglosTotal(row.entretelas).folderShare,
-            },
-            {
-              key: 'isa',
-              label: 'Isa',
-              sortable: true,
-              render: (_value, row) => formatEuroAmount(splitArreglosTotal(row.isa).folderShare),
-              sortValue: (row) => splitArreglosTotal(row.isa).folderShare,
-            },
-            {
-              key: 'loli',
-              label: 'Loli',
-              sortable: true,
-              render: (_value, row) => formatEuroAmount(splitArreglosTotal(row.loli).folderShare),
-              sortValue: (row) => splitArreglosTotal(row.loli).folderShare,
-            },
-            {
-              key: 'tiendaShare',
-              label: 'Tienda',
-              sortable: true,
-              render: (_value, row) => {
-                const tiendaShare =
-                  splitArreglosTotal(row.entretelas).tiendaShare +
-                  splitArreglosTotal(row.isa).tiendaShare +
-                  splitArreglosTotal(row.loli).tiendaShare;
-                return formatEuroAmount(tiendaShare);
-              },
-              sortValue: (row) => {
-                return (
-                  splitArreglosTotal(row.entretelas).tiendaShare +
-                  splitArreglosTotal(row.isa).tiendaShare +
-                  splitArreglosTotal(row.loli).tiendaShare
-                );
-              },
-            },
-          ]}
-          data={monthlyRows}
-          initialSort={{ key: 'monthLabel', direction: 'desc' }}
-        />
+      {!loading && quarterSummary.annualTotal.count > 0 && (
+        <div className="bg-white border border-neutral-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-sky-200 border-b border-sky-300">
+                <tr>
+                  <th
+                    scope="col"
+                    className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-neutral-600 align-middle"
+                  >
+                    Periodo
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-neutral-600 whitespace-nowrap align-middle"
+                  >
+                    Entretelas
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-neutral-600 whitespace-nowrap align-middle"
+                  >
+                    Isa
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-neutral-600 whitespace-nowrap align-middle"
+                  >
+                    Loli
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-neutral-600 whitespace-nowrap align-middle"
+                  >
+                    Total
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {quarterSummary.quarters.map((quarter) => (
+                  <React.Fragment key={quarter.key}>
+                    <tr className="border-b border-neutral-100 bg-white">
+                      <th
+                        scope="row"
+                        className="px-4 py-2.5 font-semibold text-neutral-900 align-middle"
+                      >
+                        {quarter.key}
+                      </th>
+                      <td className="px-4 py-2.5 text-right font-semibold text-neutral-900 whitespace-nowrap align-middle">
+                        {formatAmountWithCount(
+                          quarter.folders.Entretelas.amount,
+                          quarter.folders.Entretelas.count
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-semibold text-neutral-900 whitespace-nowrap align-middle">
+                        {formatAmountWithCount(
+                          quarter.folders.Isa.amount,
+                          quarter.folders.Isa.count
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-semibold text-neutral-900 whitespace-nowrap align-middle">
+                        {formatAmountWithCount(
+                          quarter.folders.Loli.amount,
+                          quarter.folders.Loli.count
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-semibold text-neutral-900 whitespace-nowrap align-middle">
+                        {formatAmountWithCount(quarter.total.amount, quarter.total.count, false)}
+                      </td>
+                    </tr>
+                    {quarter.months.map((month) => (
+                      <tr
+                        key={`${quarter.key}-${month.monthIndex}`}
+                        className="border-b border-neutral-100 bg-white/70"
+                      >
+                        <th
+                          scope="row"
+                          className="px-4 py-2 pl-8 text-xs font-medium text-neutral-500 align-middle"
+                        >
+                          {month.label}
+                        </th>
+                        <td className="px-4 py-2 text-right text-xs font-medium text-neutral-500 whitespace-nowrap align-middle">
+                          {formatAmountWithCount(
+                            month.folders.Entretelas.amount,
+                            month.folders.Entretelas.count
+                          )}
+                        </td>
+                        <td className="px-4 py-2 text-right text-xs font-medium text-neutral-500 whitespace-nowrap align-middle">
+                          {formatAmountWithCount(month.folders.Isa.amount, month.folders.Isa.count)}
+                        </td>
+                        <td className="px-4 py-2 text-right text-xs font-medium text-neutral-500 whitespace-nowrap align-middle">
+                          {formatAmountWithCount(
+                            month.folders.Loli.amount,
+                            month.folders.Loli.count
+                          )}
+                        </td>
+                        <td className="px-4 py-2 text-right text-xs font-medium text-neutral-500 whitespace-nowrap align-middle">
+                          {formatAmountWithCount(month.total.amount, month.total.count, false)}
+                        </td>
+                      </tr>
+                    ))}
+                  </React.Fragment>
+                ))}
+                <tr className="border-t border-sky-300 bg-sky-50">
+                  <th scope="row" className="px-4 py-2.5 font-semibold text-primary align-middle">
+                    Total anual
+                  </th>
+                  <td className="px-4 py-2.5 text-right font-semibold text-primary whitespace-nowrap align-middle">
+                    {formatAmountWithCount(
+                      quarterSummary.quarters.reduce(
+                        (sum, quarter) => sum + quarter.folders.Entretelas.amount,
+                        0
+                      ),
+                      quarterSummary.quarters.reduce(
+                        (sum, quarter) => sum + quarter.folders.Entretelas.count,
+                        0
+                      )
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 text-right font-semibold text-primary whitespace-nowrap align-middle">
+                    {formatAmountWithCount(
+                      quarterSummary.quarters.reduce(
+                        (sum, quarter) => sum + quarter.folders.Isa.amount,
+                        0
+                      ),
+                      quarterSummary.quarters.reduce(
+                        (sum, quarter) => sum + quarter.folders.Isa.count,
+                        0
+                      )
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 text-right font-semibold text-primary whitespace-nowrap align-middle">
+                    {formatAmountWithCount(
+                      quarterSummary.quarters.reduce(
+                        (sum, quarter) => sum + quarter.folders.Loli.amount,
+                        0
+                      ),
+                      quarterSummary.quarters.reduce(
+                        (sum, quarter) => sum + quarter.folders.Loli.count,
+                        0
+                      )
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 text-right font-semibold text-primary whitespace-nowrap align-middle">
+                    {formatAmountWithCount(
+                      quarterSummary.annualTotal.amount,
+                      quarterSummary.annualTotal.count,
+                      false
+                    )}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
     </div>
   );

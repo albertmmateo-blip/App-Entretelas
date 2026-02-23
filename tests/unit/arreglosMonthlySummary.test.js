@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ALBARAN_OPTIONS,
+  buildArreglosQuarterSummary,
   buildMonthlySummary,
   monthKeyFromFecha,
   normalizeFolderValue,
@@ -76,6 +77,29 @@ describe('arreglosMonthlySummary utilities', () => {
     buildMonthlySummary(entries);
 
     expect(entries).toEqual(snapshot);
+  });
+
+  it('builds quarter summary with per-folder amount and count metrics', () => {
+    const entries = [
+      { fecha: '2026-01-10', importe: 10, albaran: 'Entretelas' },
+      { fecha: '2026-02-15', importe: '20,00 €', albaran: 'Entretelas' },
+      { fecha: '2026-03-20', importe: 30, albaran: 'Isa' },
+      { fecha: '2026-04-05', importe: 40, albaran: 'Loli' },
+      { fecha: 'invalid', importe: 999, albaran: 'Loli' },
+      { fecha: '2026-01-01', importe: 999, albaran: 'Unknown' },
+    ];
+
+    const result = buildArreglosQuarterSummary(entries);
+
+    expect(result.annualTotal).toEqual({ amount: 100, count: 4 });
+    expect(result.quarters).toHaveLength(4);
+    expect(result.quarters[0].key).toBe('T1');
+    expect(result.quarters[0].total).toEqual({ amount: 60, count: 3 });
+    expect(result.quarters[0].folders.Entretelas).toEqual({ amount: 30, count: 2 });
+    expect(result.quarters[0].folders.Isa).toEqual({ amount: 30, count: 1 });
+    expect(result.quarters[0].folders.Loli).toEqual({ amount: 0, count: 0 });
+    expect(result.quarters[1].total).toEqual({ amount: 40, count: 1 });
+    expect(result.quarters[1].folders.Loli).toEqual({ amount: 40, count: 1 });
   });
 
   it('splits totals into 65% folder and 35% tienda', () => {
