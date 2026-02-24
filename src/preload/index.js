@@ -47,11 +47,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteEntry: (id) => ipcRenderer.invoke('encargarCatalogo:deleteEntry', id),
   },
   secretCatalogo: {
-    getFolders: (parentId = null) => ipcRenderer.invoke('secretCatalogo:getFolders', parentId),
+    getFolders: (params = null) => ipcRenderer.invoke('secretCatalogo:getFolders', params),
     getFolderById: (id) => ipcRenderer.invoke('secretCatalogo:getFolderById', id),
     createFolder: (data) => ipcRenderer.invoke('secretCatalogo:createFolder', data),
-    getEntries: (folderId) => ipcRenderer.invoke('secretCatalogo:getEntries', folderId),
+    updateFolder: (id, data) => ipcRenderer.invoke('secretCatalogo:updateFolder', id, data),
+    deleteFolder: (id) => ipcRenderer.invoke('secretCatalogo:deleteFolder', id),
+    getEntries: (params = null) => ipcRenderer.invoke('secretCatalogo:getEntries', params),
+    getEntryById: (id) => ipcRenderer.invoke('secretCatalogo:getEntryById', id),
     createEntry: (data) => ipcRenderer.invoke('secretCatalogo:createEntry', data),
+    updateEntry: (id, data) => ipcRenderer.invoke('secretCatalogo:updateEntry', id, data),
+    deleteEntry: (id) => ipcRenderer.invoke('secretCatalogo:deleteEntry', id),
   },
   // Arreglos module
   arreglos: {

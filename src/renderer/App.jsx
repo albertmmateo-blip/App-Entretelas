@@ -152,8 +152,14 @@ export function AppLayout() {
           <Route path="/mixo" element={<Secret />} />
           <Route path="/mixo/catalogo" element={<Secret />} />
           <Route path="/mixo/catalogo/nueva" element={<Secret />} />
+          <Route path="/mixo/catalogo/proveedor/nueva" element={<Secret />} />
+          <Route path="/mixo/catalogo/familia/nueva" element={<Secret />} />
+          <Route path="/mixo/catalogo/producto/nueva" element={<Secret />} />
+          <Route path="/mixo/catalogo/producto/:entryId/editar" element={<Secret />} />
           <Route path="/mixo/catalogo/:folderId" element={<Secret />} />
           <Route path="/mixo/catalogo/:folderId/nueva" element={<Secret />} />
+          <Route path="/mixo/catalogo/:folderId/editar" element={<Secret />} />
+          <Route path="/mixo/catalogo/:folderId/producto/nueva" element={<Secret />} />
           <Route path="/mixo/catalogo/:folderId/entrada/nueva" element={<Secret />} />
         </Routes>
       </main>
