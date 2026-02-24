@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import ProveedoresList from '../../src/renderer/pages/Facturas/ProveedoresList';
 import ClientesList from '../../src/renderer/pages/Facturas/ClientesList';
@@ -48,6 +48,15 @@ function renderClientes(initialEntry = '/contabilidad/venta') {
       <LocationDisplay />
     </MemoryRouter>
   );
+}
+
+function createFacturasApiMock({ byEntidadId = {} } = {}) {
+  return {
+    getAllForEntidad: vi.fn(async ({ entidadId }) => ({
+      success: true,
+      data: byEntidadId[entidadId] || [],
+    })),
+  };
 }
 
 function proveedoresFixture(count = 1) {
@@ -109,6 +118,7 @@ function setupCRUDMock({ proveedores = [], clientes = [] } = {}) {
 describe('Facturas flow routing', () => {
   beforeEach(() => {
     useCRUDMock.mockReset();
+    delete global.window.electronAPI;
   });
 
   it('opens proveedor PDF folder on shortcut click and not edit form', () => {
@@ -171,10 +181,13 @@ describe('Facturas flow routing', () => {
 
   it('opens cliente PDF folder on shortcut click and not edit form', () => {
     setupCRUDMock({ clientes: clientesFixture(1) });
+    global.window.electronAPI = {
+      facturas: createFacturasApiMock(),
+    };
 
     renderClientes('/contabilidad/venta');
     const searchInput = screen.getByPlaceholderText(
-      'Buscar por Razón social o Número de cliente...'
+      'Buscar por Razón social, Nº cliente o F26:nombre_factura...'
     );
 
     expect(screen.getByRole('columnheader', { name: 'Periodo' })).toBeInTheDocument();
@@ -197,10 +210,15 @@ describe('Facturas flow routing', () => {
 
   it('opens cliente folder dropdown when clicking search input', () => {
     setupCRUDMock({ clientes: clientesFixture(2) });
+    global.window.electronAPI = {
+      facturas: createFacturasApiMock(),
+    };
 
     renderClientes('/contabilidad/venta');
 
-    fireEvent.click(screen.getByPlaceholderText('Buscar por Razón social o Número de cliente...'));
+    fireEvent.click(
+      screen.getByPlaceholderText('Buscar por Razón social, Nº cliente o F26:nombre_factura...')
+    );
 
     expect(screen.getByRole('button', { name: 'Orden: A-Z' })).toBeInTheDocument();
     expect(
@@ -210,10 +228,13 @@ describe('Facturas flow routing', () => {
 
   it('opens cliente edit form only from cliente detail action', () => {
     setupCRUDMock({ clientes: clientesFixture(1) });
+    global.window.electronAPI = {
+      facturas: createFacturasApiMock(),
+    };
 
     renderClientes('/contabilidad/venta');
     const searchInput = screen.getByPlaceholderText(
-      'Buscar por Razón social o Número de cliente...'
+      'Buscar por Razón social, Nº cliente o F26:nombre_factura...'
     );
 
     fireEvent.click(searchInput);
@@ -233,6 +254,9 @@ describe('Facturas flow routing', () => {
 
   it('handles invalid cliente id route gracefully', () => {
     setupCRUDMock({ clientes: clientesFixture(2) });
+    global.window.electronAPI = {
+      facturas: createFacturasApiMock(),
+    };
 
     renderClientes('/contabilidad/venta/not-a-number');
 
@@ -242,5 +266,72 @@ describe('Facturas flow routing', () => {
     expect(screen.queryByTestId('pdf-upload-section')).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Editar cliente' })).not.toBeInTheDocument();
     expect(screen.queryByText('Contabilidad Venta')).not.toBeInTheDocument();
+  });
+
+  it('filters clientes by invoice filename when using FYY command', async () => {
+    setupCRUDMock({ clientes: clientesFixture(2) });
+    global.window.electronAPI = {
+      facturas: createFacturasApiMock({
+        byEntidadId: {
+          1: [
+            {
+              id: 101,
+              entidad_id: 1,
+              nombre_original: 'Factura-Especial-Alpha.pdf',
+              fecha: '2026-03-10',
+              fecha_subida: '2026-03-10T10:00:00.000Z',
+            },
+          ],
+          2: [
+            {
+              id: 202,
+              entidad_id: 2,
+              nombre_original: 'Factura-Especial-Alpha.pdf',
+              fecha: '2027-04-12',
+              fecha_subida: '2027-04-12T10:00:00.000Z',
+            },
+          ],
+        },
+      }),
+    };
+
+    renderClientes('/contabilidad/venta');
+
+    const searchInput = screen.getByPlaceholderText(
+      'Buscar por Razón social, Nº cliente o F26:nombre_factura...'
+    );
+
+    fireEvent.click(searchInput);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'Abrir carpeta de Cliente 0001' })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Abrir carpeta de Cliente 0002' })
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.change(searchInput, { target: { value: 'F26:Factura-Especial-Alpha' } });
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'Abrir carpeta de Cliente 0001' })
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Abrir carpeta de Cliente 0002' })
+      ).not.toBeInTheDocument();
+    });
+
+    fireEvent.change(searchInput, { target: { value: 'F27:Factura-Especial-Alpha' } });
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'Abrir carpeta de Cliente 0002' })
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Abrir carpeta de Cliente 0001' })
+      ).not.toBeInTheDocument();
+    });
   });
 });

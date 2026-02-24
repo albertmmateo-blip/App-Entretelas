@@ -56,6 +56,50 @@ function hasOverduePayment(row, todayKey) {
   return dueDate <= today;
 }
 
+function parseInvoiceSearchCommand(rawQuery) {
+  const normalized = rawQuery.trim();
+  const match = /^f(\d{2}):\s*(.+)$/i.exec(normalized);
+
+  if (!match) {
+    return null;
+  }
+
+  const year = Number(`20${match[1]}`);
+  const filenameQuery = match[2].trim().toLowerCase();
+
+  if (!filenameQuery) {
+    return null;
+  }
+
+  return { year, filenameQuery };
+}
+
+function getInvoiceFilenameBase(row) {
+  const source = row.nombre_original || row.nombre_guardado || row.ruta_relativa || '';
+  const filename = source.split(/[\\/]/).pop() || source;
+
+  return filename.replace(/\.[^.]+$/, '').toLowerCase();
+}
+
+function getInvoiceYear(row) {
+  const source = row.fecha || row.fecha_subida;
+
+  if (!source) {
+    return null;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(source)) {
+    return Number.parseInt(source.slice(0, 4), 10);
+  }
+
+  const parsed = new Date(source);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return parsed.getFullYear();
+}
+
 function ClientesListView() {
   const navigate = useNavigate();
   const { entries, loading, fetchAll } = useCRUD('clientes');
@@ -134,6 +178,8 @@ function ClientesListView() {
             numero: getFacturaNumberLabel(row),
             importe: row.importe,
             amountWithTaxes: resolveFacturasAmountWithTaxes(row, 'venta'),
+            invoiceFilenameBase: getInvoiceFilenameBase(row),
+            invoiceYear: getInvoiceYear(row),
           }));
 
         if (!cancelled) {
@@ -198,12 +244,28 @@ function ClientesListView() {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return entries;
 
+    const invoiceSearch = parseInvoiceSearchCommand(searchQuery);
+    if (invoiceSearch) {
+      const matchedEntidadIds = new Set(
+        recentInvoices
+          .filter(
+            (invoice) =>
+              Number(invoice.invoiceYear) === invoiceSearch.year &&
+              invoice.invoiceFilenameBase.includes(invoiceSearch.filenameQuery)
+          )
+          .map((invoice) => Number(invoice.entidadId))
+          .filter((entidadId) => Number.isFinite(entidadId))
+      );
+
+      return entries.filter((cliente) => matchedEntidadIds.has(Number(cliente.id)));
+    }
+
     return entries.filter(
       (cliente) =>
         (cliente.razon_social && cliente.razon_social.toLowerCase().includes(query)) ||
         (cliente.numero_cliente && cliente.numero_cliente.toLowerCase().includes(query))
     );
-  }, [entries, searchQuery]);
+  }, [entries, recentInvoices, searchQuery]);
 
   const sortedClientes = useMemo(() => {
     if (searchSortMode === 'numero') {
@@ -265,7 +327,7 @@ function ClientesListView() {
       <div className="mb-4 relative z-30" ref={searchDropdownRef}>
         <input
           type="search"
-          placeholder="Buscar por Razón social o Número de cliente..."
+          placeholder="Buscar por Razón social, Nº cliente o F26:nombre_factura..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onClick={() => setIsSearchDropdownOpen(true)}
