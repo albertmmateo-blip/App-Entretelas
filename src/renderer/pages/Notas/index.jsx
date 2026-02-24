@@ -75,7 +75,7 @@ function NotasList() {
           onClick={() => navigate('/notas/nueva')}
           className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
         >
-          + Nueva nota
+          Nueva nota
         </button>
       </div>
 

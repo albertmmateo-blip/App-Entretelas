@@ -311,7 +311,7 @@ function ClientesListView() {
             onClick={() => navigate('/contabilidad/venta/nuevo')}
             className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
           >
-            + Nuevo Cliente
+            Nuevo Cliente
           </button>
           <button
             type="button"

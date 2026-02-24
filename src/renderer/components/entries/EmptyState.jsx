@@ -28,7 +28,7 @@ function EmptyState({ icon, title, hasSearchQuery }) {
       <p className="text-neutral-500 mb-4">
         {hasSearchQuery
           ? 'Prueba con otros términos de búsqueda'
-          : `No hay ninguna entrada todavía. Haz clic en "+ Nueva entrada" para añadir la primera.`}
+          : 'No hay ninguna entrada todavía. Haz clic en "Nueva entrada" para añadir la primera.'}
       </p>
     </div>
   );

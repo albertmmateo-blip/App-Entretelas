@@ -52,7 +52,7 @@ test.describe('Urgente E2E', () => {
     });
 
     await sidebar().getByRole('link', { name: /Notas/i }).click();
-    await page.getByRole('button', { name: '+ Nueva nota' }).click();
+    await page.getByRole('button', { name: 'Nueva nota' }).click();
     await page.getByLabel('Nombre').fill('Urgent Nota');
     await page.getByRole('button', { name: 'Guardar' }).click();
     await markCardUrgent('Urgent Nota');
@@ -60,7 +60,7 @@ test.describe('Urgente E2E', () => {
     await sidebar()
       .getByRole('link', { name: /Llamar/i })
       .click();
-    await page.getByRole('button', { name: '+ Nueva entrada' }).click();
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
     await page.getByLabel('Asunto *').fill('Urgent Call');
     await page.getByLabel('Contacto *').fill('555-0001');
     await page.getByRole('button', { name: 'Guardar' }).click();

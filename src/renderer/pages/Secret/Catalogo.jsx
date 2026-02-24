@@ -224,7 +224,7 @@ function CatalogoList({ folderId = null }) {
             }
             className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
           >
-            + Nueva carpeta
+            Nueva carpeta
           </button>
           {folderId && (
             <button
@@ -232,7 +232,7 @@ function CatalogoList({ folderId = null }) {
               onClick={() => navigate(`/mixo/catalogo/${folderId}/entrada/nueva`)}
               className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
             >
-              + Nueva entrada
+              Nueva entrada
             </button>
           )}
         </div>

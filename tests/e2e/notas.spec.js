@@ -28,7 +28,7 @@ test.describe('Notas E2E', () => {
   });
 
   test('create, edit, mark urgent, and delete nota', async () => {
-    await page.getByRole('button', { name: '+ Nueva nota' }).click();
+    await page.getByRole('button', { name: 'Nueva nota' }).click();
     await page.getByLabel('Nombre').fill('Test Nota');
     await page.getByLabel('Descripción').fill('Description');
     await page.getByRole('button', { name: 'Guardar' }).click();

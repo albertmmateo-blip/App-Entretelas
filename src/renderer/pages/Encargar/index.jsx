@@ -254,18 +254,6 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
     }
   };
 
-  const getEntryDateLabel = (entry) => {
-    if (entry?.fecha_mod) {
-      return formatDateTime(entry.fecha_mod);
-    }
-
-    if (entry?.fecha_creacion) {
-      return formatDateTime(entry.fecha_creacion);
-    }
-
-    return 'Sin fecha';
-  };
-
   if (isLoading && proveedores.length === 0) {
     return <LoadingState />;
   }
@@ -273,22 +261,8 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold text-neutral-900">Encargar</h1>
-        <div className="ml-auto flex items-center gap-2" ref={dropdownRef}>
-          <button
-            type="button"
-            onClick={() => navigate('/encargar/catalogo')}
-            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
-          >
-            📁 Catálogo
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/encargar/proveedor/nuevo')}
-            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
-          >
-            + Nueva carpeta
-          </button>
+        <div className="relative flex items-center gap-2" ref={dropdownRef}>
+          <h1 className="text-2xl font-bold text-neutral-900">Encargar</h1>
           <button
             type="button"
             onClick={() => setIsDropdownOpen((prev) => !prev)}
@@ -298,9 +272,16 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
           >
             📁 Proveedores
           </button>
+          <button
+            type="button"
+            onClick={() => navigate('/encargar/catalogo')}
+            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+          >
+            📁 Catálogo
+          </button>
 
           {isDropdownOpen && (
-            <div className="absolute top-20 right-6 z-40 w-80 max-h-72 overflow-auto rounded border border-neutral-200 bg-white shadow-lg py-1">
+            <div className="absolute top-full left-0 mt-2 z-40 w-80 max-h-72 overflow-auto rounded border border-neutral-200 bg-white shadow-lg py-1">
               {sortedProveedores.length === 0 ? (
                 <div className="px-3 py-2 text-sm text-neutral-600">
                   No hay carpetas disponibles.
@@ -320,6 +301,15 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
               )}
             </div>
           )}
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => navigate('/encargar/proveedor/nuevo')}
+            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+          >
+            Nuevo producto
+          </button>
         </div>
       </div>
 
@@ -363,7 +353,7 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
           )}
 
           {openProveedores.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {openProveedores.map((proveedor) => {
                 const selectedEntry = latestEntryByProveedor[proveedor.id] || null;
                 const isEditing = editingProveedorId === proveedor.id;
@@ -379,18 +369,16 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
                       <button
                         type="button"
                         onClick={() => handleOpenEditorForProveedor(proveedor.id)}
-                        className="w-full h-full text-left"
+                        aria-label={`📁 ${proveedor.razon_social}`}
+                        className="w-full text-left flex flex-col justify-start"
                       >
-                        <div className="flex items-center justify-between gap-3 mb-3">
-                          <h2 className="text-lg font-semibold text-neutral-900">
-                            {`📁 ${proveedor.razon_social}`}
+                        <div className="mb-3">
+                          <h2 className="text-lg font-semibold text-neutral-900 text-center">
+                            {proveedor.razon_social}
                           </h2>
-                          <span className="text-sm text-neutral-500">
-                            {getEntryDateLabel(selectedEntry)}
-                          </span>
                         </div>
 
-                        <div className="text-neutral-700 whitespace-pre-wrap break-words">
+                        <div className="text-neutral-800 whitespace-pre-wrap break-words">
                           {selectedEntry?.descripcion?.trim()
                             ? selectedEntry.descripcion
                             : 'Haz clic para escribir una nota libre para este proveedor.'}
@@ -579,7 +567,7 @@ function EncargarProveedorView() {
             onClick={() => navigate('/encargar/nueva')}
             className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
           >
-            + Nueva entrada
+            Nueva entrada
           </button>
         </div>
       </div>

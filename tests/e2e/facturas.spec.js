@@ -23,7 +23,7 @@ test.describe('Facturas E2E', () => {
   });
 
   test('create supplier, upload invoice pdf, and delete it', async () => {
-    await page.getByRole('button', { name: '+ Nuevo Proveedor' }).click();
+    await page.getByRole('button', { name: 'Nuevo Proveedor' }).click();
     await page.getByLabel('Razón Social *').fill('Test Supplier');
     await page.getByRole('button', { name: 'Guardar' }).click();
 

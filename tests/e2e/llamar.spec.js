@@ -30,7 +30,7 @@ test.describe('Llamar E2E', () => {
   });
 
   test('create, mark urgent, and delete llamar entry', async () => {
-    await page.getByRole('button', { name: '+ Nueva entrada' }).click();
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
     await page.getByLabel('Asunto *').fill('Test Call');
     await page.getByLabel('Contacto *').fill('555-1234');
     await page.getByRole('button', { name: 'Guardar' }).click();
