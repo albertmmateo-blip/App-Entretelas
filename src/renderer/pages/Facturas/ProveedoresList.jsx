@@ -210,7 +210,7 @@ function ProveedoresListView({ tipo = 'compra' }) {
           <button
             type="button"
             onClick={() => navigate('/contabilidad')}
-            className="px-3 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
           >
             ← Volver
           </button>
@@ -453,7 +453,7 @@ function ProveedorPDFView({ tipo = 'compra' }) {
           <button
             type="button"
             onClick={() => navigate(basePath)}
-            className="px-3 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
           >
             ← Volver
           </button>

@@ -35,11 +35,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     delete: (id) => ipcRenderer.invoke('encargar:delete', id),
   },
   encargarCatalogo: {
-    getFolders: (parentId = null) => ipcRenderer.invoke('encargarCatalogo:getFolders', parentId),
+    getFolders: (params = null) => ipcRenderer.invoke('encargarCatalogo:getFolders', params),
     getFolderById: (id) => ipcRenderer.invoke('encargarCatalogo:getFolderById', id),
     createFolder: (data) => ipcRenderer.invoke('encargarCatalogo:createFolder', data),
-    getEntries: (folderId) => ipcRenderer.invoke('encargarCatalogo:getEntries', folderId),
+    updateFolder: (id, data) => ipcRenderer.invoke('encargarCatalogo:updateFolder', id, data),
+    deleteFolder: (id) => ipcRenderer.invoke('encargarCatalogo:deleteFolder', id),
+    getEntries: (params = null) => ipcRenderer.invoke('encargarCatalogo:getEntries', params),
+    getEntryById: (id) => ipcRenderer.invoke('encargarCatalogo:getEntryById', id),
     createEntry: (data) => ipcRenderer.invoke('encargarCatalogo:createEntry', data),
+    updateEntry: (id, data) => ipcRenderer.invoke('encargarCatalogo:updateEntry', id, data),
+    deleteEntry: (id) => ipcRenderer.invoke('encargarCatalogo:deleteEntry', id),
   },
   secretCatalogo: {
     getFolders: (parentId = null) => ipcRenderer.invoke('secretCatalogo:getFolders', parentId),

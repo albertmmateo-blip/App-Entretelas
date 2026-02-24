@@ -103,8 +103,14 @@ export function AppLayout() {
           <Route path="/encargar" element={<Encargar />} />
           <Route path="/encargar/catalogo" element={<Encargar />} />
           <Route path="/encargar/catalogo/nueva" element={<Encargar />} />
+          <Route path="/encargar/catalogo/proveedor/nueva" element={<Encargar />} />
+          <Route path="/encargar/catalogo/familia/nueva" element={<Encargar />} />
+          <Route path="/encargar/catalogo/producto/nueva" element={<Encargar />} />
+          <Route path="/encargar/catalogo/producto/:entryId/editar" element={<Encargar />} />
           <Route path="/encargar/catalogo/:folderId" element={<Encargar />} />
           <Route path="/encargar/catalogo/:folderId/nueva" element={<Encargar />} />
+          <Route path="/encargar/catalogo/:folderId/editar" element={<Encargar />} />
+          <Route path="/encargar/catalogo/:folderId/producto/nueva" element={<Encargar />} />
           <Route path="/encargar/catalogo/:folderId/entrada/nueva" element={<Encargar />} />
           <Route path="/encargar/nueva" element={<Encargar />} />
           <Route path="/encargar/:id" element={<Encargar />} />

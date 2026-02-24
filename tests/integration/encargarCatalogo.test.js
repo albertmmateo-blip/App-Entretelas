@@ -54,49 +54,58 @@ describe('Encargar Catálogo IPC Handlers', () => {
 
     const response = await handler(null, {
       parentId: null,
+      tipo: 'proveedor',
       concepto: 'Tejidos',
     });
 
     expect(response.success).toBe(true);
     expect(response.data.parent_id).toBeNull();
+    expect(response.data.tipo).toBe('proveedor');
     expect(response.data.concepto).toBe('Tejidos');
   });
 
-  it('creates optional-concept subfolder', async () => {
+  it('creates familia folder', async () => {
     const createFolderHandler = mockHandlers['encargarCatalogo:createFolder'];
 
-    const root = await createFolderHandler(null, {
-      parentId: null,
-      concepto: 'Padre',
-    });
-
     const response = await createFolderHandler(null, {
-      parentId: root.data.id,
-      concepto: '',
+      parentId: null,
+      tipo: 'familia',
+      concepto: 'Mercería',
     });
 
     expect(response.success).toBe(true);
-    expect(response.data.parent_id).toBe(root.data.id);
-    expect(response.data.concepto).toBeNull();
+    expect(response.data.parent_id).toBeNull();
+    expect(response.data.tipo).toBe('familia');
+    expect(response.data.concepto).toBe('Mercería');
   });
 
-  it('creates optional entry in folder', async () => {
+  it('creates entry assigned to proveedor and familia', async () => {
     const createFolderHandler = mockHandlers['encargarCatalogo:createFolder'];
     const createEntryHandler = mockHandlers['encargarCatalogo:createEntry'];
 
-    const folder = await createFolderHandler(null, {
+    const proveedor = await createFolderHandler(null, {
       parentId: null,
+      tipo: 'proveedor',
       concepto: 'Accesorios',
     });
 
+    const familia = await createFolderHandler(null, {
+      parentId: null,
+      tipo: 'familia',
+      concepto: 'Botones',
+    });
+
     const response = await createEntryHandler(null, {
-      folderId: folder.data.id,
+      proveedorFolderId: proveedor.data.id,
+      familiaFolderId: familia.data.id,
       producto: 'Botón nacarado',
       link: 'https://example.com/boton',
     });
 
     expect(response.success).toBe(true);
-    expect(response.data.folder_id).toBe(folder.data.id);
+    expect(response.data.folder_id).toBe(proveedor.data.id);
+    expect(response.data.proveedor_folder_id).toBe(proveedor.data.id);
+    expect(response.data.familia_folder_id).toBe(familia.data.id);
     expect(response.data.producto).toBe('Botón nacarado');
   });
 });

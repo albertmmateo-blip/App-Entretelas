@@ -308,7 +308,7 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
             onClick={() => navigate('/encargar/proveedor/nuevo')}
             className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
           >
-            Nuevo producto
+            Nuevo proveedor
           </button>
         </div>
       </div>
@@ -364,14 +364,25 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
                   <div
                     key={`open-note-${proveedor.id}`}
                     className="min-h-[240px] rounded border-2 border-neutral-200 bg-white p-4"
+                    onClick={
+                      isEditing ? undefined : () => handleOpenEditorForProveedor(proveedor.id)
+                    }
+                    onKeyDown={
+                      isEditing
+                        ? undefined
+                        : (event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              handleOpenEditorForProveedor(proveedor.id);
+                            }
+                          }
+                    }
+                    role={isEditing ? undefined : 'button'}
+                    tabIndex={isEditing ? undefined : 0}
+                    aria-label={isEditing ? undefined : `📁 ${proveedor.razon_social}`}
                   >
                     {!isEditing ? (
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEditorForProveedor(proveedor.id)}
-                        aria-label={`📁 ${proveedor.razon_social}`}
-                        className="w-full text-left flex flex-col justify-start"
-                      >
+                      <div className="w-full h-full text-left flex flex-col justify-start">
                         <div className="mb-3">
                           <h2 className="text-lg font-semibold text-neutral-900 text-center">
                             {proveedor.razon_social}
@@ -383,27 +394,36 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
                             ? selectedEntry.descripcion
                             : 'Haz clic para escribir una nota libre para este proveedor.'}
                         </div>
-                      </button>
+                      </div>
                     ) : (
                       <>
                         <div className="flex items-center justify-between gap-3 mb-3">
                           <h2 className="text-lg font-semibold text-neutral-900">
                             {`Nota · ${proveedor.razon_social}`}
                           </h2>
-                          {selectedEntry && (
+                          <div className="flex items-center gap-2">
                             <button
                               type="button"
-                              onClick={() =>
-                                setDeleteConfirm({
-                                  proveedorId: proveedor.id,
-                                  entryId: selectedEntry.id,
-                                })
-                              }
-                              className="px-3 py-1.5 rounded border border-danger text-danger hover:bg-danger/5 transition-colors"
+                              onClick={() => navigate(`/encargar/proveedor/${proveedor.id}/editar`)}
+                              className="px-3 py-1.5 rounded border border-neutral-200 text-neutral-700 hover:bg-neutral-100 transition-colors"
                             >
-                              Eliminar nota
+                              Editar proveedor
                             </button>
-                          )}
+                            {selectedEntry && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setDeleteConfirm({
+                                    proveedorId: proveedor.id,
+                                    entryId: selectedEntry.id,
+                                  })
+                                }
+                                className="px-3 py-1.5 rounded border border-danger text-danger hover:bg-danger/5 transition-colors"
+                              >
+                                Eliminar nota
+                              </button>
+                            )}
+                          </div>
                         </div>
 
                         <textarea
@@ -543,13 +563,6 @@ function EncargarProveedorView() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
         <div>
-          <button
-            type="button"
-            onClick={() => navigate('/encargar')}
-            className="text-primary hover:text-primary/80 flex items-center gap-1 mb-2"
-          >
-            ← Volver
-          </button>
           <h1 className="text-2xl font-bold text-neutral-900">
             {proveedor?.razon_social || `Proveedor ${entidadId}`}
           </h1>
@@ -568,6 +581,13 @@ function EncargarProveedorView() {
             className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
           >
             Nueva entrada
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/encargar')}
+            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+          >
+            ← Volver
           </button>
         </div>
       </div>
