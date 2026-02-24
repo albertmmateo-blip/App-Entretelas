@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 function EntryForm({ fields, initialValues = {}, onSubmit, onCancel, showUrgenteToggle = false }) {
   const [formData, setFormData] = useState(() => {
@@ -18,6 +18,7 @@ function EntryForm({ fields, initialValues = {}, onSubmit, onCancel, showUrgente
   const [errors, setErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const saveTimeoutRef = useRef(null);
+  const formRef = useRef(null);
 
   const storageKey = useMemo(() => {
     const fieldKey = fields.map((f) => f.name).join('-');
@@ -129,10 +130,68 @@ function EntryForm({ fields, initialValues = {}, onSubmit, onCancel, showUrgente
     }
   };
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     localStorage.removeItem(storageKey);
     onCancel();
-  };
+  }, [onCancel, storageKey]);
+
+  const handleGlobalKeyDown = useCallback(
+    (event) => {
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) {
+        return;
+      }
+
+      if (document.querySelector('[data-confirm-dialog="true"]')) {
+        return;
+      }
+
+      const currentForm = formRef.current;
+      if (!currentForm) {
+        return;
+      }
+
+      const { activeElement } = document;
+      const activeForm = activeElement instanceof Element ? activeElement.closest('form') : null;
+      if (activeForm !== currentForm) {
+        return;
+      }
+
+      if (event.key === 'Escape' && !event.shiftKey) {
+        event.preventDefault();
+        handleCancel();
+        return;
+      }
+
+      if (event.key !== 'Enter' || event.shiftKey) {
+        return;
+      }
+
+      const { target } = event;
+      if (target?.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      event.preventDefault();
+      if (!isSaving) {
+        currentForm.requestSubmit();
+      }
+    },
+    [handleCancel, isSaving]
+  );
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleGlobalKeyDown);
+    };
+  }, [handleGlobalKeyDown]);
+
+  useEffect(() => {
+    const firstField = formRef.current?.querySelector('input, textarea, select');
+    if (firstField instanceof HTMLElement) {
+      firstField.focus();
+    }
+  }, []);
 
   const getCharacterCount = (fieldName, max) => {
     const current = formData[fieldName]?.length || 0;
@@ -146,7 +205,11 @@ function EntryForm({ fields, initialValues = {}, onSubmit, onCancel, showUrgente
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-neutral-100 rounded-lg shadow p-6 space-y-6">
+    <form
+      ref={formRef}
+      onSubmit={handleSubmit}
+      className="bg-neutral-100 rounded-lg shadow p-6 space-y-6"
+    >
       {fields.map((field) => (
         <div key={field.name}>
           <label htmlFor={field.name} className="block text-sm font-medium text-neutral-700 mb-2">

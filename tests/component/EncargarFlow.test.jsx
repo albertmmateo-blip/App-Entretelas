@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import Encargar from '../../src/renderer/pages/Encargar';
@@ -23,7 +23,6 @@ function renderEncargar(initialEntry) {
     <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
         <Route path="/encargar" element={<Encargar />} />
-        <Route path="/encargar/nueva" element={<Encargar />} />
         <Route path="/encargar/:id" element={<Encargar />} />
         <Route path="/encargar/proveedor/nuevo" element={<Encargar />} />
         <Route path="/encargar/proveedor/:proveedorId" element={<Encargar />} />
@@ -35,10 +34,13 @@ function renderEncargar(initialEntry) {
 }
 
 function setupCRUDMock({ proveedores = [], encargar = [] } = {}) {
+  const proveedoresState = [...proveedores];
+  const encargarState = [...encargar];
+
   useCRUDMock.mockImplementation((moduleName) => {
     if (moduleName === 'proveedores') {
       return {
-        entries: proveedores,
+        entries: proveedoresState,
         loading: false,
         fetchAll: vi.fn(),
         create: vi.fn().mockResolvedValue({ id: 2, razon_social: 'Nuevo Proveedor' }),
@@ -49,12 +51,35 @@ function setupCRUDMock({ proveedores = [], encargar = [] } = {}) {
 
     if (moduleName === 'encargar') {
       return {
-        entries: encargar,
+        entries: encargarState,
         loading: false,
         fetchAll: vi.fn(),
-        create: vi.fn().mockResolvedValue(true),
-        update: vi.fn().mockResolvedValue(true),
-        delete: vi.fn().mockResolvedValue(true),
+        create: vi.fn().mockImplementation(async (payload) => {
+          const created = {
+            id: Date.now(),
+            fecha_creacion: '2026-01-10T10:00:00.000Z',
+            ...payload,
+          };
+          encargarState.unshift(created);
+          return created;
+        }),
+        update: vi.fn().mockImplementation(async (id, payload) => {
+          const index = encargarState.findIndex((item) => item.id === id);
+          if (index < 0) return null;
+          encargarState[index] = {
+            ...encargarState[index],
+            ...payload,
+            fecha_mod: '2026-01-11T10:00:00.000Z',
+          };
+          return encargarState[index];
+        }),
+        delete: vi.fn().mockImplementation(async (id) => {
+          const index = encargarState.findIndex((item) => item.id === id);
+          if (index >= 0) {
+            encargarState.splice(index, 1);
+          }
+          return true;
+        }),
         toggleUrgente: vi.fn().mockResolvedValue(true),
       };
     }
@@ -74,28 +99,39 @@ function setupCRUDMock({ proveedores = [], encargar = [] } = {}) {
 describe('Encargar flow routing', () => {
   beforeEach(() => {
     useCRUDMock.mockReset();
+    window.localStorage.clear();
   });
 
-  it('renders EncargarForm on /encargar/nueva route', () => {
+  it('renders dropdown trigger and search flow on /encargar route', async () => {
     setupCRUDMock({
       proveedores: [
-        { id: 1, razon_social: 'Proveedor A', fecha_creacion: '2026-01-01T00:00:00.000Z' },
+        { id: 2, razon_social: 'MyC', fecha_creacion: '2026-01-01T00:00:00.000Z' },
+        { id: 1, razon_social: 'JC', fecha_creacion: '2026-01-02T00:00:00.000Z' },
       ],
       encargar: [],
     });
 
-    renderEncargar('/encargar/nueva');
+    renderEncargar('/encargar');
 
-    expect(screen.getByRole('heading', { name: 'Nueva entrada' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Guardar' })).toBeInTheDocument();
-    expect(screen.getByTestId('location-display')).toHaveTextContent('/encargar/nueva');
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: '📁 Proveedores' }));
+    const options = screen.getAllByRole('menuitem');
+
+    expect(options[0]).toHaveTextContent('📁 JC');
+    expect(options[1]).toHaveTextContent('📁 MyC');
+
+    await user.type(screen.getByPlaceholderText('Buscar proveedor y pulsar Enter...'), 'MyC');
+    await user.keyboard('{Enter}');
+
+    expect(screen.getByRole('button', { name: 'Abrir carpeta de MyC' })).toBeInTheDocument();
+    expect(
+      screen.getByText('Haz clic para escribir una nota libre para este proveedor.')
+    ).toBeInTheDocument();
   });
 
   it('renders ProveedorForm on /encargar/proveedor/nuevo route', () => {
-    setupCRUDMock({
-      proveedores: [],
-      encargar: [],
-    });
+    setupCRUDMock({ proveedores: [], encargar: [] });
 
     renderEncargar('/encargar/proveedor/nuevo');
 
@@ -104,7 +140,43 @@ describe('Encargar flow routing', () => {
     expect(screen.getByTestId('location-display')).toHaveTextContent('/encargar/proveedor/nuevo');
   });
 
-  it('renders folder shortcuts and entries list on /encargar', async () => {
+  it('edits existing provider note by clicking container', async () => {
+    setupCRUDMock({
+      proveedores: [
+        { id: 1, razon_social: 'Proveedor A', fecha_creacion: '2026-01-01T00:00:00.000Z' },
+      ],
+      encargar: [
+        {
+          id: 10,
+          proveedor_id: 1,
+          articulo: 'Nota Proveedor A',
+          descripcion: 'Nota inicial',
+          fecha_creacion: '2026-01-04T10:00:00.000Z',
+        },
+      ],
+    });
+
+    renderEncargar('/encargar');
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: '📁 Proveedores' }));
+    await user.click(screen.getByRole('menuitem', { name: '📁 Proveedor A' }));
+
+    expect(screen.getByText('Nota inicial')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /📁 Proveedor A/i }));
+
+    const editor = screen.getByPlaceholderText('Escribe aquí la nota del proveedor...');
+    await user.clear(editor);
+    await user.type(editor, 'Nota actualizada');
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    expect(
+      screen.queryByPlaceholderText('Escribe aquí la nota del proveedor...')
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps multiple proveedores open at the same time', async () => {
     setupCRUDMock({
       proveedores: [
         { id: 1, razon_social: 'Proveedor A', fecha_creacion: '2026-01-01T00:00:00.000Z' },
@@ -114,147 +186,100 @@ describe('Encargar flow routing', () => {
         {
           id: 10,
           proveedor_id: 1,
-          articulo: 'Tela Roja',
-          ref_interna: 'TR-001',
-          urgente: 1,
-          fecha_creacion: '2026-01-03T10:00:00.000Z',
+          articulo: 'Nota Proveedor A',
+          descripcion: 'Contenido A',
+          fecha_creacion: '2026-01-09T10:00:00.000Z',
         },
         {
           id: 11,
           proveedor_id: 2,
-          articulo: 'Forro Azul',
-          ref_interna: 'FA-002',
-          urgente: 0,
-          fecha_creacion: '2026-01-04T10:00:00.000Z',
+          articulo: 'Nota Proveedor B',
+          descripcion: 'Contenido B',
+          fecha_creacion: '2026-01-09T11:00:00.000Z',
         },
       ],
     });
 
     renderEncargar('/encargar');
 
-    expect(
-      screen.getByRole('button', { name: 'Abrir carpeta de Proveedor A' })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Abrir carpeta de Proveedor B' })
-    ).toBeInTheDocument();
-
-    expect(screen.getByRole('heading', { name: 'Entradas' })).toBeInTheDocument();
-    expect(screen.getByText(/Tela Roja/)).toBeInTheDocument();
-    expect(screen.getByText(/Forro Azul/)).toBeInTheDocument();
-
     const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: '📁 Proveedores' }));
+    await user.click(screen.getByRole('menuitem', { name: '📁 Proveedor A' }));
+    await user.click(screen.getByRole('button', { name: '📁 Proveedores' }));
+    await user.click(screen.getByRole('menuitem', { name: '📁 Proveedor B' }));
 
-    await user.click(screen.getByRole('button', { name: 'Abrir carpeta de Proveedor A' }));
-    expect(screen.getByTestId('location-display')).toHaveTextContent('/encargar/proveedor/1');
+    expect(screen.getByText('Contenido A')).toBeInTheDocument();
+    expect(screen.getByText('Contenido B')).toBeInTheDocument();
   });
 
-  it('navigates to entry detail when clicking an entry row in list', async () => {
+  it('keeps open notes after exiting and returning to the page', async () => {
     setupCRUDMock({
       proveedores: [
         { id: 1, razon_social: 'Proveedor A', fecha_creacion: '2026-01-01T00:00:00.000Z' },
-      ],
-      encargar: [
-        {
-          id: 15,
-          proveedor_id: 1,
-          articulo: 'Cremallera Negra',
-          ref_interna: 'CN-015',
-          urgente: 0,
-          fecha_creacion: '2026-01-05T10:00:00.000Z',
-        },
-      ],
-    });
-
-    renderEncargar('/encargar');
-
-    const entryRowButton = screen.getByText('Cremallera Negra').closest('button');
-    expect(entryRowButton).not.toBeNull();
-
-    const user = userEvent.setup();
-    await user.click(entryRowButton);
-
-    expect(screen.getByTestId('location-display')).toHaveTextContent('/encargar/15');
-  });
-
-  it('filters folder shortcuts and entries list by proveedor search', async () => {
-    setupCRUDMock({
-      proveedores: [
-        { id: 1, razon_social: 'Proveedor A', fecha_creacion: '2026-01-01T00:00:00.000Z' },
-        { id: 2, razon_social: 'Proveedor B', fecha_creacion: '2026-01-02T00:00:00.000Z' },
       ],
       encargar: [
         {
           id: 21,
           proveedor_id: 1,
-          articulo: 'Botón Dorado',
-          ref_interna: 'BD-021',
-          urgente: 0,
-          fecha_creacion: '2026-01-07T10:00:00.000Z',
-        },
-        {
-          id: 22,
-          proveedor_id: 2,
-          articulo: 'Hilo Verde',
-          ref_interna: 'HV-022',
-          urgente: 0,
-          fecha_creacion: '2026-01-08T10:00:00.000Z',
+          articulo: 'Nota Proveedor A',
+          descripcion: 'Persistente',
+          fecha_creacion: '2026-01-09T10:00:00.000Z',
         },
       ],
     });
 
-    renderEncargar('/encargar');
+    const firstRender = renderEncargar('/encargar');
 
     const user = userEvent.setup();
-    await user.type(screen.getByPlaceholderText('Buscar proveedor...'), 'Proveedor A');
+    await user.click(screen.getByRole('button', { name: '📁 Proveedores' }));
+    await user.click(screen.getByRole('menuitem', { name: '📁 Proveedor A' }));
 
-    expect(
-      screen.getByRole('button', { name: 'Abrir carpeta de Proveedor A' })
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Abrir carpeta de Proveedor B' })
-    ).not.toBeInTheDocument();
-    expect(screen.getByText(/Botón Dorado/)).toBeInTheDocument();
-    expect(screen.queryByText(/Hilo Verde/)).not.toBeInTheDocument();
-  });
+    expect(screen.getByText('Persistente')).toBeInTheDocument();
 
-  it('shows empty entries message when folders exist without entries', () => {
-    setupCRUDMock({
-      proveedores: [
-        { id: 1, razon_social: 'Proveedor A', fecha_creacion: '2026-01-01T00:00:00.000Z' },
-      ],
-      encargar: [],
-    });
-
+    firstRender.unmount();
     renderEncargar('/encargar');
 
-    expect(screen.getByRole('heading', { name: 'Entradas' })).toBeInTheDocument();
-    expect(screen.getByText('No hay entradas para mostrar.')).toBeInTheDocument();
+    expect(screen.getByText('Persistente')).toBeInTheDocument();
   });
 
-  it('shows edit proveedor action on proveedor page and navigates to edit route', async () => {
+  it('removes note card after deletion and requires reopening folder', async () => {
     setupCRUDMock({
       proveedores: [
         { id: 1, razon_social: 'Proveedor A', fecha_creacion: '2026-01-01T00:00:00.000Z' },
       ],
       encargar: [
         {
-          id: 31,
+          id: 99,
           proveedor_id: 1,
-          articulo: 'Tela Negra',
-          urgente: 0,
+          articulo: 'Nota Proveedor A',
+          descripcion: 'Contenido',
           fecha_creacion: '2026-01-09T10:00:00.000Z',
         },
       ],
     });
 
-    renderEncargar('/encargar/proveedor/1');
+    renderEncargar('/encargar');
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: 'Editar proveedor' }));
+    await user.click(screen.getByRole('button', { name: '📁 Proveedores' }));
+    await user.click(screen.getByRole('menuitem', { name: '📁 Proveedor A' }));
+    await user.click(screen.getByRole('button', { name: /📁 Proveedor A/i }));
+    await user.click(screen.getByRole('button', { name: 'Eliminar nota' }));
 
-    expect(screen.getByTestId('location-display')).toHaveTextContent(
-      '/encargar/proveedor/1/editar'
-    );
+    const deleteButtons = screen.getAllByRole('button', { name: 'Eliminar' });
+    await user.click(deleteButtons[deleteButtons.length - 1]);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          'Selecciona una carpeta desde “📁 Proveedores” o busca una en la barra superior para abrir su nota.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: '📁 Proveedores' }));
+    await user.click(screen.getByRole('menuitem', { name: '📁 Proveedor A' }));
+
+    expect(screen.getByRole('button', { name: /📁 Proveedor A/i })).toBeInTheDocument();
   });
 });

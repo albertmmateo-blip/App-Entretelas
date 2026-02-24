@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 function ConfirmDialog({
   title,
@@ -8,8 +8,40 @@ function ConfirmDialog({
   confirmText = 'Confirmar',
   confirmDanger = false,
 }) {
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) {
+        return;
+      }
+
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCancel();
+      }
+
+      if (event.key === 'Enter' && !event.shiftKey) {
+        const tagName = event.target?.tagName;
+        if (tagName === 'TEXTAREA') {
+          return;
+        }
+        event.preventDefault();
+        onConfirm();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onCancel, onConfirm]);
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div
+      data-confirm-dialog="true"
+      role="alertdialog"
+      aria-modal="true"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+    >
       <div className="bg-neutral-100 rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
         <div className="flex items-start gap-3 mb-4">
           <span className="text-2xl">⚠️</span>

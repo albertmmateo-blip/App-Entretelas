@@ -6,15 +6,6 @@ test.describe('Encargar E2E', () => {
   let page;
   const sidebar = () => page.getByRole('navigation');
 
-  const getCardByText = (text) =>
-    page.locator('div[role="button"]').filter({ hasText: text }).first();
-
-  const openCardMenu = async (text) => {
-    const card = getCardByText(text);
-    await expect(card).toBeVisible();
-    await card.locator('button[aria-label="Abrir menú de acciones"]').click();
-  };
-
   test.beforeEach(async () => {
     app = await launchApp();
     await cleanDatabase(app);
@@ -32,58 +23,50 @@ test.describe('Encargar E2E', () => {
       .getByRole('link', { name: /Encargar/i })
       .click();
     await expect(page.getByRole('heading', { name: 'Encargar', exact: true })).toBeVisible();
-    await expect(
-      page.getByRole('button', { name: 'Abrir carpeta de Proveedor Encargar' })
-    ).toBeVisible();
+    await expect(page.getByRole('button', { name: '📁 Proveedores' })).toBeVisible();
   });
 
   test.afterEach(async () => {
     await closeApp(app);
   });
 
-  test('navigates to correct forms from Nueva entrada and Nueva carpeta buttons', async () => {
-    await page.getByRole('button', { name: '+ Nueva entrada' }).click();
-    await expect(page.getByRole('heading', { name: 'Nueva entrada', exact: true })).toBeVisible();
-
-    await page.goBack();
-    await expect(page.getByRole('heading', { name: 'Encargar', exact: true })).toBeVisible();
-
+  test('navigates to new provider form from Nueva carpeta button', async () => {
     await page.getByRole('button', { name: '+ Nueva carpeta' }).click();
     await expect(page.getByRole('heading', { name: 'Nuevo proveedor', exact: true })).toBeVisible();
   });
 
-  test('create, mark urgent, and delete encargar entry', async () => {
-    await page.evaluate(async () => {
-      const proveedores = await window.electronAPI.proveedores.getAll();
-      const proveedor = (proveedores?.data || []).find(
-        (item) => item.razon_social === 'Proveedor Encargar'
-      );
+  test('create, edit and delete provider note', async () => {
+    await page.getByRole('button', { name: '📁 Proveedores' }).click();
+    await page.getByRole('menuitem', { name: '📁 Proveedor Encargar' }).click();
 
-      await window.electronAPI.encargar.create({
-        proveedor_id: proveedor?.id || null,
-        proveedor: 'Proveedor Encargar',
-        articulo: 'Test Product',
-        ref_interna: null,
-        descripcion: null,
-        ref_proveedor: null,
-        urgente: false,
-      });
-    });
+    const noteContainer = page.getByRole('button', { name: /📁 Proveedor Encargar/i });
+    await expect(noteContainer).toBeVisible();
+    await noteContainer.click();
 
-    await getCardByText('Proveedor Encargar').click();
+    const editor = page.getByPlaceholder('Escribe aquí la nota del proveedor...');
+    await editor.fill('Primera nota libre');
+    await page.getByRole('button', { name: 'Guardar' }).click();
+    await expect(page.getByText('Primera nota libre')).toBeVisible();
 
-    const card = getCardByText('Test Product');
-    await expect(card).toBeVisible();
+    await noteContainer.click();
+    await editor.fill('Nota actualizada');
+    await page.getByRole('button', { name: 'Guardar' }).click();
+    await expect(page.getByText('Nota actualizada')).toBeVisible();
 
-    await openCardMenu('Test Product');
-    await page.getByRole('button', { name: 'Marcar urgente' }).click();
-    await expect(card.locator('span[title="Urgente"]')).toBeVisible();
+    await noteContainer.click();
+    await page.getByRole('button', { name: 'Eliminar nota' }).click();
+    await page.getByRole('button', { name: 'Eliminar' }).last().click();
 
-    await openCardMenu('Test Product');
-    await page.getByRole('button', { name: 'Eliminar' }).click();
-    const deleteDialog = page.locator('.fixed.inset-0').last();
-    await deleteDialog.getByRole('button', { name: 'Eliminar' }).click();
+    await expect(
+      page.getByText(
+        'Selecciona una carpeta desde “📁 Proveedores” o busca una en la barra superior para abrir su nota.'
+      )
+    ).toBeVisible();
 
-    await expect(getCardByText('Test Product')).toHaveCount(0);
+    await page.getByRole('button', { name: '📁 Proveedores' }).click();
+    await page.getByRole('menuitem', { name: '📁 Proveedor Encargar' }).click();
+    await expect(
+      page.getByText('Haz clic para escribir una nota libre para este proveedor.')
+    ).toBeVisible();
   });
 });
