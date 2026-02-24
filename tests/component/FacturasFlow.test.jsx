@@ -173,6 +173,9 @@ describe('Facturas flow routing', () => {
     setupCRUDMock({ clientes: clientesFixture(1) });
 
     renderClientes('/contabilidad/venta');
+    const searchInput = screen.getByPlaceholderText(
+      'Buscar por Razón social o Número de cliente...'
+    );
 
     expect(screen.getByRole('columnheader', { name: 'Periodo' })).toBeInTheDocument();
 
@@ -180,12 +183,10 @@ describe('Facturas flow routing', () => {
       screen.queryByRole('button', { name: 'Abrir carpeta de Cliente 0001' })
     ).not.toBeInTheDocument();
 
-    fireEvent.change(
-      screen.getByPlaceholderText('Buscar por Razón social o Número de cliente...'),
-      {
-        target: { value: 'Cliente 0001' },
-      }
-    );
+    fireEvent.click(searchInput);
+    fireEvent.change(searchInput, {
+      target: { value: 'Cliente 0001' },
+    });
 
     fireEvent.click(screen.getByRole('button', { name: 'Abrir carpeta de Cliente 0001' }));
 
@@ -194,17 +195,31 @@ describe('Facturas flow routing', () => {
     expect(screen.queryByRole('button', { name: 'Guardar' })).not.toBeInTheDocument();
   });
 
+  it('opens cliente folder dropdown when clicking search input', () => {
+    setupCRUDMock({ clientes: clientesFixture(2) });
+
+    renderClientes('/contabilidad/venta');
+
+    fireEvent.click(screen.getByPlaceholderText('Buscar por Razón social o Número de cliente...'));
+
+    expect(screen.getByRole('button', { name: 'Orden: A-Z' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Abrir carpeta de Cliente 0001' })
+    ).toBeInTheDocument();
+  });
+
   it('opens cliente edit form only from cliente detail action', () => {
     setupCRUDMock({ clientes: clientesFixture(1) });
 
     renderClientes('/contabilidad/venta');
-
-    fireEvent.change(
-      screen.getByPlaceholderText('Buscar por Razón social o Número de cliente...'),
-      {
-        target: { value: 'C-1' },
-      }
+    const searchInput = screen.getByPlaceholderText(
+      'Buscar por Razón social o Número de cliente...'
     );
+
+    fireEvent.click(searchInput);
+    fireEvent.change(searchInput, {
+      target: { value: 'C-1' },
+    });
 
     fireEvent.click(screen.getByRole('button', { name: 'Abrir carpeta de Cliente 0001' }));
     fireEvent.click(screen.getByRole('button', { name: 'Editar cliente' }));

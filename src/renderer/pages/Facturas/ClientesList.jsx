@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import PDFUploadSection from '../../components/PDFUploadSection';
-import { EmptyState, LoadingState } from '../../components/entries';
+import { LoadingState } from '../../components/entries';
 import useCRUD from '../../hooks/useCRUD';
 import { formatEuroAmount } from '../../utils/euroAmount';
 import {
@@ -60,12 +60,15 @@ function ClientesListView() {
   const navigate = useNavigate();
   const { entries, loading, fetchAll } = useCRUD('clientes');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
+  const [searchSortMode, setSearchSortMode] = useState('alphabetical');
   const [folderCounts, setFolderCounts] = useState({});
   const [foldersWithDuePayment, setFoldersWithDuePayment] = useState({});
   const [quarterSummary, setQuarterSummary] = useState(() =>
     buildFacturasQuarterSummary([], 'venta')
   );
   const [recentInvoices, setRecentInvoices] = useState([]);
+  const searchDropdownRef = useRef(null);
 
   useEffect(() => {
     fetchAll();
@@ -171,9 +174,29 @@ function ClientesListView() {
     };
   }, [entries]);
 
+  useEffect(() => {
+    if (!isSearchDropdownOpen) {
+      return undefined;
+    }
+
+    const handleOutsideClick = (event) => {
+      if (searchDropdownRef.current && !searchDropdownRef.current.contains(event.target)) {
+        setIsSearchDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutsideClick);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+    };
+  }, [isSearchDropdownOpen]);
+
   const filteredClientes = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    if (!query) return [];
+    if (!query) return entries;
 
     return entries.filter(
       (cliente) =>
@@ -183,12 +206,33 @@ function ClientesListView() {
   }, [entries, searchQuery]);
 
   const sortedClientes = useMemo(() => {
-    return [...filteredClientes].sort((a, b) => {
-      return a.razon_social.localeCompare(b.razon_social, 'es-ES');
-    });
-  }, [filteredClientes]);
+    if (searchSortMode === 'numero') {
+      return [...filteredClientes].sort((a, b) => {
+        const aNumber = Number.parseInt(a.numero_cliente, 10);
+        const bNumber = Number.parseInt(b.numero_cliente, 10);
+        const hasANumber = Number.isFinite(aNumber);
+        const hasBNumber = Number.isFinite(bNumber);
 
-  const hasSearchQuery = searchQuery.trim().length > 0;
+        if (hasANumber && hasBNumber && aNumber !== bNumber) {
+          return aNumber - bNumber;
+        }
+
+        if (hasANumber && !hasBNumber) {
+          return -1;
+        }
+
+        if (!hasANumber && hasBNumber) {
+          return 1;
+        }
+
+        return (a.razon_social || '').localeCompare(b.razon_social || '', 'es-ES');
+      });
+    }
+
+    return [...filteredClientes].sort((a, b) => {
+      return (a.razon_social || '').localeCompare(b.razon_social || '', 'es-ES');
+    });
+  }, [filteredClientes, searchSortMode]);
 
   if (loading && entries.length === 0) {
     return <LoadingState />;
@@ -217,52 +261,86 @@ function ClientesListView() {
         </div>
       </div>
 
-      {/* Search bar */}
-      <div className="mb-4">
+      {/* Search bar and folder dropdown */}
+      <div className="mb-4 relative z-30" ref={searchDropdownRef}>
         <input
           type="search"
           placeholder="Buscar por Razón social o Número de cliente..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
+          onClick={() => setIsSearchDropdownOpen(true)}
+          onFocus={() => setIsSearchDropdownOpen(true)}
+          onMouseDown={() => setIsSearchDropdownOpen(true)}
           data-search-input
           className="w-full px-4 py-2 bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
         />
-      </div>
-
-      {hasSearchQuery && sortedClientes.length > 0 && (
-        <div className="mb-4">
-          <div className="flex flex-wrap gap-2">
-            {sortedClientes.map((cliente) => (
+        {isSearchDropdownOpen && (
+          <div className="absolute left-0 right-0 mt-1 z-40 border border-neutral-200 rounded bg-white overflow-hidden shadow-sm">
+            <div className="px-3 py-2 border-b border-neutral-200 flex items-center justify-between">
               <button
-                key={`shortcut-${cliente.id}`}
                 type="button"
-                onClick={() => navigate(`/contabilidad/venta/${cliente.id}`)}
-                className="px-3 py-1.5 border border-neutral-200 rounded bg-white hover:border-primary hover:text-primary transition-colors text-sm text-neutral-700 flex items-center gap-3"
-                aria-label={`Abrir carpeta de ${cliente.razon_social}`}
+                onClick={() =>
+                  setSearchSortMode((currentMode) =>
+                    currentMode === 'alphabetical' ? 'numero' : 'alphabetical'
+                  )
+                }
+                className="px-2 py-1 text-xs font-semibold border border-neutral-200 rounded hover:border-primary hover:text-primary transition-colors"
               >
-                <span className="font-medium flex items-center gap-2">
-                  <span>{`📁 ${cliente.razon_social}`}</span>
-                  {getDescuentoBadge(cliente.descuento_porcentaje) && (
-                    <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
-                      {getDescuentoBadge(cliente.descuento_porcentaje)}
-                    </span>
-                  )}
-                  {foldersWithDuePayment[cliente.id] && (
-                    <span
-                      className="inline-block w-2.5 h-2.5 rounded-full bg-danger"
-                      title="Tiene pagos vencidos"
-                      aria-label="Tiene pagos vencidos"
-                    />
-                  )}
-                </span>
-                <span className="text-xs font-semibold text-primary whitespace-nowrap">
-                  {folderCounts[cliente.id] ?? 0}
-                </span>
+                {searchSortMode === 'alphabetical' ? 'Orden: A-Z' : 'Orden: Nº'}
               </button>
-            ))}
+            </div>
+
+            <div className="max-h-[50vh] overflow-y-auto">
+              {sortedClientes.length > 0 ? (
+                sortedClientes.map((cliente) => {
+                  const folderLabel = `${cliente.razon_social || '—'} - ${cliente.numero_cliente || '—'}`;
+                  const descuentoBadge = getDescuentoBadge(cliente.descuento_porcentaje);
+
+                  return (
+                    <button
+                      key={`shortcut-${cliente.id}`}
+                      type="button"
+                      onClick={() => {
+                        setIsSearchDropdownOpen(false);
+                        navigate(`/contabilidad/venta/${cliente.id}`);
+                      }}
+                      className="w-full px-3 py-2 border-b border-neutral-200 last:border-b-0 hover:bg-neutral-50 transition-colors text-left"
+                      aria-label={`Abrir carpeta de ${cliente.razon_social}`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0 flex items-center gap-2">
+                          <span className="text-sm font-medium text-neutral-900 truncate">
+                            {folderLabel}
+                          </span>
+                          {descuentoBadge ? (
+                            <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                              {descuentoBadge}
+                            </span>
+                          ) : null}
+                          {foldersWithDuePayment[cliente.id] && (
+                            <span
+                              className="inline-block w-2.5 h-2.5 rounded-full bg-danger"
+                              title="Tiene pagos vencidos"
+                              aria-label="Tiene pagos vencidos"
+                            />
+                          )}
+                        </div>
+                        <span className="text-xs font-semibold text-primary whitespace-nowrap">
+                          ({folderCounts[cliente.id] ?? 0})
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="px-3 py-3 text-sm text-neutral-500">
+                  No se encontraron clientes.
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="mt-3 overflow-hidden border border-neutral-200 rounded-lg bg-white">
         <div className="max-h-56 overflow-auto">
@@ -391,11 +469,6 @@ function ClientesListView() {
           </tbody>
         </table>
       </div>
-
-      {/* Empty state */}
-      {hasSearchQuery && sortedClientes.length === 0 && !loading && (
-        <EmptyState icon="📁" title="clientes" hasSearchQuery={!!searchQuery} />
-      )}
     </div>
   );
 }
