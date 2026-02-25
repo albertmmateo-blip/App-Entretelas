@@ -253,29 +253,29 @@ Clicking a Proveedor/Cliente card opens:
 
 ## 12. Routing (React Router)
 
-| Route                                  | Page                             |
-| -------------------------------------- | -------------------------------- |
-| `/`                                    | Home                             |
-| `/urgente`                             | URGENTE!                         |
-| `/notas`                               | Notas list                       |
-| `/notas/nueva`                         | New note form                    |
-| `/notas/:id`                           | Edit note form                   |
-| `/llamar`                              | Llamar list                      |
-| `/llamar/nueva`                        | New llamar form                  |
-| `/llamar/:id`                          | Edit llamar form                 |
-| `/encargar`                            | Encargar list                    |
-| `/encargar/nueva`                      | New encargar form                |
-| `/encargar/:id`                        | Edit encargar form               |
-| `/facturas`                            | Facturas root (two folders)      |
-| `/facturas/compra`                     | Facturas Compra – Proveedor list |
-| `/facturas/compra/nuevo`               | Crear proveedor                  |
-| `/facturas/compra/:proveedorId`        | PDF list for a Proveedor         |
-| `/facturas/compra/:proveedorId/editar` | Edit proveedor                   |
-| `/facturas/venta`                      | Facturas Venta – Cliente list    |
-| `/facturas/venta/nuevo`                | Crear cliente                    |
-| `/facturas/venta/:clienteId`           | PDF list for a Cliente           |
-| `/facturas/venta/:clienteId/editar`    | Edit cliente                     |
-| `/email`                               | Gmail webview                    |
+| Route                                  | Page                                 |
+| -------------------------------------- | ------------------------------------ |
+| `/`                                    | Home                                 |
+| `/urgente`                             | URGENTE!                             |
+| `/notas`                               | Notas list                           |
+| `/notas/nueva`                         | New note form                        |
+| `/notas/:id`                           | Edit note form                       |
+| `/llamar`                              | Llamar list                          |
+| `/llamar/nueva`                        | New llamar form                      |
+| `/llamar/:id`                          | Edit llamar form                     |
+| `/encargar`                            | Encargar list                        |
+| `/encargar/nueva`                      | Encargar workspace (compat route)    |
+| `/encargar/:id`                        | Encargar workspace (preselect by ID) |
+| `/facturas`                            | Facturas root (two folders)          |
+| `/facturas/compra`                     | Facturas Compra – Proveedor list     |
+| `/facturas/compra/nuevo`               | Crear proveedor                      |
+| `/facturas/compra/:proveedorId`        | PDF list for a Proveedor             |
+| `/facturas/compra/:proveedorId/editar` | Edit proveedor                       |
+| `/facturas/venta`                      | Facturas Venta – Cliente list        |
+| `/facturas/venta/nuevo`                | Crear cliente                        |
+| `/facturas/venta/:clienteId`           | PDF list for a Cliente               |
+| `/facturas/venta/:clienteId/editar`    | Edit cliente                         |
+| `/email`                               | Gmail webview                        |
 
 ---
 

@@ -7,10 +7,10 @@ import { formatDateTime } from '../../utils/formatDateTime';
 import ProveedorForm from '../Facturas/ProveedorForm';
 import Catalogo from './Catalogo';
 
-const defaultArticleForProveedor = (proveedorName) => {
+const defaultPedidoTitleForProveedor = (proveedorName) => {
   const baseName = proveedorName?.trim() || 'Proveedor';
-  const article = `Nota ${baseName}`;
-  return article.length > 255 ? article.slice(0, 255) : article;
+  const title = `PEDIDO ${baseName}`;
+  return title.length > 255 ? title.slice(0, 255) : title;
 };
 
 const OPEN_PROVEEDORES_STORAGE_KEY = 'encargar-open-proveedores';
@@ -51,6 +51,7 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
     create,
     update,
     delete: deleteEncargar,
+    toggleUrgente,
   } = useCRUD('encargar');
 
   const dropdownRef = useRef(null);
@@ -62,6 +63,7 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
   const [savingProveedorId, setSavingProveedorId] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [didApplyPreselection, setDidApplyPreselection] = useState(false);
+  const [actionsMenuOpenId, setActionsMenuOpenId] = useState(null);
 
   useEffect(() => {
     fetchProveedores();
@@ -219,7 +221,7 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
 
       const result = await create({
         proveedor_id: proveedorId,
-        articulo: defaultArticleForProveedor(proveedor.razon_social),
+        articulo: defaultPedidoTitleForProveedor(proveedor.razon_social),
         descripcion: editorText,
         ref_interna: null,
         ref_proveedor: null,
@@ -363,7 +365,7 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
                 return (
                   <div
                     key={`open-note-${proveedor.id}`}
-                    className="min-h-[240px] rounded border-2 border-neutral-200 bg-white p-4"
+                    className="relative overflow-visible min-h-[240px] rounded border-2 border-neutral-200 bg-white p-4"
                     onClick={
                       isEditing ? undefined : () => handleOpenEditorForProveedor(proveedor.id)
                     }
@@ -383,10 +385,33 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
                   >
                     {!isEditing ? (
                       <div className="w-full h-full text-left flex flex-col justify-start">
-                        <div className="mb-3">
-                          <h2 className="text-lg font-semibold text-neutral-900 text-center">
-                            {proveedor.razon_social}
-                          </h2>
+                        <div className="mb-3 flex items-center justify-between gap-2">
+                          <div className="flex-1 flex items-center justify-center gap-2">
+                            {Boolean(selectedEntry?.urgente) && (
+                              <span className="text-danger" title="Urgente">
+                                ⚠️
+                              </span>
+                            )}
+                            <h2 className="text-lg font-semibold text-neutral-900 text-center">
+                              {proveedor.razon_social}
+                            </h2>
+                          </div>
+                          {!selectedEntry && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenProveedorIds((prev) =>
+                                  prev.filter((id) => id !== proveedor.id)
+                                );
+                              }}
+                              className="flex-shrink-0 text-neutral-400 hover:text-neutral-700 transition-colors text-lg leading-none px-1"
+                              aria-label="Cerrar carpeta"
+                              title="Cerrar"
+                            >
+                              ✕
+                            </button>
+                          )}
                         </div>
 
                         <div className="text-neutral-800 whitespace-pre-wrap break-words">
@@ -398,33 +423,75 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
                     ) : (
                       <>
                         <div className="flex items-center justify-between gap-3 mb-3">
-                          <h2 className="text-lg font-semibold text-neutral-900">
-                            {`Nota · ${proveedor.razon_social}`}
+                          <h2
+                            className={`text-lg font-semibold ${selectedEntry?.urgente ? 'text-danger' : 'text-neutral-900'}`}
+                          >
+                            {Boolean(selectedEntry?.urgente) && <span className="mr-1">⚠️</span>}
+                            {`PEDIDO · ${proveedor.razon_social}`}
                           </h2>
-                          <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActionsMenuOpenId((prev) =>
+                                prev === proveedor.id ? null : proveedor.id
+                              );
+                            }}
+                            className="px-2 py-1 rounded border border-neutral-200 text-neutral-500 hover:bg-neutral-100 transition-colors text-xl leading-none"
+                            aria-label="Acciones"
+                            aria-expanded={actionsMenuOpenId === proveedor.id}
+                          >
+                            ⋮
+                          </button>
+                        </div>
+
+                        {actionsMenuOpenId === proveedor.id && (
+                          <div className="absolute left-full top-0 ml-1 z-50 flex flex-col bg-white border border-neutral-200 rounded shadow-lg py-1 min-w-[170px]">
+                            {selectedEntry && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  toggleUrgente(selectedEntry.id, !selectedEntry.urgente);
+                                  setActionsMenuOpenId(null);
+                                }}
+                                className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                                  selectedEntry.urgente
+                                    ? 'text-danger hover:bg-danger/5'
+                                    : 'text-neutral-700 hover:bg-neutral-50'
+                                }`}
+                              >
+                                {selectedEntry.urgente
+                                  ? '⚠️ Urgente (desmarcar)'
+                                  : 'Marcar urgente'}
+                              </button>
+                            )}
                             <button
                               type="button"
-                              onClick={() => navigate(`/encargar/proveedor/${proveedor.id}/editar`)}
-                              className="px-3 py-1.5 rounded border border-neutral-200 text-neutral-700 hover:bg-neutral-100 transition-colors"
+                              onClick={() => {
+                                navigate(`/encargar/proveedor/${proveedor.id}/editar`);
+                                setActionsMenuOpenId(null);
+                              }}
+                              className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors"
                             >
                               Editar proveedor
                             </button>
                             {selectedEntry && (
                               <button
                                 type="button"
-                                onClick={() =>
+                                onClick={() => {
                                   setDeleteConfirm({
                                     proveedorId: proveedor.id,
                                     entryId: selectedEntry.id,
-                                  })
-                                }
-                                className="px-3 py-1.5 rounded border border-danger text-danger hover:bg-danger/5 transition-colors"
+                                  });
+                                  setActionsMenuOpenId(null);
+                                }}
+                                className="w-full text-left px-4 py-2 text-sm text-danger hover:bg-danger/5 transition-colors"
                               >
-                                Eliminar nota
+                                Eliminar pedido
                               </button>
                             )}
                           </div>
-                        </div>
+                        )}
 
                         <textarea
                           value={editorText}
@@ -473,7 +540,7 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
 
       {deleteConfirm && (
         <ConfirmDialog
-          title="¿Eliminar esta nota?"
+          title="¿Eliminar este pedido?"
           message="Esta acción no se puede deshacer."
           onConfirm={handleDelete}
           onCancel={() => setDeleteConfirm(false)}
@@ -580,7 +647,7 @@ function EncargarProveedorView() {
             onClick={() => navigate('/encargar/nueva')}
             className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
           >
-            Nueva entrada
+            Nuevo pedido
           </button>
           <button
             type="button"

@@ -64,7 +64,7 @@ const COLUMNS = [
   },
 ];
 
-function transformEntries(notasData, llamarData, encargarData) {
+function transformEntries(notasData, llamarData, encargarData, proveedoresData) {
   const notas = (notasData?.data ?? []).map((n) => ({
     id: n.id,
     type: 'notas',
@@ -87,11 +87,31 @@ function transformEntries(notasData, llamarData, encargarData) {
     fecha_mod: l.fecha_mod ?? null,
   }));
 
-  const encargar = (encargarData?.data ?? []).map((e) => ({
+  const proveedoresMap = {};
+  (proveedoresData?.data ?? []).forEach((p) => {
+    proveedoresMap[p.id] = p;
+  });
+
+  const latestByProveedor = {};
+  (encargarData?.data ?? []).forEach((entry) => {
+    if (!entry.proveedor_id) return;
+    const current = latestByProveedor[entry.proveedor_id];
+    if (!current) {
+      latestByProveedor[entry.proveedor_id] = entry;
+      return;
+    }
+    const currentDate = new Date(current.fecha_mod || current.fecha_creacion || 0).getTime();
+    const entryDate = new Date(entry.fecha_mod || entry.fecha_creacion || 0).getTime();
+    if (entryDate > currentDate) {
+      latestByProveedor[entry.proveedor_id] = entry;
+    }
+  });
+
+  const encargar = Object.values(latestByProveedor).map((e) => ({
     id: e.id,
     type: 'encargar',
-    title: e.articulo ?? null,
-    contacto: e.proveedor ?? null,
+    title: proveedoresMap[e.proveedor_id]?.razon_social ?? `Proveedor ${e.proveedor_id}`,
+    contacto: null,
     descripcion: e.descripcion ?? null,
     urgente: Boolean(e.urgente),
     fecha_creacion: e.fecha_creacion ?? null,
@@ -127,13 +147,14 @@ function Home() {
     let cancelled = false;
     async function fetchAll() {
       try {
-        const [notasRes, llamarRes, encargarRes] = await Promise.all([
+        const [notasRes, llamarRes, encargarRes, proveedoresRes] = await Promise.all([
           window.electronAPI.notas.getAll(),
           window.electronAPI.llamar.getAll(),
           window.electronAPI.encargar.getAll(),
+          window.electronAPI.proveedores.getAll(),
         ]);
         if (!cancelled) {
-          setEntries(transformEntries(notasRes, llamarRes, encargarRes));
+          setEntries(transformEntries(notasRes, llamarRes, encargarRes, proveedoresRes));
         }
       } catch {
         // If electronAPI is unavailable (e.g. tests) just leave entries empty

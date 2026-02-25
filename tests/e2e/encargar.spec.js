@@ -30,8 +30,8 @@ test.describe('Encargar E2E', () => {
     await closeApp(app);
   });
 
-  test('navigates to new provider form from Nuevo producto button', async () => {
-    await page.getByRole('button', { name: 'Nuevo producto' }).click();
+  test('navigates to new provider form from Nuevo proveedor button', async () => {
+    await page.getByRole('button', { name: 'Nuevo proveedor' }).click();
     await expect(page.getByRole('heading', { name: 'Nuevo proveedor', exact: true })).toBeVisible();
   });
 

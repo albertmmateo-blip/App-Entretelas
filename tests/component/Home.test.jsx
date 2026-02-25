@@ -31,19 +31,6 @@ function makeLlamar(overrides = {}) {
   };
 }
 
-function makeEncargar(overrides = {}) {
-  return {
-    id: 3,
-    articulo: 'Hilo blanco',
-    proveedor: 'Proveedor S.L.',
-    descripcion: null,
-    urgente: 0,
-    fecha_creacion: '2026-01-13T10:00:00.000Z',
-    fecha_mod: '2026-01-13T10:00:00.000Z',
-    ...overrides,
-  };
-}
-
 const successResponse = (data) => ({ success: true, data });
 
 function renderHome() {
@@ -59,7 +46,6 @@ describe('Home page', () => {
     setupIPCMock();
     mockIPCResponse('notas:getAll', successResponse([makeNota()]));
     mockIPCResponse('llamar:getAll', successResponse([makeLlamar()]));
-    mockIPCResponse('encargar:getAll', successResponse([makeEncargar()]));
   });
 
   afterEach(() => {
@@ -81,12 +67,11 @@ describe('Home page', () => {
     expect(screen.getByRole('link', { name: /E-mail/i })).toBeInTheDocument();
   });
 
-  it('shows entries from all modules after loading', async () => {
+  it('shows entries from notas and llamar after loading', async () => {
     renderHome();
     await waitFor(() => {
       expect(screen.getByText('Nota test')).toBeInTheDocument();
       expect(screen.getByText('Llamar a proveedor')).toBeInTheDocument();
-      expect(screen.getByText('Hilo blanco')).toBeInTheDocument();
     });
   });
 
@@ -99,7 +84,6 @@ describe('Home page', () => {
 
     expect(screen.getByText('Nota test')).toBeInTheDocument();
     expect(screen.queryByText('Llamar a proveedor')).not.toBeInTheDocument();
-    expect(screen.queryByText('Hilo blanco')).not.toBeInTheDocument();
   });
 
   it('filters entries by search query (contacto match)', async () => {
@@ -111,7 +95,6 @@ describe('Home page', () => {
 
     expect(screen.queryByText('Nota test')).not.toBeInTheDocument();
     expect(screen.getByText('Llamar a proveedor')).toBeInTheDocument();
-    expect(screen.queryByText('Hilo blanco')).not.toBeInTheDocument();
   });
 
   it('shows empty state when no entries match search', async () => {
@@ -134,7 +117,6 @@ describe('Home page', () => {
 
     expect(screen.getByText('Nota test')).toBeInTheDocument();
     expect(screen.queryByText('Llamar a proveedor')).not.toBeInTheDocument();
-    expect(screen.queryByText('Hilo blanco')).not.toBeInTheDocument();
   });
 
   it('keeps urgent entries at the top after sort', async () => {
@@ -156,7 +138,6 @@ describe('Home page', () => {
       ])
     );
     mockIPCResponse('llamar:getAll', successResponse([]));
-    mockIPCResponse('encargar:getAll', successResponse([]));
 
     renderHome();
     await waitFor(() => expect(screen.getByText('Nota urgente')).toBeInTheDocument());
@@ -170,7 +151,6 @@ describe('Home page', () => {
   it('shows empty state when there are no entries at all', async () => {
     mockIPCResponse('notas:getAll', successResponse([]));
     mockIPCResponse('llamar:getAll', successResponse([]));
-    mockIPCResponse('encargar:getAll', successResponse([]));
 
     renderHome();
     await waitFor(() => expect(screen.getByText(/No hay entradas/i)).toBeInTheDocument());
@@ -185,7 +165,6 @@ describe('Home page', () => {
       ])
     );
     mockIPCResponse('llamar:getAll', successResponse([]));
-    mockIPCResponse('encargar:getAll', successResponse([]));
 
     renderHome();
     await waitFor(() => expect(screen.getByText('Nota urgente')).toBeInTheDocument());
@@ -197,7 +176,7 @@ describe('Home page', () => {
     expect(screen.queryByText('Nota normal')).not.toBeInTheDocument();
   });
 
-  it('handles entries with duplicate IDs across different modules without key warnings', async () => {
+  it('handles entries with duplicate IDs across notas and llamar without key warnings', async () => {
     // This tests the scenario where different modules have entries with the same ID
     // which was causing React key warnings
     mockIPCResponse(
@@ -214,27 +193,17 @@ describe('Home page', () => {
         makeLlamar({ id: 2, asunto: 'Llamar ID 2' }),
       ])
     );
-    mockIPCResponse(
-      'encargar:getAll',
-      successResponse([
-        makeEncargar({ id: 1, articulo: 'Encargar ID 1' }),
-        makeEncargar({ id: 2, articulo: 'Encargar ID 2' }),
-      ])
-    );
 
     renderHome();
     await waitFor(() => {
       expect(screen.getByText('Nota ID 1')).toBeInTheDocument();
       expect(screen.getByText('Llamar ID 1')).toBeInTheDocument();
-      expect(screen.getByText('Encargar ID 1')).toBeInTheDocument();
     });
 
-    // All 6 entries should be visible
+    // All 4 entries should be visible
     expect(screen.getByText('Nota ID 1')).toBeInTheDocument();
     expect(screen.getByText('Nota ID 2')).toBeInTheDocument();
     expect(screen.getByText('Llamar ID 1')).toBeInTheDocument();
     expect(screen.getByText('Llamar ID 2')).toBeInTheDocument();
-    expect(screen.getByText('Encargar ID 1')).toBeInTheDocument();
-    expect(screen.getByText('Encargar ID 2')).toBeInTheDocument();
   });
 });
