@@ -175,9 +175,17 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
     setOpenProveedorIds((previous) =>
       previous.includes(proveedorId) ? previous : [...previous, proveedorId]
     );
-    setEditingProveedorId(null);
     setDeleteConfirm(null);
     setIsDropdownOpen(false);
+
+    // If there's no existing entry, open the editor immediately so the user
+    // can start typing right away without an extra click.
+    if (!latestEntryByProveedor[proveedorId]) {
+      setEditorValues((previous) => ({ ...previous, [proveedorId]: '' }));
+      setEditingProveedorId(proveedorId);
+    } else {
+      setEditingProveedorId(null);
+    }
   };
 
   const handleSearchEnter = (event) => {
@@ -502,6 +510,8 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
                             }))
                           }
                           placeholder="Escribe aquí la nota del proveedor..."
+                          // eslint-disable-next-line jsx-a11y/no-autofocus
+                          autoFocus
                           className="w-full min-h-[220px] px-3 py-2 bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
                         />
 
