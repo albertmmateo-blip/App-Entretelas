@@ -79,6 +79,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     update: (id, data) => ipcRenderer.invoke('clientes:update', id, data),
     delete: (id) => ipcRenderer.invoke('clientes:delete', id),
   },
+  // Window controls
+  window: {
+    minimize: () => ipcRenderer.send('window:minimize'),
+    maximize: () => ipcRenderer.send('window:maximize'),
+    close: () => ipcRenderer.send('window:close'),
+    isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
+    onMaximizeChange: (cb) => {
+      ipcRenderer.on('window:maximized', (_, val) => cb(val));
+    },
+  },
   // Facturas module
   facturas: {
     uploadPDF: (params) => ipcRenderer.invoke('facturas:uploadPDF', params),

@@ -270,18 +270,34 @@ function EntryForm({ fields, initialValues = {}, onSubmit, onCancel, showUrgente
       ))}
 
       {showUrgenteToggle && (
-        <div>
-          <label htmlFor="urgente" className="flex items-center gap-2 cursor-pointer">
+        <div
+          style={{
+            padding: '6px 8px',
+            border: '1px solid',
+            borderColor: formData.urgente ? '#c04040' : '#c0a882',
+            background: formData.urgente ? '#fff0f0' : 'transparent',
+            borderRadius: '2px',
+          }}
+        >
+          <label
+            htmlFor="urgente"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+          >
             <input
               id="urgente"
               type="checkbox"
               name="urgente"
               checked={formData.urgente}
               onChange={handleChange}
-              className="w-4 h-4 text-primary border-neutral-300 rounded focus:ring-2 focus:ring-primary"
+              style={{ width: '13px', height: '13px', cursor: 'pointer', accentColor: '#8a3c07' }}
             />
             <span
-              className={`text-sm font-medium ${formData.urgente ? 'text-danger' : 'text-neutral-700'}`}
+              style={{
+                fontFamily: 'Tahoma, sans-serif',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                color: formData.urgente ? '#b02020' : '#5c2e0e',
+              }}
             >
               Marcar como URGENTE!
             </span>

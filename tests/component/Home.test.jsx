@@ -46,6 +46,8 @@ describe('Home page', () => {
     setupIPCMock();
     mockIPCResponse('notas:getAll', successResponse([makeNota()]));
     mockIPCResponse('llamar:getAll', successResponse([makeLlamar()]));
+    mockIPCResponse('encargar:getAll', successResponse([]));
+    mockIPCResponse('proveedores:getAll', successResponse([]));
   });
 
   afterEach(() => {
@@ -55,16 +57,6 @@ describe('Home page', () => {
   it('renders the top logo banner', () => {
     renderHome();
     expect(screen.getByRole('img', { name: 'Entretelar' })).toBeInTheDocument();
-  });
-
-  it('renders module quick-nav links', () => {
-    renderHome();
-    expect(screen.getByRole('link', { name: /URGENTE!/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Notas/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Llamar/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Encargar/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Contabilidad/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /E-mail/i })).toBeInTheDocument();
   });
 
   it('shows entries from notas and llamar after loading', async () => {

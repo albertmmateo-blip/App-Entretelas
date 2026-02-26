@@ -4,12 +4,12 @@ const ITEMS_PER_PAGE = 100;
 
 function getRowBackgroundClass(isUrgente, rowIndex) {
   if (isUrgente) {
-    return 'bg-danger/10 hover:bg-danger/15';
+    return 'bg-danger-100/60 hover:bg-danger-100';
   }
   if (rowIndex % 2 === 1) {
-    return 'bg-sky-50/80 hover:bg-sky-100/70';
+    return 'bg-neutral-100/70 hover:bg-neutral-200/60';
   }
-  return 'bg-white hover:bg-sky-100/70';
+  return 'bg-white hover:bg-neutral-100/70';
 }
 
 function DataTable({
@@ -109,12 +109,15 @@ function DataTable({
   };
 
   return (
-    <div className="bg-white border border-neutral-200 rounded-xl shadow-sm overflow-hidden">
+    <div className="xp-inset-panel overflow-hidden">
       <table className="w-full">
-        <thead className={`bg-sky-200 border-b border-sky-300 ${headerRowClassName}`}>
+        <thead
+          className={`border-b border-neutral-300 ${headerRowClassName}`}
+          style={{ background: 'linear-gradient(to bottom, #e8d4b0, #d0b888)' }}
+        >
           <tr>
             {columns.map((column) => (
-              <th key={column.key} className={`px-4 py-3 text-right ${headerCellClassName}`}>
+              <th key={column.key} className={`px-4 py-5 text-right ${headerCellClassName}`}>
                 {column.sortable ? (
                   <button
                     type="button"
@@ -126,7 +129,7 @@ function DataTable({
                   </button>
                 ) : (
                   <span
-                    className={`block text-xs font-semibold uppercase tracking-wide text-neutral-600 text-right ${headerLabelClassName}`}
+                    className={`block text-xs font-semibold uppercase tracking-wide text-neutral-700 text-right ${headerLabelClassName}`}
                   >
                     {column.label}
                   </span>
@@ -134,7 +137,7 @@ function DataTable({
               </th>
             ))}
             {renderActions && (
-              <th className={`px-4 py-3 text-center ${headerCellClassName}`}>
+              <th className={`px-4 py-5 text-center ${headerCellClassName}`}>
                 <span
                   className={`text-xs font-semibold uppercase tracking-wide text-neutral-600 ${headerLabelClassName}`}
                 >
@@ -160,7 +163,7 @@ function DataTable({
                 {columns.map((column) => (
                   <td
                     key={column.key}
-                    className={`px-4 py-3 text-sm text-neutral-800 ${verticalAlignClass} text-right ${bodyCellClassName} ${
+                    className={`px-4 py-5 text-sm text-neutral-800 ${verticalAlignClass} text-right ${bodyCellClassName} ${
                       isUrgente ? 'font-medium' : ''
                     }`}
                   >
@@ -169,7 +172,7 @@ function DataTable({
                 ))}
                 {renderActions && (
                   <td
-                    className={`px-4 py-3 text-center ${verticalAlignClass} ${actionCellClassName || bodyCellClassName}`}
+                    className={`px-4 py-5 text-center ${verticalAlignClass} ${actionCellClassName || bodyCellClassName}`}
                   >
                     <button
                       type="button"
@@ -216,8 +219,15 @@ function DataTable({
 
       {menuState && renderActions && (
         <div
-          className="fixed bg-white border border-neutral-200 rounded-lg shadow-lg py-1 z-50"
-          style={{ top: menuState.y, left: menuState.x }}
+          className="fixed py-1 z-50"
+          style={{
+            top: menuState.y,
+            left: menuState.x,
+            background: 'linear-gradient(to bottom, #fdf7ef, #f1e5d6)',
+            border: '2px outset #c0a882',
+            boxShadow: '2px 2px 4px rgba(0,0,0,0.3)',
+            borderRadius: '3px',
+          }}
         >
           {renderActions(menuState.row).map((action) => (
             <button

@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { EmptyState, LoadingState } from '../../components/entries';
 import useToast from '../../hooks/useToast';
+import incognitoUrl from '../../assets/incognito.svg';
 
 const FOLDER_TYPES = {
   proveedor: 'Proveedor',
@@ -731,6 +732,15 @@ function CatalogoList({ folderId = null }) {
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-2">
+          <img
+            src={incognitoUrl}
+            alt=""
+            style={{
+              width: '28px',
+              height: '28px',
+              filter: 'drop-shadow(1px 1px 1px rgba(0,0,0,0.4))',
+            }}
+          />
           <h1 className="text-2xl font-bold text-neutral-900">{title}</h1>
         </div>
         <div className="ml-auto flex items-center gap-2">

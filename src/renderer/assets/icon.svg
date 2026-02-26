@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <!-- Bottom flange gradient (wood-brown, lit from top-left) -->
+    <radialGradient id="flangeGrad" cx="38%" cy="28%" r="65%">
+      <stop offset="0%"   stop-color="#c48a50"/>
+      <stop offset="40%"  stop-color="#8b5e3c"/>
+      <stop offset="100%" stop-color="#3e1e0a"/>
+    </radialGradient>
+
+    <!-- Flange edge bevel highlight -->
+    <linearGradient id="flangeEdge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#d9a060" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#5a2e0e" stop-opacity="0.9"/>
+    </linearGradient>
+
+    <!-- Thread body gradient (orange thread, darkens at sides) -->
+    <linearGradient id="threadGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#9f4d15"/>
+      <stop offset="18%"  stop-color="#e87722"/>
+      <stop offset="48%"  stop-color="#f5a050"/>
+      <stop offset="72%"  stop-color="#e87722"/>
+      <stop offset="100%" stop-color="#7a3208"/>
+    </linearGradient>
+
+    <!-- Thread body sheen (white highlight strip) -->
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="40%"  stop-color="#ffffff" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Flange face - wooden planks shading -->
+    <linearGradient id="flangeFace" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0%"   stop-color="#c07840"/>
+      <stop offset="50%"  stop-color="#7a4820"/>
+      <stop offset="100%" stop-color="#3a1a06"/>
+    </linearGradient>
+
+    <!-- Clip for thread body -->
+    <clipPath id="bodyClip">
+      <rect x="83" y="76" width="90" height="114" rx="2"/>
+    </clipPath>
+
+    <!-- Drop shadow filter -->
+    <filter id="shadow" x="-20%" y="-10%" width="140%" height="130%">
+      <feDropShadow dx="3" dy="6" stdDeviation="8" flood-color="#2a0e02" flood-opacity="0.55"/>
+    </filter>
+  </defs>
+
+  <!-- ── Outer drop shadow group ── -->
+  <g filter="url(#shadow)">
+
+    <!-- ═══ BOTTOM FLANGE ═══ -->
+    <!-- Side depth band (gives thickness illusion) -->
+    <rect x="54" y="196" width="148" height="20" rx="4" fill="url(#flangeEdge)"/>
+
+    <!-- Bottom flange face -->
+    <ellipse cx="128" cy="198" rx="74" ry="22" fill="url(#flangeFace)"/>
+    <!-- Rim highlight arc -->
+    <ellipse cx="128" cy="195" rx="74" ry="22" fill="none"
+             stroke="#d9a060" stroke-width="1.5" stroke-opacity="0.6"/>
+    <!-- Inner shadow ring -->
+    <ellipse cx="128" cy="198" rx="44" ry="13" fill="#3a1a06" fill-opacity="0.35"/>
+
+    <!-- ═══ THREAD BODY ═══ -->
+    <!-- Main cylinder (clipped) -->
+    <rect x="83" y="76" width="90" height="114" rx="2" fill="url(#threadGrad)"/>
+
+    <!-- Wound thread lines (horizontal, slightly varying opacity - classic XP texture) -->
+    <g clip-path="url(#bodyClip)" opacity="0.38">
+      <line x1="83" y1="82"  x2="173" y2="82"  stroke="#7a3208" stroke-width="1"/>
+      <line x1="83" y1="87"  x2="173" y2="87"  stroke="#c86018" stroke-width="0.8"/>
+      <line x1="83" y1="92"  x2="173" y2="92"  stroke="#7a3208" stroke-width="1"/>
+      <line x1="83" y1="97"  x2="173" y2="97"  stroke="#c86018" stroke-width="0.8"/>
+      <line x1="83" y1="102" x2="173" y2="102" stroke="#7a3208" stroke-width="1"/>
+      <line x1="83" y1="107" x2="173" y2="107" stroke="#c86018" stroke-width="0.8"/>
+      <line x1="83" y1="112" x2="173" y2="112" stroke="#7a3208" stroke-width="1"/>
+      <line x1="83" y1="117" x2="173" y2="117" stroke="#c86018" stroke-width="0.8"/>
+      <line x1="83" y1="122" x2="173" y2="122" stroke="#7a3208" stroke-width="1"/>
+      <line x1="83" y1="127" x2="173" y2="127" stroke="#c86018" stroke-width="0.8"/>
+      <line x1="83" y1="132" x2="173" y2="132" stroke="#7a3208" stroke-width="1"/>
+      <line x1="83" y1="137" x2="173" y2="137" stroke="#c86018" stroke-width="0.8"/>
+      <line x1="83" y1="142" x2="173" y2="142" stroke="#7a3208" stroke-width="1"/>
+      <line x1="83" y1="147" x2="173" y2="147" stroke="#c86018" stroke-width="0.8"/>
+      <line x1="83" y1="152" x2="173" y2="152" stroke="#7a3208" stroke-width="1"/>
+      <line x1="83" y1="157" x2="173" y2="157" stroke="#c86018" stroke-width="0.8"/>
+      <line x1="83" y1="162" x2="173" y2="162" stroke="#7a3208" stroke-width="1"/>
+      <line x1="83" y1="167" x2="173" y2="167" stroke="#c86018" stroke-width="0.8"/>
+      <line x1="83" y1="172" x2="173" y2="172" stroke="#7a3208" stroke-width="1"/>
+      <line x1="83" y1="177" x2="173" y2="177" stroke="#c86018" stroke-width="0.8"/>
+      <line x1="83" y1="182" x2="173" y2="182" stroke="#7a3208" stroke-width="1"/>
+    </g>
+
+    <!-- Top highlight sheen on thread body -->
+    <rect x="83" y="76" width="90" height="55" rx="2" fill="url(#sheen)"/>
+
+    <!-- Left edge darkening -->
+    <rect x="83" y="76" width="16" height="114" fill="#000" fill-opacity="0.28" rx="2"/>
+    <!-- Right edge darkening -->
+    <rect x="157" y="76" width="16" height="114" fill="#000" fill-opacity="0.25" rx="2"/>
+
+    <!-- ═══ TOP FLANGE ═══ -->
+    <!-- Side depth band -->
+    <rect x="54" y="60" width="148" height="19" rx="4" fill="url(#flangeEdge)"/>
+
+    <!-- Top flange face -->
+    <ellipse cx="128" cy="62" rx="74" ry="22" fill="url(#flangeFace)"/>
+    <!-- Rim highlight -->
+    <ellipse cx="128" cy="59" rx="74" ry="22" fill="none"
+             stroke="#e0b070" stroke-width="2" stroke-opacity="0.7"/>
+    <!-- Inner shadow ring -->
+    <ellipse cx="128" cy="62" rx="44" ry="13" fill="#3a1a06" fill-opacity="0.32"/>
+    <!-- Top flange gloss highlight -->
+    <ellipse cx="108" cy="53" rx="38" ry="10" fill="#ffffff" fill-opacity="0.18"/>
+
+    <!-- ═══ THREAD TAIL ═══ (classic detail on spools) -->
+    <path d="M173 105 Q200 90 195 74 Q190 60 178 62"
+          fill="none" stroke="#e87722" stroke-width="3"
+          stroke-linecap="round" stroke-opacity="0.85"/>
+
+  </g>
+</svg>

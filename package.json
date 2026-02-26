@@ -26,6 +26,7 @@
     "format": "prettier --write \"**/*.{js,jsx,json,css,md}\"",
     "prepare": "husky",
     "postinstall": "npm run rebuild-natives || echo [WARN] Native rebuild skipped due file lock; run npm run rebuild-natives manually after closing the app.",
+    "generate-icon": "node scripts/generate-icon.js",
     "cleanup-native-locks": "node scripts/cleanup-native-locks.js",
     "rebuild-natives:node": "npm run cleanup-native-locks && npm rebuild better-sqlite3",
     "rebuild-natives": "npm run cleanup-native-locks && electron-rebuild -f -w better-sqlite3",
@@ -123,7 +124,9 @@
     "playwright": "^1.58.2",
     "postcss": "^8.5.6",
     "prettier": "^3.8.1",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4.2.0",
+    "to-ico": "^1.1.5",
     "vite": "^5.4.21",
     "vitest": "^4.0.18",
     "wait-on": "^9.0.4"

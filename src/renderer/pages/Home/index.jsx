@@ -1,20 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import DataTable from '../../components/DataTable';
 import entretelarLogo from '../../assets/entretelar-logo.png';
 import { formatDateTime } from '../../utils/formatDateTime';
 
 const MODULE_ICONS = { notas: '📝', llamar: '📞', encargar: '📦' };
 const MODULE_NAMES = { notas: 'Notas', llamar: 'Llamar', encargar: 'Encargar' };
-
-const NAV_ITEMS = [
-  { path: '/urgente', icon: '⚠️', label: 'URGENTE!' },
-  { path: '/notas', icon: '📝', label: 'Notas' },
-  { path: '/llamar', icon: '📞', label: 'Llamar' },
-  { path: '/encargar', icon: '📦', label: 'Encargar' },
-  { path: '/contabilidad', icon: '📄', label: 'Contabilidad' },
-  { path: '/email', icon: '📧', label: 'E-mail' },
-];
 
 const COLUMNS = [
   {
@@ -23,7 +14,7 @@ const COLUMNS = [
     sortable: true,
     render: (value) => (
       <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded bg-neutral-100 text-neutral-700">
-        {MODULE_ICONS[value] ?? value}
+        {MODULE_NAMES[value] ?? value} {MODULE_ICONS[value] ?? ''}
       </span>
     ),
   },
@@ -200,20 +191,6 @@ function Home() {
           />
         </div>
       )}
-
-      {/* Module quick-nav panel */}
-      <div className="grid grid-cols-3 md:grid-cols-6 gap-4 mb-6">
-        {NAV_ITEMS.map(({ path, icon, label }) => (
-          <Link
-            key={path}
-            to={path}
-            className="flex flex-col items-center justify-center w-[120px] h-[120px] bg-neutral-100 border border-neutral-200 rounded-xl shadow-sm hover:shadow-md hover:border-primary transition-all text-neutral-700 hover:text-primary"
-          >
-            <span className="text-4xl mb-2">{icon}</span>
-            <span className="text-sm font-medium">{label}</span>
-          </Link>
-        ))}
-      </div>
 
       {/* Search + filter bar */}
       <div className="flex flex-wrap gap-3 mb-4 items-center">

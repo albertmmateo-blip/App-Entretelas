@@ -1,5 +1,7 @@
 import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
-import { HashRouter, Routes, Route, NavLink, useNavigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import useNavCounts from './hooks/useNavCounts';
+import incognitoUrl from './assets/incognito.svg';
 import Home from './pages/Home';
 import Urgente from './pages/Urgente';
 import Notas from './pages/Notas';
@@ -7,22 +9,108 @@ import Llamar from './pages/Llamar';
 import Encargar from './pages/Encargar';
 import Email from './pages/Email';
 import Secret from './pages/Secret';
+import Guardado from './pages/Guardado';
+
+import iconUrl from './assets/icon.svg';
 
 const Contabilidad = lazy(() => import('./pages/Facturas'));
 
 function ContabilidadRoute() {
   return (
-    <Suspense fallback={<div className="p-4 text-sm text-neutral-600">Cargando módulo...</div>}>
+    <Suspense
+      fallback={
+        <div
+          style={{
+            padding: '16px',
+            fontFamily: 'Tahoma,sans-serif',
+            fontSize: '13px',
+            color: '#9d8577',
+          }}
+        >
+          Cargando módulo...
+        </div>
+      }
+    >
       <Contabilidad />
     </Suspense>
   );
 }
 
+function TitleBar({ onIconClick, isSecret }) {
+  const [maximized, setMaximized] = useState(false);
+
+  useEffect(() => {
+    window.electronAPI?.window
+      ?.isMaximized()
+      .then(setMaximized)
+      .catch(() => {});
+    window.electronAPI?.window?.onMaximizeChange?.(setMaximized);
+  }, []);
+
+  return (
+    <div className="xp-titlebar">
+      <button
+        type="button"
+        className="xp-titlebar-icon-btn"
+        onClick={onIconClick}
+        aria-label="Acceso especial"
+      >
+        <img src={iconUrl} alt="" className="xp-titlebar-icon" />
+      </button>
+      <span className="xp-titlebar-text">Entretelas</span>
+      {isSecret && (
+        <img
+          src={incognitoUrl}
+          alt="Módulo secreto"
+          style={{
+            width: '22px',
+            height: '22px',
+            marginLeft: '4px',
+            filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.5))',
+            flexShrink: 0,
+          }}
+        />
+      )}
+      <div className="xp-titlebar-controls">
+        <button
+          type="button"
+          className="xp-title-btn"
+          onClick={() => window.electronAPI?.window?.minimize()}
+          aria-label="Minimizar"
+        >
+          ─
+        </button>
+        <button
+          type="button"
+          className="xp-title-btn"
+          onClick={() => {
+            window.electronAPI?.window?.maximize();
+          }}
+          aria-label={maximized ? 'Restaurar' : 'Maximizar'}
+        >
+          {maximized ? '⧇' : '□'}
+        </button>
+        <button
+          type="button"
+          className="xp-title-btn close"
+          onClick={() => window.electronAPI?.window?.close()}
+          aria-label="Cerrar"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function AppLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isSecretPromptOpen, setIsSecretPromptOpen] = useState(false);
   const [secretPassword, setSecretPassword] = useState('');
   const secretInputRef = useRef(null);
+  const navCounts = useNavCounts();
+  const isSecret = location.pathname.startsWith('/mixo');
 
   useEffect(() => {
     if (isSecretPromptOpen && secretInputRef.current) {
@@ -32,67 +120,63 @@ export function AppLayout() {
 
   const navLinks = [
     { path: '/', label: 'Home', icon: '🏠', end: true },
-    { path: '/urgente', label: 'URGENTE!', icon: '⚠️' },
-    { path: '/notas', label: 'Notas', icon: '📝' },
-    { path: '/llamar', label: 'Llamar', icon: '📞' },
-    { path: '/encargar', label: 'Encargar', icon: '📦' },
+    { path: '/urgente', label: 'URGENTE!', icon: '⚠️', urgent: true, countKey: 'urgente' },
+    { path: '/notas', label: 'Notas', icon: '📝', countKey: 'notas' },
+    { path: '/llamar', label: 'Llamar', icon: '📞', countKey: 'llamar' },
+    { path: '/encargar', label: 'Encargar', icon: '📦', countKey: 'encargar' },
     { path: '/contabilidad', label: 'Contabilidad', icon: '📄' },
-    { path: '/email', label: 'E-mail', icon: '📧' },
+    { path: '/guardado', label: 'Guardado', icon: '📍' },
   ];
 
   return (
-    <div className="flex h-screen bg-neutral-50 text-neutral-700">
-      {/* Sidebar */}
-      <nav className="relative w-[78px] bg-primary border-r border-primary-700/25 flex flex-col py-4 shadow-sm">
-        {navLinks.map(({ path, label, icon, end }) => {
-          const isUrgentLink = path === '/urgente';
+    <div className="xp-window">
+      {/* XP Title Bar */}
+      <TitleBar
+        onIconClick={() => {
+          setSecretPassword('');
+          setIsSecretPromptOpen(true);
+        }}
+        isSecret={isSecret}
+      />
 
+      {/* XP Navigation Tab Bar */}
+      <nav className="xp-navbar">
+        {navLinks.map(({ path, label, icon, end, urgent, countKey }) => {
+          const count = countKey ? navCounts[countKey] : 0;
           return (
             <NavLink
               key={path}
               to={path}
               end={end}
-              className={({ isActive }) => {
-                let stateClasses = '';
-
-                if (isActive) {
-                  stateClasses = isUrgentLink
-                    ? 'border-danger-200/70 bg-danger-100 text-danger-700 font-semibold'
-                    : 'border-transparent text-primary text-white bg-white/20 font-medium';
-                } else {
-                  stateClasses = isUrgentLink
-                    ? 'border-transparent text-white hover:bg-danger-700/25 hover:border-danger-200/40 hover:text-white'
-                    : 'border-transparent text-white/90 hover:bg-white/15 hover:text-white';
-                }
-
-                return `mx-2 mb-1 rounded-md border flex flex-col items-center justify-center py-3 px-2 text-xs transition-colors ${stateClasses}`;
-              }}
+              className={({ isActive }) =>
+                `xp-nav-tab${urgent ? ' urgente-tab' : ''}${isActive ? ' active-tab' : ''}`
+              }
             >
-              <span className={`text-2xl mb-1 ${isUrgentLink ? 'drop-shadow-sm' : ''}`}>
-                {icon}
-              </span>
-              <span
-                className={`text-center leading-tight ${isUrgentLink ? 'font-semibold tracking-wide' : ''}`}
-              >
-                {label}
-              </span>
+              <span className="tab-icon">{icon}</span>
+              <span>{label}</span>
+              {count > 0 && (
+                <span className={`xp-nav-badge${urgent ? ' xp-nav-badge--urgent' : ''}`}>
+                  {count}
+                </span>
+              )}
             </NavLink>
           );
         })}
 
-        <button
-          type="button"
-          className="absolute bottom-3 left-2 right-2 h-12 rounded-md bg-primary opacity-0"
-          onClick={() => {
-            setSecretPassword('');
-            setIsSecretPromptOpen(true);
-          }}
-          aria-label="Abrir acceso secreto"
-        />
+        {/* Spacer pushes Email to the far right */}
+        <div style={{ flex: 1 }} />
+
+        <NavLink
+          to="/email"
+          className={({ isActive }) => `xp-nav-tab${isActive ? ' active-tab' : ''}`}
+        >
+          <span className="tab-icon">📧</span>
+          <span>E-mail</span>
+        </NavLink>
       </nav>
 
       {/* Content area */}
-      <main className="flex-1 overflow-auto bg-neutral-50">
+      <main className="xp-workspace">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/urgente" element={<Urgente />} />
@@ -149,6 +233,7 @@ export function AppLayout() {
           <Route path="/facturas/venta/:clienteId" element={<ContabilidadRoute />} />
           <Route path="/facturas/venta/:clienteId/editar" element={<ContabilidadRoute />} />
           <Route path="/email" element={<Email />} />
+          <Route path="/guardado" element={<Guardado />} />
           <Route path="/mixo" element={<Secret />} />
           <Route path="/mixo/catalogo" element={<Secret />} />
           <Route path="/mixo/catalogo/nueva" element={<Secret />} />

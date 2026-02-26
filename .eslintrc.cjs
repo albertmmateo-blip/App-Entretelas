@@ -49,7 +49,7 @@ module.exports = {
   },
   overrides: [
     {
-      files: ['src/main/**/*.js', 'src/preload/**/*.js', 'tests/**/*.js', 'tests/**/*.jsx'],
+      files: ['src/main/**/*.js', 'src/preload/**/*.js', 'scripts/**/*.js', 'tests/**/*.js', 'tests/**/*.jsx'],
       rules: {
         'import/no-extraneous-dependencies': ['error', { devDependencies: true }],
       },

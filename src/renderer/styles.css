@@ -38,22 +38,330 @@
   --color-neutral-900: #2f1813;
 }
 
-body {
-  margin: 0;
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell',
-    'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: var(--color-neutral-50);
-  color: var(--color-neutral-700);
-  line-height: 1.5;
-}
+/* ═══════════════════════════════════════════════════════
+   BASE  –  Windows XP / Tahoma feel
+═══════════════════════════════════════════════════════ */
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
+html,
+body,
 #root {
-  min-height: 100vh;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: Tahoma, 'Segoe UI', Arial, sans-serif;
+  font-size: 13px;
+  background-color: var(--soft-tan);
+  color: var(--logo-brown);
+  line-height: 1.45;
+  -webkit-font-smoothing: auto;
+}
+
+/* ═══════════════════════════════════════════════════════
+   XP WINDOW  –  full-screen app shell
+═══════════════════════════════════════════════════════ */
+
+.xp-window {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--soft-tan);
+}
+
+/* ── Title bar ─────────────────────────────────────── */
+
+.xp-titlebar {
+  display: flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 4px 0 8px;
+  background: linear-gradient(to bottom, #fbbf6e 0%, #e87722 18%, #c85e0f 72%, #8a3c07 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 230, 180, 0.6);
+  border-bottom: 1px solid #6b2f05;
+  flex-shrink: 0;
+  user-select: none;
+  /* makes the whole bar draggable except buttons */
+  -webkit-app-region: drag;
+}
+
+.xp-titlebar-icon-btn {
+  display: flex;
+  align-items: center;
+  padding: 0;
+  margin-right: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 2px;
+  -webkit-app-region: no-drag;
+  flex-shrink: 0;
+  opacity: 0.92;
+  transition:
+    opacity 0.1s,
+    filter 0.1s;
+}
+.xp-titlebar-icon-btn:hover {
+  opacity: 1;
+  filter: brightness(1.15) drop-shadow(0 0 3px rgba(255, 200, 100, 0.7));
+}
+.xp-titlebar-icon-btn:active {
+  filter: brightness(0.85);
+}
+
+.xp-titlebar-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+}
+
+.xp-titlebar-text {
+  flex: 1;
+  font-size: 12px;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.55);
+  letter-spacing: 0.02em;
+}
+
+.xp-titlebar-controls {
+  display: flex;
+  gap: 2px;
+  -webkit-app-region: no-drag;
+}
+
+.xp-title-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  cursor: default;
+  font-size: 11px;
+  font-weight: bold;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(to bottom, #f09540, #c85e0f);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: filter 0.1s;
+  padding: 0;
+  -webkit-app-region: no-drag;
+}
+.xp-title-btn:hover {
+  filter: brightness(1.2);
+}
+.xp-title-btn:active {
+  filter: brightness(0.9);
+}
+.xp-title-btn.close {
+  background: linear-gradient(to bottom, #e85050, #aa1c1c);
+}
+
+/* ── Navigation bar ────────────────────────────────── */
+
+.xp-navbar {
+  display: flex;
+  align-items: stretch;
+  height: 46px;
+  background: linear-gradient(to bottom, #f7e8d4 0%, #e8d0b0 55%, #d4b88a 100%);
+  border-bottom: 2px solid #9f5a1a;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 2px 4px rgba(0, 0, 0, 0.18);
+  padding: 4px 6px 0;
+  flex-shrink: 0;
+  gap: 3px;
+}
+
+/* Each nav tab */
+.xp-nav-tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 17px;
+  height: 100%;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  font-family: Tahoma, sans-serif;
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--logo-brown);
+  text-decoration: none;
+  cursor: default;
+  white-space: nowrap;
+  background: transparent;
+  transition:
+    background 0.1s,
+    color 0.1s;
+}
+
+.xp-nav-tab .tab-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.xp-nav-tab:hover:not(.active-tab) {
+  background: linear-gradient(to bottom, #fff8f0, #f5dfc0);
+  border-color: #c0843a #c0843a transparent;
+  color: #3a1f0f;
+}
+
+.xp-nav-tab.active-tab {
+  background: linear-gradient(to bottom, #ffffff, #f8ede0);
+  border-color: #9f5a1a #9f5a1a transparent;
+  color: #3a1f0f;
+  /* active tab appears to "lift" above the content area */
+  box-shadow:
+    -1px 0 0 #fff inset,
+    1px 0 0 #fff inset,
+    0 -1px 0 #fff inset;
+  position: relative;
+  /* cover the bottom border of the navbar to blend into content */
+  margin-bottom: -2px;
+  padding-bottom: 2px;
+}
+
+/* Urgente special colouring */
+.xp-nav-tab.urgente-tab {
+  color: #8b1d20;
+}
+.xp-nav-tab.urgente-tab:hover:not(.active-tab) {
+  background: linear-gradient(to bottom, #fff0f0, #f5c8c8);
+  border-color: #c04040 #c04040 transparent;
+  color: #6b1010;
+}
+.xp-nav-tab.urgente-tab.active-tab {
+  color: #8b1d20;
+}
+
+/* ── Nav-tab count badges ───────────────────────────── */
+
+.xp-nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 21px;
+  height: 21px;
+  padding: 0 5px;
+  margin-left: 6px;
+  font-family: Tahoma, sans-serif;
+  font-size: 13px;
+  font-weight: bold;
+  line-height: 1;
+  border-radius: 11px;
+  background: linear-gradient(to bottom, #c8a06a, #9f6e2e);
+  border: 1px solid #7a4e18;
+  color: #fff;
+  box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.35);
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
+
+.xp-nav-badge--urgent {
+  background: linear-gradient(to bottom, #e87070, #b82020);
+  border-color: #8b1010;
+}
+
+/* ── Content / workspace area ──────────────────────── */
+
+.xp-workspace {
+  flex: 1;
+  overflow: auto;
+  background-color: var(--soft-tan);
+  /* subtle inner ridge, like an XP sunken panel */
+  box-shadow: inset 2px 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+/* helper for pages that want a framed inner panel */
+.xp-content-panel {
+  padding: 16px;
+}
+
+.xp-inset-panel {
+  background: #fdf7ef;
+  border: 1px solid #c0a882;
+  border-radius: 3px;
+  box-shadow:
+    inset 1px 1px 3px rgba(0, 0, 0, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* ═══════════════════════════════════════════════════════
+   XP-STYLE FORM CONTROLS  (global overrides)
+═══════════════════════════════════════════════════════ */
+
+/* Input / Textarea – sunken XP field */
+input[type='text'],
+input[type='password'],
+input[type='number'],
+input[type='email'],
+input[type='search'],
+input[type='date'],
+textarea,
+select {
+  font-family: Tahoma, sans-serif;
+  font-size: 13px;
+  border: 1px solid #938070;
+  border-top-color: #6b5040;
+  border-left-color: #6b5040;
+  background: #fff;
+  color: var(--logo-brown);
+  box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
+  outline: none;
+  padding: 3px 5px;
+}
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: #e87722;
+  box-shadow:
+    inset 1px 1px 3px rgba(0, 0, 0, 0.15),
+    0 0 0 2px rgba(232, 119, 34, 0.25);
+}
+
+/* XP-style push button */
+button,
+[role='button'] {
+  font-family: Tahoma, sans-serif;
+  font-size: 13px;
+  cursor: default;
+}
+
+/* ═══════════════════════════════════════════════════════
+   SCROLLBAR  –  XP-ish look (Chromium only)
+═══════════════════════════════════════════════════════ */
+
+::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+::-webkit-scrollbar-track {
+  background: #e8d4b8;
+  border: 1px solid #c0a070;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(to right, #f0c080, #d08030);
+  border: 1px solid #9f5a1a;
+  border-radius: 2px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to right, #f8d098, #e08838);
+}
+::-webkit-scrollbar-button {
+  display: none;
 }

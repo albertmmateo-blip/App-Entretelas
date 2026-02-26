@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain } = require('electron');
 const path = require('path');
 const windowStateKeeper = require('electron-window-state');
 const { getDatabase } = require('./db/connection');
@@ -42,6 +42,7 @@ function createWindow() {
     height: mainWindowState.height,
     icon: getTrayIconPath(),
     title: 'App-Entretelas',
+    frame: false,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -52,6 +53,13 @@ function createWindow() {
 
   // Register window state manager
   mainWindowState.manage(mainWindow);
+
+  mainWindow.on('maximize', () => {
+    mainWindow.webContents.send('window:maximized', true);
+  });
+  mainWindow.on('unmaximize', () => {
+    mainWindow.webContents.send('window:maximized', false);
+  });
 
   // Load the renderer
   if (process.env.NODE_ENV === 'development') {
@@ -147,6 +155,20 @@ if (!gotTheLock) {
     registerClientesHandlers();
     registerFacturasHandlers();
     registerSystemHandlers();
+
+    // Window control IPC handlers
+    ipcMain.on('window:minimize', () => {
+      if (mainWindow) mainWindow.minimize();
+    });
+    ipcMain.on('window:maximize', () => {
+      if (!mainWindow) return;
+      if (mainWindow.isMaximized()) mainWindow.unmaximize();
+      else mainWindow.maximize();
+    });
+    ipcMain.on('window:close', () => {
+      if (mainWindow) mainWindow.close();
+    });
+    ipcMain.handle('window:isMaximized', () => (mainWindow ? mainWindow.isMaximized() : false));
 
     createTray();
     createWindow();
