@@ -89,6 +89,27 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on('window:maximized', (_, val) => cb(val));
     },
   },
+  // Guardado module
+  guardado: {
+    getLugares: () => ipcRenderer.invoke('guardado:getLugares'),
+    createLugar: (data) => ipcRenderer.invoke('guardado:createLugar', data),
+    updateLugar: (id, data) => ipcRenderer.invoke('guardado:updateLugar', id, data),
+    deleteLugar: (id) => ipcRenderer.invoke('guardado:deleteLugar', id),
+    createCompartimento: (data) => ipcRenderer.invoke('guardado:createCompartimento', data),
+    updateCompartimento: (id, data) => ipcRenderer.invoke('guardado:updateCompartimento', id, data),
+    deleteCompartimento: (id) => ipcRenderer.invoke('guardado:deleteCompartimento', id),
+    getProductos: () => ipcRenderer.invoke('guardado:getProductos'),
+    createProducto: (data) => ipcRenderer.invoke('guardado:createProducto', data),
+    updateProducto: (id, data) => ipcRenderer.invoke('guardado:updateProducto', id, data),
+    deleteProducto: (id) => ipcRenderer.invoke('guardado:deleteProducto', id),
+    getAsignaciones: () => ipcRenderer.invoke('guardado:getAsignaciones'),
+    createAsignacion: (data) => ipcRenderer.invoke('guardado:createAsignacion', data),
+    updateAsignacion: (id, data) => ipcRenderer.invoke('guardado:updateAsignacion', id, data),
+    deleteAsignacion: (id) => ipcRenderer.invoke('guardado:deleteAsignacion', id),
+    createArticulo: (data) => ipcRenderer.invoke('guardado:createArticulo', data),
+    updateArticulo: (id, data) => ipcRenderer.invoke('guardado:updateArticulo', id, data),
+    deleteArticulo: (id) => ipcRenderer.invoke('guardado:deleteArticulo', id),
+  },
   // Facturas module
   facturas: {
     uploadPDF: (params) => ipcRenderer.invoke('facturas:uploadPDF', params),

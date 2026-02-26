@@ -13,6 +13,7 @@ const { registerProveedoresHandlers } = require('./ipc/proveedores');
 const { registerClientesHandlers } = require('./ipc/clientes');
 const { registerFacturasHandlers } = require('./ipc/facturas');
 const { registerSystemHandlers } = require('./ipc/system');
+const { registerGuardadoHandlers } = require('./ipc/guardado');
 
 let mainWindow;
 let tray;
@@ -155,6 +156,7 @@ if (!gotTheLock) {
     registerClientesHandlers();
     registerFacturasHandlers();
     registerSystemHandlers();
+    registerGuardadoHandlers();
 
     // Window control IPC handlers
     ipcMain.on('window:minimize', () => {

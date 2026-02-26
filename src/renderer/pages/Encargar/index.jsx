@@ -4,6 +4,7 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import { EntriesGrid, EntryCard, EmptyState, LoadingState } from '../../components/entries';
 import useCRUD from '../../hooks/useCRUD';
 import { formatDateTime } from '../../utils/formatDateTime';
+import { URGENTE_STYLE } from '../../utils/urgente';
 import ProveedorForm from '../Facturas/ProveedorForm';
 import Catalogo from './Catalogo';
 
@@ -370,10 +371,16 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
                 const editorText = editorValues[proveedor.id] || '';
                 const isSaving = savingProveedorId === proveedor.id;
 
+                const isUrgente = Boolean(selectedEntry?.urgente);
                 return (
                   <div
                     key={`open-note-${proveedor.id}`}
-                    className="relative overflow-visible min-h-[240px] rounded border-2 border-neutral-200 bg-white p-4"
+                    className="relative overflow-visible min-h-[240px] rounded p-4"
+                    style={
+                      isUrgente
+                        ? URGENTE_STYLE
+                        : { border: '2px solid #e5e5e5', background: '#fff' }
+                    }
                     onClick={
                       isEditing ? undefined : () => handleOpenEditorForProveedor(proveedor.id)
                     }
