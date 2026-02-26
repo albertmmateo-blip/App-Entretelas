@@ -528,62 +528,6 @@ function EditAsignacionModal({ asignacion, lugares, onClose, onSave }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Helpers for articulos
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Groups an array of artículos by their lugar+compartimento location,
- * returning sorted location-groups. Unassigned articulos go last as a
- * "Sin ubicación" group.
- */
-function groupArticulosByLocation(articulos) {
-  const map = new Map();
-  const unassigned = [];
-
-  for (const a of articulos) {
-    if (!a.lugar_id) {
-      unassigned.push(a);
-    } else {
-      const key = `${a.lugar_id}_${a.compartimento_id || ''}`;
-      if (!map.has(key)) {
-        map.set(key, {
-          locKey: key,
-          lugar_id: a.lugar_id,
-          lugar_nombre: a.lugar_nombre,
-          compartimento_id: a.compartimento_id,
-          compartimento_nombre: a.compartimento_nombre,
-          items: [],
-        });
-      }
-      map.get(key).items.push(a);
-    }
-  }
-
-  const groups = [...map.values()].sort((a, b) => {
-    const la = a.lugar_nombre || '';
-    const lb = b.lugar_nombre || '';
-    const comp = la.localeCompare(lb, 'es-ES', { sensitivity: 'base' });
-    if (comp !== 0) return comp;
-    return (a.compartimento_nombre || '').localeCompare(b.compartimento_nombre || '', 'es-ES', {
-      sensitivity: 'base',
-    });
-  });
-
-  if (unassigned.length > 0) {
-    groups.push({
-      locKey: '__unassigned__',
-      lugar_id: null,
-      lugar_nombre: null,
-      compartimento_id: null,
-      compartimento_nombre: null,
-      items: unassigned,
-    });
-  }
-
-  return groups;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Articulo Modal  (create / edit an artículo under a producto)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -789,7 +733,7 @@ function TabBuscar({ state, dispatch, api }) {
   const [editingArticulo, setEditingArticulo] = useState(null);
   const [confirmDeleteArticulo, setConfirmDeleteArticulo] = useState(null);
   const [expandedProductos, setExpandedProductos] = useState(new Set());
-  const [expandedLocGroups, setExpandedLocGroups] = useState(new Set());
+  const [highlightedLugar, setHighlightedLugar] = useState(null);
 
   const q = query.trim().toLowerCase();
 
@@ -802,15 +746,18 @@ function TabBuscar({ state, dispatch, api }) {
     });
   }, []);
 
-  const toggleLocGroup = useCallback((productoId, locKey) => {
-    const key = `${productoId}__${locKey}`;
-    setExpandedLocGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+  const navigateToLugar = useCallback((lugarId) => {
+    setViewMode('lugar');
+    setHighlightedLugar(lugarId);
   }, []);
+
+  useEffect(() => {
+    if (!highlightedLugar || viewMode !== 'lugar') return undefined;
+    const el = document.getElementById(`lugar-${highlightedLugar}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    const timer = setTimeout(() => setHighlightedLugar(null), 1500);
+    return () => clearTimeout(timer);
+  }, [highlightedLugar, viewMode]);
 
   // Products that have asignaciones or articulos, filtered by search query
   const filteredProductos = useMemo(() => {
@@ -984,9 +931,10 @@ function TabBuscar({ state, dispatch, api }) {
             const isExpanded = expandedProductos.has(producto.id);
 
             if (hasArticulos) {
-              // Products WITH artículos: Level 1 (product) → Level 2 (location group) → Level 3 (artículos)
-              const locGroups = groupArticulosByLocation(articulos);
-              const assignedGroups = locGroups.filter((g) => g.lugar_id);
+              // Products WITH artículos: Level 1 (product) → Level 2 (artículo + clickable location)
+              const assignedCount = new Set(
+                articulos.filter((a) => a.lugar_id).map((a) => a.lugar_id)
+              ).size;
 
               return (
                 <div
@@ -1016,110 +964,73 @@ function TabBuscar({ state, dispatch, api }) {
                     )}
                     <span className="text-xs text-neutral-500">
                       {articulos.length} {articulos.length !== 1 ? 'artículos' : 'artículo'}
-                      {assignedGroups.length > 0 && (
+                      {assignedCount > 0 && (
                         <span className="text-neutral-400">
                           {' '}
-                          · {assignedGroups.length}{' '}
-                          {assignedGroups.length !== 1 ? 'ubicaciones' : 'ubicación'}
+                          · {assignedCount} {assignedCount !== 1 ? 'ubicaciones' : 'ubicación'}
                         </span>
                       )}
                     </span>
                   </button>
 
-                  {/* Levels 2+3: Location groups and their artículos */}
+                  {/* Level 2: Each artículo with its clickable location */}
                   {isExpanded && (
                     <div className="border-t border-neutral-200 divide-y divide-neutral-100">
-                      {locGroups.map(
-                        ({
-                          locKey,
-                          lugar_id: lugarId,
-                          lugar_nombre: lugarNombre,
-                          compartimento_nombre: compartimentoNombre,
-                          items,
-                        }) => {
-                          let locLabel = 'Sin ubicación';
-                          if (lugarId) {
-                            locLabel = compartimentoNombre
-                              ? `${lugarNombre} – ${compartimentoNombre}`
-                              : lugarNombre;
-                          }
-                          const isLocExpanded = expandedLocGroups.has(`${producto.id}__${locKey}`);
+                      {articulos.map((art) => {
+                        const locLabel = art.compartimento_nombre
+                          ? `${art.lugar_nombre} – ${art.compartimento_nombre}`
+                          : art.lugar_nombre;
 
-                          return (
-                            <div key={locKey}>
-                              {/* Level 2: Location group row */}
+                        return (
+                          <div
+                            key={art.id}
+                            className="flex items-center gap-2 pl-8 pr-4 py-2 hover:bg-neutral-50 transition-colors group"
+                          >
+                            <span className="flex-1 text-sm text-neutral-800 font-medium">
+                              {art.nombre}
+                            </span>
+                            {art.ref && (
+                              <span className="text-xs text-neutral-500 bg-neutral-100 px-1.5 py-0.5 rounded">
+                                {art.ref}
+                              </span>
+                            )}
+                            {art.notas && (
+                              <span className="text-xs text-neutral-400 italic">{art.notas}</span>
+                            )}
+                            {art.lugar_id ? (
                               <button
                                 type="button"
-                                onClick={() => toggleLocGroup(producto.id, locKey)}
-                                className="w-full pl-8 pr-4 py-2 flex items-center gap-2 hover:bg-neutral-50 transition-colors text-left"
+                                onClick={() => navigateToLugar(art.lugar_id)}
+                                className="text-xs text-primary/80 hover:text-primary flex items-center gap-1 px-2 py-0.5 rounded border border-primary/20 hover:border-primary/50 hover:bg-primary/5 transition-colors shrink-0"
+                                title="Ir al lugar"
                               >
-                                <span
-                                  className="text-neutral-400 text-xs select-none transition-transform duration-150"
-                                  style={{
-                                    display: 'inline-block',
-                                    transform: isLocExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                                  }}
-                                >
-                                  ▶
-                                </span>
-                                <span className="text-neutral-400 text-xs">
-                                  {lugarId ? '📍' : '○'}
-                                </span>
-                                <span
-                                  className={`flex-1 text-sm ${lugarId ? 'text-neutral-700' : 'text-neutral-400 italic'}`}
-                                >
-                                  {locLabel}
-                                </span>
-                                <span className="text-xs bg-neutral-100 text-neutral-600 px-2 py-0.5 rounded-full font-medium">
-                                  {items.length}
-                                </span>
+                                <span>📍</span>
+                                <span>{locLabel}</span>
                               </button>
-
-                              {/* Level 3: Artículos list */}
-                              {isLocExpanded && (
-                                <ul className="bg-neutral-50/60 divide-y divide-neutral-100/80">
-                                  {items.map((art) => (
-                                    <li
-                                      key={art.id}
-                                      className="flex items-center gap-3 pl-14 pr-4 py-2 group hover:bg-white transition-colors"
-                                    >
-                                      <span className="flex-1 text-sm text-neutral-800">
-                                        {art.nombre}
-                                      </span>
-                                      {art.ref && (
-                                        <span className="text-xs text-neutral-500 bg-neutral-100 px-1.5 py-0.5 rounded">
-                                          {art.ref}
-                                        </span>
-                                      )}
-                                      {art.notas && (
-                                        <span className="text-xs text-neutral-400 italic">
-                                          {art.notas}
-                                        </span>
-                                      )}
-                                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                          type="button"
-                                          onClick={() => setEditingArticulo(art)}
-                                          className="px-2 py-1 text-xs border border-neutral-200 rounded hover:bg-neutral-100 transition-colors"
-                                        >
-                                          Editar
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => setConfirmDeleteArticulo(art.id)}
-                                          className="px-2 py-1 text-xs border border-danger/30 text-danger rounded hover:bg-danger/5 transition-colors"
-                                        >
-                                          Quitar
-                                        </button>
-                                      </div>
-                                    </li>
-                                  ))}
-                                </ul>
-                              )}
+                            ) : (
+                              <span className="text-xs text-neutral-400 italic shrink-0">
+                                Sin ubicación
+                              </span>
+                            )}
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => setEditingArticulo(art)}
+                                className="px-2 py-1 text-xs border border-neutral-200 rounded hover:bg-neutral-100 transition-colors"
+                              >
+                                Editar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmDeleteArticulo(art.id)}
+                                className="px-2 py-1 text-xs border border-danger/30 text-danger rounded hover:bg-danger/5 transition-colors"
+                              >
+                                Quitar
+                              </button>
                             </div>
-                          );
-                        }
-                      )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -1202,7 +1113,15 @@ function TabBuscar({ state, dispatch, api }) {
       {byLugar.length > 0 && viewMode === 'lugar' && (
         <div className="space-y-4">
           {byLugar.map(([lugarId, grupo]) => (
-            <div key={lugarId} className="border border-neutral-200 rounded">
+            <div
+              key={lugarId}
+              id={`lugar-${lugarId}`}
+              className={`border rounded transition-all duration-500 ${
+                highlightedLugar === lugarId
+                  ? 'border-primary/50 ring-2 ring-primary/20'
+                  : 'border-neutral-200'
+              }`}
+            >
               <div className="px-4 py-2.5 bg-neutral-50 border-b border-neutral-200 flex items-center gap-2">
                 <span className="font-semibold text-neutral-900">📍 {grupo.nombre}</span>
                 <span className="ml-auto text-xs text-neutral-500">
@@ -1212,10 +1131,6 @@ function TabBuscar({ state, dispatch, api }) {
               <ul className="divide-y divide-neutral-100">
                 {[...grupo.items]
                   .sort((a, b) => {
-                    const ca = a.compartimento_nombre || '';
-                    const cb = b.compartimento_nombre || '';
-                    const comp = ca.localeCompare(cb, 'es-ES', { sensitivity: 'base' });
-                    if (comp !== 0) return comp;
                     const na =
                       a.itemKind === 'articulo'
                         ? `${a.producto_nombre} ${a.nombre}`
@@ -1229,23 +1144,31 @@ function TabBuscar({ state, dispatch, api }) {
                   .map((item) => (
                     <li
                       key={`${item.itemKind}_${item.id}`}
-                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-50 group"
+                      className="flex items-center gap-2 px-4 py-2.5 hover:bg-neutral-50 group"
                     >
-                      {item.compartimento_nombre && (
-                        <span className="text-xs text-neutral-600 bg-neutral-100 px-1.5 py-0.5 rounded font-mono shrink-0">
-                          {item.compartimento_nombre}
-                        </span>
-                      )}
                       {item.itemKind === 'articulo' ? (
-                        <span className="flex-1 text-sm text-neutral-800 min-w-0">
-                          <span className="text-neutral-400 text-xs mr-1">
-                            {item.producto_nombre} ›
+                        <span className="flex-1 text-sm text-neutral-800 min-w-0 flex items-center gap-1.5 flex-wrap">
+                          <span className="font-semibold text-neutral-900">
+                            {item.producto_nombre}
                           </span>
-                          <span className="font-medium">{item.nombre}</span>
+                          <span className="text-neutral-400">›</span>
+                          <span className="text-neutral-700">{item.nombre}</span>
+                          {item.compartimento_nombre && (
+                            <span className="text-xs font-mono bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded shrink-0">
+                              {item.compartimento_nombre}
+                            </span>
+                          )}
                         </span>
                       ) : (
-                        <span className="flex-1 text-sm font-medium text-neutral-800">
-                          {item.producto_nombre}
+                        <span className="flex-1 text-sm flex items-center gap-1.5">
+                          <span className="font-semibold text-neutral-900">
+                            {item.producto_nombre}
+                          </span>
+                          {item.compartimento_nombre && (
+                            <span className="text-xs font-mono bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded shrink-0">
+                              {item.compartimento_nombre}
+                            </span>
+                          )}
                         </span>
                       )}
                       {item.itemKind !== 'articulo' && item.producto_ref && (
@@ -1685,17 +1608,18 @@ function TabLugares({ state, dispatch, api }) {
               </ul>
             </div>
 
-            {/* Content stored */}
+            {/* Content stored – grouped by compartimento */}
             <div>
               <h3 className="text-sm font-semibold text-neutral-700 uppercase tracking-wide mb-3">
                 Contenido almacenado
               </h3>
               {(() => {
-                const items = [];
+                // Collect all items for this lugar
+                const allItems = [];
                 for (const p of state.productos) {
                   for (const a of p.asignaciones) {
                     if (a.lugar_id === selectedLugar.id) {
-                      items.push({
+                      allItems.push({
                         itemKind: 'asignacion',
                         ...a,
                         producto_nombre: p.nombre,
@@ -1705,7 +1629,7 @@ function TabLugares({ state, dispatch, api }) {
                   }
                   for (const art of p.articulos || []) {
                     if (art.lugar_id === selectedLugar.id) {
-                      items.push({
+                      allItems.push({
                         itemKind: 'articulo',
                         ...art,
                         producto_nombre: p.nombre,
@@ -1714,66 +1638,104 @@ function TabLugares({ state, dispatch, api }) {
                     }
                   }
                 }
-                items.sort((a, b) => {
-                  const ca = a.compartimento_nombre || '';
-                  const cb = b.compartimento_nombre || '';
-                  const comp = ca.localeCompare(cb, 'es-ES', { sensitivity: 'base' });
-                  if (comp !== 0) return comp;
-                  const na =
-                    a.itemKind === 'articulo'
-                      ? `${a.producto_nombre} ${a.nombre}`
-                      : a.producto_nombre;
-                  const nb =
-                    b.itemKind === 'articulo'
-                      ? `${b.producto_nombre} ${b.nombre}`
-                      : b.producto_nombre;
-                  return na.localeCompare(nb, 'es-ES', { sensitivity: 'base' });
-                });
-                if (items.length === 0) {
+
+                if (allItems.length === 0) {
                   return (
                     <p className="text-sm text-neutral-500 italic">
                       Ningún elemento almacenado en este lugar.
                     </p>
                   );
                 }
+
+                // Group by compartimento, preserving the order from selectedLugar.compartimentos
+                const sortName = (item) =>
+                  item.itemKind === 'articulo'
+                    ? `${item.producto_nombre} ${item.nombre}`
+                    : item.producto_nombre;
+                const sortItems = (arr) =>
+                  [...arr].sort((a, b) =>
+                    sortName(a).localeCompare(sortName(b), 'es-ES', { sensitivity: 'base' })
+                  );
+
+                // Build ordered compartimento sections from the lugar's own compartimentos list
+                const compOrder = (selectedLugar.compartimentos || []).map((c) => ({
+                  id: c.id,
+                  nombre: c.nombre,
+                  items: [],
+                }));
+                const unassigned = { id: null, nombre: null, items: [] };
+
+                for (const item of allItems) {
+                  const section = compOrder.find((c) => c.id === item.compartimento_id);
+                  if (section) section.items.push(item);
+                  else unassigned.items.push(item);
+                }
+
+                // Only render sections that have content
+                const sections = [
+                  ...compOrder.filter((c) => c.items.length > 0),
+                  ...(unassigned.items.length > 0 ? [unassigned] : []),
+                ];
+
                 return (
-                  <ul className="space-y-1">
-                    {items.map((item) => (
-                      <li
-                        key={`${item.itemKind}_${item.id}`}
-                        className="flex items-center gap-2 text-sm px-3 py-1.5 bg-neutral-50 rounded border border-neutral-100"
-                      >
-                        {item.compartimento_nombre && (
-                          <span className="text-xs font-mono bg-neutral-200 px-1.5 rounded">
-                            {item.compartimento_nombre}
-                          </span>
-                        )}
-                        {item.itemKind === 'articulo' ? (
-                          <span className="flex-1 min-w-0 text-neutral-800">
-                            <span className="text-neutral-400 text-xs mr-1">
-                              {item.producto_nombre} ›
+                  <div className="space-y-4">
+                    {sections.map((section) => (
+                      <div key={section.id ?? '__none__'}>
+                        {section.nombre ? (
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <span className="text-xs font-mono font-semibold bg-neutral-200 text-neutral-700 px-2 py-0.5 rounded">
+                              {section.nombre}
                             </span>
-                            <span className="font-medium">{item.nombre}</span>
-                          </span>
+                            <span className="flex-1 h-px bg-neutral-100" />
+                          </div>
                         ) : (
-                          <span className="font-medium text-neutral-800 flex-1">
-                            {item.producto_nombre}
-                          </span>
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <span className="text-xs text-neutral-400 italic">
+                              Sin compartimento
+                            </span>
+                            <span className="flex-1 h-px bg-neutral-100" />
+                          </div>
                         )}
-                        {item.itemKind === 'asignacion' && item.producto_ref && (
-                          <span className="text-xs text-neutral-500">{item.producto_ref}</span>
-                        )}
-                        {item.itemKind === 'articulo' && item.ref && (
-                          <span className="text-xs text-neutral-500 bg-neutral-200 px-1 rounded">
-                            {item.ref}
-                          </span>
-                        )}
-                        {item.notas && (
-                          <span className="text-xs text-neutral-400 italic">- {item.notas}</span>
-                        )}
-                      </li>
+                        <ul className="space-y-1 pl-2">
+                          {sortItems(section.items).map((item) => (
+                            <li
+                              key={`${item.itemKind}_${item.id}`}
+                              className="flex items-center gap-2 text-sm px-3 py-1.5 bg-neutral-50 rounded border border-neutral-100"
+                            >
+                              {item.itemKind === 'articulo' ? (
+                                <span className="flex-1 min-w-0 text-neutral-800">
+                                  <span className="font-semibold text-neutral-900">
+                                    {item.producto_nombre}
+                                  </span>
+                                  <span className="text-neutral-400 mx-1">›</span>
+                                  <span>{item.nombre}</span>
+                                </span>
+                              ) : (
+                                <span className="font-semibold text-neutral-900 flex-1">
+                                  {item.producto_nombre}
+                                </span>
+                              )}
+                              {item.itemKind === 'asignacion' && item.producto_ref && (
+                                <span className="text-xs text-neutral-500">
+                                  {item.producto_ref}
+                                </span>
+                              )}
+                              {item.itemKind === 'articulo' && item.ref && (
+                                <span className="text-xs text-neutral-500 bg-neutral-200 px-1 rounded">
+                                  {item.ref}
+                                </span>
+                              )}
+                              {item.notas && (
+                                <span className="text-xs text-neutral-400 italic">
+                                  - {item.notas}
+                                </span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 );
               })()}
             </div>
