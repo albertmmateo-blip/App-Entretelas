@@ -334,8 +334,74 @@ function restoreFromBackup(backupFilename) {
   }
 }
 
+/**
+ * Returns the path to the main database file.
+ * @returns {string} - Absolute path to entretelas.db
+ */
+function getDbPath() {
+  const userDataPath = app.getPath('userData');
+  return path.join(userDataPath, 'entretelas.db');
+}
+
+/**
+ * Returns the path to the facturas directory.
+ * @returns {string} - Absolute path to the facturas folder
+ */
+function getFacturasDir() {
+  const userDataPath = app.getPath('userData');
+  return path.join(userDataPath, 'facturas');
+}
+
+/**
+ * Closes the database connection so the file can be replaced during import.
+ * After calling this, getDatabase() will reopen the connection.
+ */
+function closeDatabaseForImport() {
+  if (db) {
+    try {
+      db.close();
+    } catch (err) {
+      console.error('Error closing database for import:', err);
+    }
+    db = null;
+  }
+}
+
+/**
+ * Reopens the database after an import, applying any pending migrations.
+ * Also rebuilds FTS indexes to ensure consistency.
+ * @returns {object} - The reopened database instance
+ */
+function reopenDatabase() {
+  db = null; // ensure we start fresh
+  const database = getDatabase(); // will open, apply migrations, create backup
+
+  // Rebuild FTS indexes for consistency after import
+  const ftsRebuildStatements = [
+    "INSERT INTO notas_fts(notas_fts) VALUES('rebuild')",
+    "INSERT INTO llamar_fts(llamar_fts) VALUES('rebuild')",
+    "INSERT INTO encargar_fts(encargar_fts) VALUES('rebuild')",
+  ];
+
+  for (const sql of ftsRebuildStatements) {
+    try {
+      database.exec(sql);
+    } catch (err) {
+      // FTS table might not exist yet in older schemas — ignore
+      console.warn('FTS rebuild skipped:', err.message);
+    }
+  }
+
+  return database;
+}
+
 module.exports = {
   getDatabase,
+  getDbPath,
+  getFacturasDir,
   listBackups,
   restoreFromBackup,
+  closeDatabaseForImport,
+  reopenDatabase,
+  createBackup,
 };

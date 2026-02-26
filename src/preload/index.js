@@ -110,6 +110,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     updateArticulo: (id, data) => ipcRenderer.invoke('guardado:updateArticulo', id, data),
     deleteArticulo: (id) => ipcRenderer.invoke('guardado:deleteArticulo', id),
   },
+  // Import/Export
+  data: {
+    export: () => ipcRenderer.invoke('data:export'),
+    import: () => ipcRenderer.invoke('data:import'),
+  },
   // Facturas module
   facturas: {
     uploadPDF: (params) => ipcRenderer.invoke('facturas:uploadPDF', params),

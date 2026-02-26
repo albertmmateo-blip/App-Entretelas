@@ -1,6 +1,8 @@
-import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { HashRouter, Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import useNavCounts from './hooks/useNavCounts';
+import useToast from './hooks/useToast';
+import ConfirmDialog from './components/ConfirmDialog';
 import incognitoUrl from './assets/incognito.svg';
 import Home from './pages/Home';
 import Urgente from './pages/Urgente';
@@ -38,6 +40,11 @@ function ContabilidadRoute() {
 
 function TitleBar({ onIconClick, isSecret }) {
   const [maximized, setMaximized] = useState(false);
+  const [helpMenuOpen, setHelpMenuOpen] = useState(false);
+  const [confirmImport, setConfirmImport] = useState(false);
+  const [importExportBusy, setImportExportBusy] = useState(false);
+  const helpMenuRef = useRef(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     window.electronAPI?.window
@@ -47,59 +54,162 @@ function TitleBar({ onIconClick, isSecret }) {
     window.electronAPI?.window?.onMaximizeChange?.(setMaximized);
   }, []);
 
+  // Close help menu when clicking outside
+  useEffect(() => {
+    if (!helpMenuOpen) return undefined;
+    function handleClick(e) {
+      if (helpMenuRef.current && !helpMenuRef.current.contains(e.target)) {
+        setHelpMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [helpMenuOpen]);
+
+  const handleExport = useCallback(async () => {
+    setHelpMenuOpen(false);
+    setImportExportBusy(true);
+    try {
+      const result = await window.electronAPI?.data?.export();
+      if (result?.success) {
+        showToast('Datos exportados correctamente', 'success');
+      } else if (!result?.cancelled) {
+        showToast(result?.error?.message || 'Error al exportar', 'error');
+      }
+    } catch (err) {
+      showToast('Error al exportar datos', 'error');
+    } finally {
+      setImportExportBusy(false);
+    }
+  }, [showToast]);
+
+  const handleImportConfirmed = useCallback(async () => {
+    setConfirmImport(false);
+    setImportExportBusy(true);
+    try {
+      const result = await window.electronAPI?.data?.import();
+      if (result?.success) {
+        showToast('Datos importados correctamente', 'success');
+      } else if (!result?.cancelled) {
+        showToast(result?.error?.message || 'Error al importar', 'error');
+      }
+    } catch (err) {
+      showToast('Error al importar datos', 'error');
+    } finally {
+      setImportExportBusy(false);
+    }
+  }, [showToast]);
+
   return (
-    <div className="xp-titlebar">
-      <button
-        type="button"
-        className="xp-titlebar-icon-btn"
-        onClick={onIconClick}
-        aria-label="Acceso especial"
-      >
-        <img src={iconUrl} alt="" className="xp-titlebar-icon" />
-      </button>
-      <span className="xp-titlebar-text">Entretelas</span>
-      {isSecret && (
-        <img
-          src={incognitoUrl}
-          alt="Módulo secreto"
-          style={{
-            width: '22px',
-            height: '22px',
-            marginLeft: '4px',
-            filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.5))',
-            flexShrink: 0,
-          }}
+    <>
+      <div className="xp-titlebar">
+        <button
+          type="button"
+          className="xp-titlebar-icon-btn"
+          onClick={onIconClick}
+          aria-label="Acceso especial"
+        >
+          <img src={iconUrl} alt="" className="xp-titlebar-icon" />
+        </button>
+        <span className="xp-titlebar-text">Entretelas</span>
+        {isSecret && (
+          <img
+            src={incognitoUrl}
+            alt="Módulo secreto"
+            style={{
+              width: '22px',
+              height: '22px',
+              marginLeft: '4px',
+              filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.5))',
+              flexShrink: 0,
+            }}
+          />
+        )}
+        <div className="xp-titlebar-controls">
+          {/* Help button */}
+          <div ref={helpMenuRef} style={{ position: 'relative' }}>
+            <button
+              type="button"
+              className="xp-title-btn"
+              onClick={() => setHelpMenuOpen((prev) => !prev)}
+              aria-label="Ayuda"
+              aria-expanded={helpMenuOpen}
+              disabled={importExportBusy}
+            >
+              ?
+            </button>
+
+            {helpMenuOpen && (
+              <div className="xp-help-menu">
+                <button
+                  type="button"
+                  className="xp-help-menu-item"
+                  onClick={handleExport}
+                  disabled={importExportBusy}
+                >
+                  <span className="xp-help-menu-icon">📤</span>
+                  Exportar datos
+                </button>
+                <button
+                  type="button"
+                  className="xp-help-menu-item"
+                  onClick={() => {
+                    setHelpMenuOpen(false);
+                    setConfirmImport(true);
+                  }}
+                  disabled={importExportBusy}
+                >
+                  <span className="xp-help-menu-icon">📥</span>
+                  Importar datos
+                </button>
+                <div className="xp-help-menu-divider" />
+                <button type="button" className="xp-help-menu-item" disabled>
+                  <span className="xp-help-menu-icon">❓</span>
+                  Ayuda
+                </button>
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            className="xp-title-btn"
+            onClick={() => window.electronAPI?.window?.minimize()}
+            aria-label="Minimizar"
+          >
+            ─
+          </button>
+          <button
+            type="button"
+            className="xp-title-btn"
+            onClick={() => {
+              window.electronAPI?.window?.maximize();
+            }}
+            aria-label={maximized ? 'Restaurar' : 'Maximizar'}
+          >
+            {maximized ? '⧇' : '□'}
+          </button>
+          <button
+            type="button"
+            className="xp-title-btn close"
+            onClick={() => window.electronAPI?.window?.close()}
+            aria-label="Cerrar"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      {confirmImport && (
+        <ConfirmDialog
+          title="Importar datos"
+          message="Esto reemplazará TODOS los datos actuales con los del archivo importado. Se creará una copia de seguridad automática antes de continuar. ¿Deseas continuar?"
+          confirmText="Importar"
+          confirmDanger
+          onConfirm={handleImportConfirmed}
+          onCancel={() => setConfirmImport(false)}
         />
       )}
-      <div className="xp-titlebar-controls">
-        <button
-          type="button"
-          className="xp-title-btn"
-          onClick={() => window.electronAPI?.window?.minimize()}
-          aria-label="Minimizar"
-        >
-          ─
-        </button>
-        <button
-          type="button"
-          className="xp-title-btn"
-          onClick={() => {
-            window.electronAPI?.window?.maximize();
-          }}
-          aria-label={maximized ? 'Restaurar' : 'Maximizar'}
-        >
-          {maximized ? '⧇' : '□'}
-        </button>
-        <button
-          type="button"
-          className="xp-title-btn close"
-          onClick={() => window.electronAPI?.window?.close()}
-          aria-label="Cerrar"
-        >
-          ✕
-        </button>
-      </div>
-    </div>
+    </>
   );
 }
 
