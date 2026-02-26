@@ -3,6 +3,7 @@ import { HashRouter, Routes, Route, NavLink, useNavigate, useLocation } from 're
 import useNavCounts from './hooks/useNavCounts';
 import useToast from './hooks/useToast';
 import ConfirmDialog from './components/ConfirmDialog';
+import ExportProgressDialog from './components/ExportProgressDialog';
 import incognitoUrl from './assets/incognito.svg';
 import Home from './pages/Home';
 import Urgente from './pages/Urgente';
@@ -43,6 +44,7 @@ function TitleBar({ onIconClick, isSecret }) {
   const [helpMenuOpen, setHelpMenuOpen] = useState(false);
   const [confirmImport, setConfirmImport] = useState(false);
   const [importExportBusy, setImportExportBusy] = useState(false);
+  const [exportProgress, setExportProgress] = useState(null); // { phase, processedBytes, totalBytes }
   const helpMenuRef = useRef(null);
   const { showToast } = useToast();
 
@@ -52,6 +54,20 @@ function TitleBar({ onIconClick, isSecret }) {
       .then(setMaximized)
       .catch(() => {});
     window.electronAPI?.window?.onMaximizeChange?.(setMaximized);
+  }, []);
+
+  // Listen for export progress from main process
+  useEffect(() => {
+    const cleanup = window.electronAPI?.data?.onExportProgress?.((data) => {
+      if (data.phase === 'done') {
+        setExportProgress(null);
+      } else {
+        setExportProgress(data);
+      }
+    });
+    return () => {
+      if (typeof cleanup === 'function') cleanup();
+    };
   }, []);
 
   // Close help menu when clicking outside
@@ -80,6 +96,7 @@ function TitleBar({ onIconClick, isSecret }) {
       showToast('Error al exportar datos', 'error');
     } finally {
       setImportExportBusy(false);
+      setExportProgress(null);
     }
   }, [showToast]);
 
@@ -209,6 +226,8 @@ function TitleBar({ onIconClick, isSecret }) {
           onCancel={() => setConfirmImport(false)}
         />
       )}
+
+      {exportProgress && <ExportProgressDialog progress={exportProgress} />}
     </>
   );
 }

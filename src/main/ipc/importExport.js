@@ -56,10 +56,63 @@ function registerImportExportHandlers() {
         console.warn('WAL checkpoint skipped:', err.message);
       }
 
+      // Collect all files and their sizes upfront so we can track
+      // per-entry progress (bytesWritten jumps instantly due to OS buffering;
+      // archiver's progress event tracks source *reads* which are also instant).
+      const allFiles = []; // { srcPath, archiveName, size }
+      if (fs.existsSync(dbPath)) {
+        allFiles.push({
+          srcPath: dbPath,
+          archiveName: 'entretelas.db',
+          size: fs.statSync(dbPath).size,
+        });
+      }
+      if (fs.existsSync(facturasDir)) {
+        const walkDir = (dir, base) => {
+          for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            const full = path.join(dir, entry.name);
+            const archivePath = `${base}/${entry.name}`;
+            if (entry.isDirectory()) walkDir(full, archivePath);
+            else
+              allFiles.push({
+                srcPath: full,
+                archiveName: archivePath,
+                size: fs.statSync(full).size,
+              });
+          }
+        };
+        walkDir(facturasDir, 'facturas');
+      }
+      const totalBytes = allFiles.reduce((s, f) => s + f.size, 0);
+
+      // Notify renderer that export has started
+      if (win && !win.isDestroyed()) {
+        win.webContents.send('data:export-progress', {
+          phase: 'start',
+          processedBytes: 0,
+          totalBytes,
+        });
+      }
+
       // Create the zip archive
       await new Promise((resolve, reject) => {
         const output = fs.createWriteStream(savePath);
         const archive = archiver('zip', { zlib: { level: 1 } }); // low compression — PDFs are already compressed
+
+        // Track per-entry progress: the archiver 'entry' event fires after
+        // each file has been fully read and passed through the pipeline.
+        // This is the only reliable way to track real progress.
+        let processedBytes = 0;
+        archive.on('entry', (entryData) => {
+          processedBytes += (entryData.stats && entryData.stats.size) || 0;
+          if (win && !win.isDestroyed()) {
+            win.webContents.send('data:export-progress', {
+              phase: 'archiving',
+              processedBytes,
+              totalBytes,
+            });
+          }
+        });
 
         output.on('close', resolve);
         archive.on('error', reject);
@@ -69,18 +122,19 @@ function registerImportExportHandlers() {
 
         archive.pipe(output);
 
-        // Add the database file
-        if (fs.existsSync(dbPath)) {
-          archive.file(dbPath, { name: 'entretelas.db' });
-        }
-
-        // Add the facturas directory (if it exists)
-        if (fs.existsSync(facturasDir)) {
-          archive.directory(facturasDir, 'facturas');
+        // Add all pre-collected files individually so the entry event
+        // always has stats.size available (directory() doesn't guarantee it).
+        for (const f of allFiles) {
+          archive.file(f.srcPath, { name: f.archiveName });
         }
 
         archive.finalize();
       });
+
+      // Notify renderer that export is done
+      if (win && !win.isDestroyed()) {
+        win.webContents.send('data:export-progress', { phase: 'done' });
+      }
 
       return { success: true, filePath: savePath };
     } catch (error) {
