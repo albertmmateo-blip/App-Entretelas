@@ -26,6 +26,9 @@ function Toast({ id, message, type = 'info', onDismiss }) {
 
   return (
     <div
+      role="status"
+      aria-live="polite"
+      data-testid="toast"
       className={`flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg mb-3 ${typeStyles[type]}`}
     >
       <span className="text-xl font-bold">{icons[type]}</span>

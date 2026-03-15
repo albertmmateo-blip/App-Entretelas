@@ -154,6 +154,17 @@ function registerImportExportHandlers() {
   ipcMain.handle('data:import', async () => {
     try {
       const win = BrowserWindow.getFocusedWindow();
+      const totalSteps = 7;
+      const sendImportProgress = (processedBytes, message, phase = 'importing') => {
+        if (win && !win.isDestroyed()) {
+          win.webContents.send('data:import-progress', {
+            phase,
+            processedBytes,
+            totalBytes: totalSteps,
+            message,
+          });
+        }
+      };
 
       const { canceled, filePaths } = await dialog.showOpenDialog(win, {
         title: 'Importar datos',
@@ -168,6 +179,7 @@ function registerImportExportHandlers() {
       const zipPath = filePaths[0];
       const dbPath = getDbPath();
       const facturasDir = getFacturasDir();
+      sendImportProgress(0, 'Validando archivo de importación...', 'start');
 
       // ── 1. Validate zip contents ──────────────────────────────
       let zip;
@@ -192,6 +204,7 @@ function registerImportExportHandlers() {
           },
         };
       }
+      sendImportProgress(1, 'Comprobando estructura del paquete...');
 
       // ── 2. Validate the DB file inside the zip ────────────────
       const dbBuffer = zip.readFile('entretelas.db');
@@ -232,9 +245,11 @@ function registerImportExportHandlers() {
           },
         };
       }
+      sendImportProgress(2, 'Validando compatibilidad de base de datos...');
 
       // ── 3. Create backup of current data ──────────────────────
       createBackup(dbPath);
+      sendImportProgress(3, 'Creando copia de seguridad automática...');
 
       // ── 4. Close database ─────────────────────────────────────
       closeDatabaseForImport();
@@ -252,6 +267,7 @@ function registerImportExportHandlers() {
           error: { code: 'REPLACE_DB_FAILED', message: err.message },
         };
       }
+      sendImportProgress(4, 'Reemplazando base de datos local...');
 
       // ── 6. Replace facturas folder ────────────────────────────
       const hasFacturas = entries.some((e) => e.entryName.startsWith('facturas/'));
@@ -276,12 +292,15 @@ function registerImportExportHandlers() {
           }
         });
       }
+      sendImportProgress(5, 'Importando documentos y adjuntos...');
 
       // ── 7. Reopen database and apply migrations ───────────────
       reopenDatabase();
+      sendImportProgress(6, 'Aplicando cambios e iniciando datos...');
 
       // ── 8. Reload the renderer window ─────────────────────────
       if (win) {
+        sendImportProgress(7, 'Importación completada. Recargando...', 'done');
         win.reload();
       }
 

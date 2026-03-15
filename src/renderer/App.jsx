@@ -45,6 +45,7 @@ function TitleBar({ onIconClick, isSecret }) {
   const [confirmImport, setConfirmImport] = useState(false);
   const [importExportBusy, setImportExportBusy] = useState(false);
   const [exportProgress, setExportProgress] = useState(null); // { phase, processedBytes, totalBytes }
+  const [importProgress, setImportProgress] = useState(null); // { phase, processedBytes, totalBytes, message }
   const helpMenuRef = useRef(null);
   const { showToast } = useToast();
 
@@ -62,7 +63,25 @@ function TitleBar({ onIconClick, isSecret }) {
       if (data.phase === 'done') {
         setExportProgress(null);
       } else {
+        // Keep progress modes mutually exclusive to avoid mixed UI state.
+        setImportProgress(null);
         setExportProgress(data);
+      }
+    });
+    return () => {
+      if (typeof cleanup === 'function') cleanup();
+    };
+  }, []);
+
+  // Listen for import progress from main process
+  useEffect(() => {
+    const cleanup = window.electronAPI?.data?.onImportProgress?.((data) => {
+      if (data.phase === 'done') {
+        setImportProgress(null);
+      } else {
+        // Keep progress modes mutually exclusive to avoid mixed UI state.
+        setExportProgress(null);
+        setImportProgress(data);
       }
     });
     return () => {
@@ -85,6 +104,7 @@ function TitleBar({ onIconClick, isSecret }) {
   const handleExport = useCallback(async () => {
     setHelpMenuOpen(false);
     setImportExportBusy(true);
+    setImportProgress(null);
     try {
       const result = await window.electronAPI?.data?.export();
       if (result?.success) {
@@ -103,6 +123,7 @@ function TitleBar({ onIconClick, isSecret }) {
   const handleImportConfirmed = useCallback(async () => {
     setConfirmImport(false);
     setImportExportBusy(true);
+    setExportProgress(null);
     try {
       const result = await window.electronAPI?.data?.import();
       if (result?.success) {
@@ -114,8 +135,17 @@ function TitleBar({ onIconClick, isSecret }) {
       showToast('Error al importar datos', 'error');
     } finally {
       setImportExportBusy(false);
+      setImportProgress(null);
     }
   }, [showToast]);
+
+  const activeProgress = importProgress || exportProgress;
+  let activeProgressMode = null;
+  if (importProgress) {
+    activeProgressMode = 'import';
+  } else if (exportProgress) {
+    activeProgressMode = 'export';
+  }
 
   return (
     <>
@@ -227,7 +257,9 @@ function TitleBar({ onIconClick, isSecret }) {
         />
       )}
 
-      {exportProgress && <ExportProgressDialog progress={exportProgress} />}
+      {activeProgress && (
+        <ExportProgressDialog progress={activeProgress} mode={activeProgressMode} />
+      )}
     </>
   );
 }

@@ -74,29 +74,40 @@ function SpoolAnimation() {
 }
 
 /**
- * XP-style popup dialog shown during data export.
+ * XP-style popup dialog shown during data import/export.
  * Displays a pixel-art thread spool animation.
  */
-function ExportProgressDialog({ progress }) {
+function ExportProgressDialog({ progress, mode = 'export' }) {
   const hasBytesInfo =
     progress && typeof progress.processedBytes === 'number' && progress.totalBytes > 0;
   const pct = hasBytesInfo
     ? Math.min(99, Math.round((progress.processedBytes / progress.totalBytes) * 100))
     : 0;
+  const title = mode === 'import' ? 'Importando...' : 'Exportando...';
+  const defaultLabel = mode === 'import' ? 'Aplicando cambios...' : 'Preparando archivo...';
+  const label = progress?.message || defaultLabel;
 
   return (
     <div className="export-progress-overlay">
-      <div className="export-progress-dialog">
+      <div
+        className="export-progress-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label={mode === 'import' ? 'Progreso de importación' : 'Progreso de exportación'}
+        data-testid="import-export-progress-dialog"
+      >
         {/* XP-style title bar */}
         <div className="export-progress-titlebar">
-          <span className="export-progress-titlebar-text">Exportando...</span>
+          <span className="export-progress-titlebar-text">{title}</span>
         </div>
 
         {/* Content */}
         <div className="export-progress-body">
           <SpoolAnimation />
 
-          <p className="export-progress-label">Preparando archivo... {pct}%</p>
+          <p className="export-progress-label" data-testid="import-export-progress-label">
+            {label} {pct}%
+          </p>
 
           {/* Progress bar track */}
           <div className="export-progress-track">

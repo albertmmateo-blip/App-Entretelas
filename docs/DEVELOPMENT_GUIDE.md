@@ -487,7 +487,8 @@ This avoids partial-staging stash/restore conflicts and ensures the committed sn
 
 #### Prevent recurring hook regressions
 
-- Prefer explicit normalization helpers over nested ternary chains in IPC handlers. This avoids repeat `no-nested-ternary` failures after formatting.
+- Prefer explicit normalization helpers over nested ternary chains in IPC handlers.
+- In renderer state selection (for example choosing import/export progress mode), do not use nested ternary expressions. Use `if/else` or a small helper function so `eslint --fix --quiet` does not fail with `no-nested-ternary` during commit hooks.
 - Do not silence lint rules to pass commits; fix root-cause code structure instead.
 - Before finishing a session, re-run `npm run lint` after all edits (including formatter changes) and only then report completion.
 - If lint reports `prettier/prettier` with `Delete ␍`, normalize line endings before committing:

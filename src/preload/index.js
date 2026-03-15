@@ -119,6 +119,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on('data:export-progress', handler);
       return () => ipcRenderer.removeListener('data:export-progress', handler);
     },
+    onImportProgress: (cb) => {
+      const handler = (_, data) => cb(data);
+      ipcRenderer.on('data:import-progress', handler);
+      return () => ipcRenderer.removeListener('data:import-progress', handler);
+    },
   },
   // Facturas module
   facturas: {
