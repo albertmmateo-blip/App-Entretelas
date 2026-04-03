@@ -1528,18 +1528,18 @@ function TabLugares({ state, dispatch, api }) {
               </div>
             )}
 
-            {/* Compartimentos */}
+            {/* Content stored – grouped by compartimento */}
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-neutral-700 uppercase tracking-wide">
-                  Compartimentos
+                  Contenido almacenado
                 </h3>
                 <button
                   type="button"
                   onClick={() => setEditingCompartimento('new')}
                   className="px-2.5 py-1 text-xs bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 rounded transition-colors"
                 >
-                  + Añadir
+                  + Compartimento
                 </button>
               </div>
 
@@ -1553,66 +1553,6 @@ function TabLugares({ state, dispatch, api }) {
                   />
                 </div>
               )}
-
-              {selectedLugar.compartimentos?.length === 0 && editingCompartimento !== 'new' && (
-                <p className="text-sm text-neutral-500 italic">
-                  Sin compartimentos - este lugar es indivisible.
-                </p>
-              )}
-
-              <ul className="space-y-1">
-                {selectedLugar.compartimentos?.map((comp) => (
-                  <li key={comp.id} className="group">
-                    {editingCompartimento === comp.id ? (
-                      <div className="border border-primary/30 rounded p-3 bg-primary/5">
-                        <InlineForm
-                          fields={compartimentoFields}
-                          initialValues={{
-                            nombre: comp.nombre,
-                            descripcion: comp.descripcion || '',
-                          }}
-                          onSubmit={(values) => handleUpdateCompartimento(comp.id, values)}
-                          onCancel={() => setEditingCompartimento(null)}
-                        />
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 px-3 py-2 rounded hover:bg-neutral-50 border border-neutral-100">
-                        <span className="text-xs font-mono bg-neutral-200 text-neutral-700 px-1.5 py-0.5 rounded">
-                          {comp.nombre}
-                        </span>
-                        {comp.descripcion && (
-                          <span className="text-xs text-neutral-500 flex-1">
-                            {comp.descripcion}
-                          </span>
-                        )}
-                        <div className="ml-auto flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            type="button"
-                            onClick={() => setEditingCompartimento(comp.id)}
-                            className="px-2 py-0.5 text-xs border border-neutral-200 rounded hover:bg-neutral-100"
-                          >
-                            Editar
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setConfirmDeleteComp(comp.id)}
-                            className="px-2 py-0.5 text-xs border border-danger/30 text-danger rounded hover:bg-danger/5"
-                          >
-                            Eliminar
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Content stored – grouped by compartimento */}
-            <div>
-              <h3 className="text-sm font-semibold text-neutral-700 uppercase tracking-wide mb-3">
-                Contenido almacenado
-              </h3>
               {(() => {
                 // Collect all items for this lugar
                 const allItems = [];
@@ -1639,14 +1579,6 @@ function TabLugares({ state, dispatch, api }) {
                   }
                 }
 
-                if (allItems.length === 0) {
-                  return (
-                    <p className="text-sm text-neutral-500 italic">
-                      Ningún elemento almacenado en este lugar.
-                    </p>
-                  );
-                }
-
                 // Group by compartimento, preserving the order from selectedLugar.compartimentos
                 const sortName = (item) =>
                   item.itemKind === 'articulo'
@@ -1661,9 +1593,17 @@ function TabLugares({ state, dispatch, api }) {
                 const compOrder = (selectedLugar.compartimentos || []).map((c) => ({
                   id: c.id,
                   nombre: c.nombre,
+                  descripcion: c.descripcion,
+                  compObj: c,
                   items: [],
                 }));
-                const unassigned = { id: null, nombre: null, items: [] };
+                const unassigned = {
+                  id: null,
+                  nombre: null,
+                  descripcion: null,
+                  compObj: null,
+                  items: [],
+                };
 
                 for (const item of allItems) {
                   const section = compOrder.find((c) => c.id === item.compartimento_id);
@@ -1671,22 +1611,53 @@ function TabLugares({ state, dispatch, api }) {
                   else unassigned.items.push(item);
                 }
 
-                // Only render sections that have content
+                // Render ALL compartments (even empty), plus unassigned items
                 const sections = [
-                  ...compOrder.filter((c) => c.items.length > 0),
+                  ...compOrder,
                   ...(unassigned.items.length > 0 ? [unassigned] : []),
                 ];
+
+                if (sections.length === 0) {
+                  return (
+                    <p className="text-sm text-neutral-500 italic">
+                      Ningún elemento almacenado en este lugar.
+                    </p>
+                  );
+                }
 
                 return (
                   <div className="space-y-4">
                     {sections.map((section) => (
                       <div key={section.id ?? '__none__'}>
                         {section.nombre ? (
-                          <div className="flex items-center gap-2 mb-1.5">
+                          <div className="flex items-center gap-2 mb-1.5 group">
                             <span className="text-xs font-mono font-semibold bg-neutral-200 text-neutral-700 px-2 py-0.5 rounded">
                               {section.nombre}
                             </span>
+                            {section.descripcion && (
+                              <span className="text-xs text-neutral-500 italic">
+                                {section.descripcion}
+                              </span>
+                            )}
                             <span className="flex-1 h-px bg-neutral-100" />
+                            {section.compObj && (
+                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingCompartimento(section.id)}
+                                  className="px-2 py-0.5 text-xs border border-neutral-200 rounded hover:bg-neutral-100"
+                                >
+                                  Editar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmDeleteComp(section.id)}
+                                  className="px-2 py-0.5 text-xs border border-danger/30 text-danger rounded hover:bg-danger/5"
+                                >
+                                  Eliminar
+                                </button>
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <div className="flex items-center gap-2 mb-1.5">
@@ -1696,43 +1667,62 @@ function TabLugares({ state, dispatch, api }) {
                             <span className="flex-1 h-px bg-neutral-100" />
                           </div>
                         )}
-                        <ul className="space-y-1 pl-2">
-                          {sortItems(section.items).map((item) => (
-                            <li
-                              key={`${item.itemKind}_${item.id}`}
-                              className="flex items-center gap-2 text-sm px-3 py-1.5 bg-neutral-50 rounded border border-neutral-100"
-                            >
-                              {item.itemKind === 'articulo' ? (
-                                <span className="flex-1 min-w-0 text-neutral-800">
-                                  <span className="font-semibold text-neutral-900">
+
+                        {/* Edit inline form for this compartimento */}
+                        {editingCompartimento === section.id && section.compObj && (
+                          <div className="mb-3 border border-primary/30 rounded p-3 bg-primary/5">
+                            <InlineForm
+                              fields={compartimentoFields}
+                              initialValues={{
+                                nombre: section.nombre,
+                                descripcion: section.descripcion || '',
+                              }}
+                              onSubmit={(values) => handleUpdateCompartimento(section.id, values)}
+                              onCancel={() => setEditingCompartimento(null)}
+                            />
+                          </div>
+                        )}
+
+                        {/* Items or empty state */}
+                        {section.items.length > 0 && (
+                          <ul className="space-y-1 pl-2">
+                            {sortItems(section.items).map((item) => (
+                              <li
+                                key={`${item.itemKind}_${item.id}`}
+                                className="flex items-center gap-2 text-sm px-3 py-1.5 bg-neutral-50 rounded border border-neutral-100"
+                              >
+                                {item.itemKind === 'articulo' ? (
+                                  <span className="flex-1 min-w-0 text-neutral-800">
+                                    <span className="font-semibold text-neutral-900">
+                                      {item.producto_nombre}
+                                    </span>
+                                    <span className="text-neutral-400 mx-1">›</span>
+                                    <span>{item.nombre}</span>
+                                  </span>
+                                ) : (
+                                  <span className="font-semibold text-neutral-900 flex-1">
                                     {item.producto_nombre}
                                   </span>
-                                  <span className="text-neutral-400 mx-1">›</span>
-                                  <span>{item.nombre}</span>
-                                </span>
-                              ) : (
-                                <span className="font-semibold text-neutral-900 flex-1">
-                                  {item.producto_nombre}
-                                </span>
-                              )}
-                              {item.itemKind === 'asignacion' && item.producto_ref && (
-                                <span className="text-xs text-neutral-500">
-                                  {item.producto_ref}
-                                </span>
-                              )}
-                              {item.itemKind === 'articulo' && item.ref && (
-                                <span className="text-xs text-neutral-500 bg-neutral-200 px-1 rounded">
-                                  {item.ref}
-                                </span>
-                              )}
-                              {item.notas && (
-                                <span className="text-xs text-neutral-400 italic">
-                                  - {item.notas}
-                                </span>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
+                                )}
+                                {item.itemKind === 'asignacion' && item.producto_ref && (
+                                  <span className="text-xs text-neutral-500">
+                                    {item.producto_ref}
+                                  </span>
+                                )}
+                                {item.itemKind === 'articulo' && item.ref && (
+                                  <span className="text-xs text-neutral-500 bg-neutral-200 px-1 rounded">
+                                    {item.ref}
+                                  </span>
+                                )}
+                                {item.notas && (
+                                  <span className="text-xs text-neutral-400 italic">
+                                    - {item.notas}
+                                  </span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </div>
                     ))}
                   </div>
