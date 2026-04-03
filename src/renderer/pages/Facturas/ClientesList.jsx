@@ -304,7 +304,7 @@ function ClientesListView() {
     <div className="xp-content-panel space-y-4">
       {/* Header with actions on the right */}
       <div className="xp-toolbar justify-between">
-        <h1 className="text-2xl font-bold text-neutral-900 flex-1 m-0">Contabilidad Venta</h1>
+        <h1 className="text-2xl font-bold text-neutral-900 flex-1 m-0">🧾 Contabilidad Venta</h1>
         <div className="ml-auto flex items-center gap-2">
           <button
             type="button"

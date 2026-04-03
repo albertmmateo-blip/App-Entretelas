@@ -73,7 +73,7 @@ function LlamarForm() {
     <div className="p-6 max-w-4xl mx-auto">
       <div className="mb-6 flex items-center">
         <h1 className="text-2xl font-bold text-neutral-900 flex-1">
-          {isEdit ? 'Editar entrada' : 'Nueva entrada'}
+          {isEdit ? '📞 Editar entrada' : '📞 Nueva entrada'}
         </h1>
         <div className="ml-auto">
           <button

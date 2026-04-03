@@ -204,7 +204,7 @@ function Contabilidad() {
   return (
     <div className="xp-content-panel space-y-4">
       <div className="xp-toolbar justify-between">
-        <h1 className="text-2xl font-bold text-neutral-900 m-0">Contabilidad</h1>
+        <h1 className="text-2xl font-bold text-neutral-900 m-0">🧾 Contabilidad</h1>
         <label
           htmlFor="office-upload-input"
           className={`px-4 py-2 bg-primary text-white cursor-pointer ${

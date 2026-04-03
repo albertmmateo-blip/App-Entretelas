@@ -124,9 +124,9 @@ describe('Encargar flow routing', () => {
     await user.type(screen.getByPlaceholderText('Buscar proveedor y pulsar Enter...'), 'MyC');
     await user.keyboard('{Enter}');
 
-    expect(screen.getByRole('button', { name: 'Abrir carpeta de MyC' })).toBeInTheDocument();
+    // When a proveedor has no existing entry, the editor opens automatically
     expect(
-      screen.getByText('Haz clic para escribir una nota libre para este proveedor.')
+      screen.getByPlaceholderText('Escribe aquí la nota del proveedor...')
     ).toBeInTheDocument();
   });
 
@@ -135,7 +135,7 @@ describe('Encargar flow routing', () => {
 
     renderEncargar('/encargar/proveedor/nuevo');
 
-    expect(screen.getByRole('heading', { name: 'Nuevo proveedor' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '🏢 Nuevo proveedor' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Guardar' })).toBeInTheDocument();
     expect(screen.getByTestId('location-display')).toHaveTextContent('/encargar/proveedor/nuevo');
   });
@@ -263,11 +263,18 @@ describe('Encargar flow routing', () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: '📁 Proveedores' }));
     await user.click(screen.getByRole('menuitem', { name: '📁 Proveedor A' }));
-    await user.click(screen.getByRole('button', { name: /📁 Proveedor A/i }));
-    await user.click(screen.getByRole('button', { name: 'Eliminar nota' }));
+    // Click the card to enter editing mode (the card itself is a button role)
+    await user.click(screen.getByRole('button', { name: '📁 Proveedor A' }));
+    // Now click the actions menu button (⋮)
+    await user.click(screen.getByRole('button', { name: 'Acciones' }));
+    await user.click(screen.getByRole('button', { name: 'Eliminar pedido' }));
 
     const deleteButtons = screen.getAllByRole('button', { name: 'Eliminar' });
     await user.click(deleteButtons[deleteButtons.length - 1]);
+
+    await waitFor(() => {
+      expect(screen.queryByText('Contenido')).not.toBeInTheDocument();
+    });
 
     await waitFor(() => {
       expect(

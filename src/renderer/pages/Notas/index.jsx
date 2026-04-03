@@ -69,7 +69,7 @@ function NotasList() {
     <div className="p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold text-neutral-900">Notas</h1>
+        <h1 className="text-2xl font-bold text-neutral-900">🗒️ Notas</h1>
         <button
           type="button"
           onClick={() => navigate('/notas/nueva')}

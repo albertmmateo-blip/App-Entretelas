@@ -32,7 +32,10 @@ const getInitialOpenProveedorIds = () => {
       return [];
     }
 
-    return parsedValue.filter((id) => Number.isInteger(id) && id > 0);
+    return parsedValue.filter((id) => {
+      const num = Number(id);
+      return Number.isInteger(num) && num > 0;
+    });
   } catch (_error) {
     return [];
   }
@@ -65,10 +68,26 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [didApplyPreselection, setDidApplyPreselection] = useState(false);
   const [actionsMenuOpenId, setActionsMenuOpenId] = useState(null);
+  const [hasHydratedProveedores, setHasHydratedProveedores] = useState(false);
 
   useEffect(() => {
-    fetchProveedores();
-    fetchEncargar();
+    let isMounted = true;
+
+    const fetchData = async () => {
+      try {
+        await Promise.all([fetchProveedores(), fetchEncargar()]);
+      } finally {
+        if (isMounted) {
+          setHasHydratedProveedores(true);
+        }
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [fetchEncargar, fetchProveedores]);
 
   useEffect(() => {
@@ -87,6 +106,10 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
   }, [isDropdownOpen]);
 
   useEffect(() => {
+    if (!hasHydratedProveedores) {
+      return;
+    }
+
     if (typeof window === 'undefined') {
       return;
     }
@@ -99,7 +122,7 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
       }
       return filtered;
     });
-  }, [proveedores]);
+  }, [hasHydratedProveedores, proveedores]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -273,7 +296,7 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
         <div className="relative flex items-center gap-2" ref={dropdownRef}>
-          <h1 className="text-2xl font-bold text-neutral-900">Encargar</h1>
+          <h1 className="text-2xl font-bold text-neutral-900">📁 Encargar</h1>
           <button
             type="button"
             onClick={() => setIsDropdownOpen((prev) => !prev)}

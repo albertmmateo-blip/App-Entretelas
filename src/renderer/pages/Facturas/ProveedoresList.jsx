@@ -46,7 +46,7 @@ function ProveedoresListView({ tipo = 'compra' }) {
   const [quarterSummary, setQuarterSummary] = useState(() => buildFacturasQuarterSummary([], tipo));
   const [recentInvoices, setRecentInvoices] = useState([]);
   const basePath = `/contabilidad/${tipo}`;
-  const sectionTitle = tipo === 'arreglos' ? 'Contabilidad Arreglos' : 'Contabilidad Compra';
+  const sectionTitle = tipo === 'arreglos' ? '🧾 Contabilidad Arreglos' : '🧾 Contabilidad Compra';
   const isCompra = tipo === 'compra';
 
   useEffect(() => {
