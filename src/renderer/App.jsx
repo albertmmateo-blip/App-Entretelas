@@ -22,14 +22,7 @@ function ContabilidadRoute() {
   return (
     <Suspense
       fallback={
-        <div
-          style={{
-            padding: '16px',
-            fontFamily: 'Tahoma,sans-serif',
-            fontSize: '13px',
-            color: '#9d8577',
-          }}
-        >
+        <div className="xp-caption" style={{ padding: '16px' }}>
           Cargando módulo...
         </div>
       }
@@ -411,10 +404,10 @@ export function AppLayout() {
       </main>
 
       {isSecretPromptOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/45">
+        <div className="xp-modal-overlay">
           <button
             type="button"
-            className="absolute inset-0"
+            className="absolute inset-0 border-0 bg-transparent"
             onClick={() => {
               setSecretPassword('');
               setIsSecretPromptOpen(false);
@@ -422,7 +415,7 @@ export function AppLayout() {
             aria-label="Cerrar acceso secreto"
           />
           <form
-            className="relative z-10 w-[560px] max-w-[88vw]"
+            className="xp-dialog relative z-10 w-[560px] max-w-[88vw]"
             onSubmit={(event) => {
               event.preventDefault();
 
@@ -437,13 +430,37 @@ export function AppLayout() {
               setIsSecretPromptOpen(false);
             }}
           >
-            <input
-              ref={secretInputRef}
-              type="password"
-              value={secretPassword}
-              onChange={(event) => setSecretPassword(event.target.value)}
-              className="h-16 w-full border border-success-200 bg-neutral-900 px-5 font-mono text-lg tracking-wider text-success-100 outline-none"
-            />
+            <div className="xp-dialog__titlebar">
+              <span className="xp-dialog__titlebar-text">Acceso especial</span>
+            </div>
+            <div className="xp-dialog__body">
+              <p className="xp-caption" style={{ margin: 0 }}>
+                Introduce la clave para abrir el área secreta.
+              </p>
+              <input
+                ref={secretInputRef}
+                type="password"
+                value={secretPassword}
+                onChange={(event) => setSecretPassword(event.target.value)}
+                className="w-full h-12 px-4 text-lg tracking-[0.22em]"
+                autoComplete="off"
+              />
+              <div className="flex justify-end w-full gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSecretPassword('');
+                    setIsSecretPromptOpen(false);
+                  }}
+                  className="px-4 py-2"
+                >
+                  Cancelar
+                </button>
+                <button type="submit" className="px-4 py-2 bg-primary text-white">
+                  Abrir
+                </button>
+              </div>
+            </div>
           </form>
         </div>
       )}

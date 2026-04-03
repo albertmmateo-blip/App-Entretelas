@@ -181,35 +181,35 @@ function ArreglosListView() {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex items-center mb-4">
-        <h1 className="text-2xl font-bold text-neutral-900 flex-1">Contabilidad Arreglos</h1>
+    <div className="xp-content-panel space-y-4">
+      <div className="xp-toolbar justify-between">
+        <h1 className="text-2xl font-bold text-neutral-900 flex-1 m-0">Contabilidad Arreglos</h1>
         <div className="ml-auto flex items-center gap-2">
           <button
             type="button"
             onClick={() => navigate(`${listBasePath}/nueva`)}
-            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+            className="px-4 py-2 bg-primary text-white"
           >
             Nueva entrada
           </button>
           <button
             type="button"
             onClick={() => openMonthlySummaryWindow(selectedFolder || 'all')}
-            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+            className="px-4 py-2 bg-primary text-white"
           >
             Resumenes mensuales
           </button>
           <button
             type="button"
             onClick={() => navigate('/contabilidad')}
-            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+            className="px-4 py-2 bg-primary text-white"
           >
             ← Volver
           </button>
         </div>
       </div>
 
-      <div className="mb-4">
+      <div className="xp-toolbar xp-toolbar--stacked">
         <div className="flex flex-wrap gap-2">
           {ALBARAN_OPTIONS.map((folder) => {
             const isActive = selectedFolder === folder;
@@ -243,7 +243,7 @@ function ArreglosListView() {
         </div>
       </div>
 
-      <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {ALBARAN_OPTIONS.map((folder) => {
           const stats = folderCurrentMonthStats[folder] || { count: 0, totalImporte: 0 };
           const split = splitArreglosTotal(stats.totalImporte);
@@ -252,7 +252,7 @@ function ArreglosListView() {
           return (
             <div
               key={folder}
-              className="px-3 py-2 rounded border"
+              className="xp-surface px-3 py-2"
               style={{
                 backgroundColor: colorStyles?.softBackground,
                 borderColor: colorStyles?.softBorder,
@@ -299,7 +299,7 @@ function ArreglosListView() {
         })}
       </div>
 
-      <div className="mb-4">
+      <div>
         <input
           type="search"
           placeholder={
@@ -308,20 +308,20 @@ function ArreglosListView() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           data-search-input
-          className="w-full px-4 py-2 bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
+          className="w-full px-4 py-2"
         />
       </div>
 
       {!loading && (
-        <p className="text-xs text-neutral-400 mb-2">
+        <p className="xp-caption mb-2">
           {filteredEntries.length} entrada{filteredEntries.length !== 1 ? 's' : ''}
         </p>
       )}
 
-      {loading && <div className="text-sm text-neutral-500 py-8 text-center">Cargando...</div>}
+      {loading && <div className="xp-caption py-8 text-center">Cargando...</div>}
 
       {!loading && filteredEntries.length === 0 && (
-        <div className="flex flex-col items-center py-16 text-neutral-400">
+        <div className="xp-surface flex flex-col items-center py-16 text-neutral-400">
           <span className="text-5xl mb-4">📭</span>
           <p className="text-lg font-medium">
             {searchQuery ? 'No hay entradas que coincidan con la búsqueda' : 'No hay entradas'}
@@ -500,23 +500,23 @@ function ArreglosForm() {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="mb-6 flex items-center">
-        <h1 className="text-2xl font-bold text-neutral-900 flex-1">
+    <div className="xp-content-panel max-w-4xl mx-auto space-y-4">
+      <div className="xp-toolbar justify-between">
+        <h1 className="text-2xl font-bold text-neutral-900 flex-1 m-0">
           {isEdit ? 'Editar entrada de arreglo' : 'Nueva entrada de arreglo'}
         </h1>
         <div className="ml-auto">
           <button
             type="button"
             onClick={() => navigate(listBasePath)}
-            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+            className="px-4 py-2 bg-primary text-white"
           >
             ← Volver
           </button>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-neutral-100 rounded-lg shadow p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="xp-form-panel p-6 space-y-6">
         <div>
           <label htmlFor="albaran" className="block text-sm font-medium text-neutral-700 mb-2">
             <span>Albarán *</span>
@@ -689,10 +689,10 @@ function ArreglosMonthlySummariesPage() {
       )}
 
       {!loading && quarterSummary.annualTotal.count > 0 && (
-        <div className="bg-white border border-neutral-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="xp-surface overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="bg-sky-200 border-b border-sky-300">
+              <thead className="xp-table-header-surface border-b border-primary-200">
                 <tr>
                   <th
                     scope="col"
@@ -791,11 +791,14 @@ function ArreglosMonthlySummariesPage() {
                     ))}
                   </React.Fragment>
                 ))}
-                <tr className="border-t border-sky-300 bg-sky-50">
-                  <th scope="row" className="px-4 py-2.5 font-semibold text-primary align-middle">
+                <tr className="border-t border-primary-200 bg-primary-100/50">
+                  <th
+                    scope="row"
+                    className="px-4 py-2.5 font-semibold text-primary-700 align-middle"
+                  >
                     Total anual
                   </th>
-                  <td className="px-4 py-2.5 text-right font-semibold text-primary whitespace-nowrap align-middle">
+                  <td className="px-4 py-2.5 text-right font-semibold text-primary-700 whitespace-nowrap align-middle">
                     {formatAmountWithCount(
                       quarterSummary.quarters.reduce(
                         (sum, quarter) => sum + quarter.folders.Entretelas.amount,
@@ -807,7 +810,7 @@ function ArreglosMonthlySummariesPage() {
                       )
                     )}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-semibold text-primary whitespace-nowrap align-middle">
+                  <td className="px-4 py-2.5 text-right font-semibold text-primary-700 whitespace-nowrap align-middle">
                     {formatAmountWithCount(
                       quarterSummary.quarters.reduce(
                         (sum, quarter) => sum + quarter.folders.Isa.amount,
@@ -819,7 +822,7 @@ function ArreglosMonthlySummariesPage() {
                       )
                     )}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-semibold text-primary whitespace-nowrap align-middle">
+                  <td className="px-4 py-2.5 text-right font-semibold text-primary-700 whitespace-nowrap align-middle">
                     {formatAmountWithCount(
                       quarterSummary.quarters.reduce(
                         (sum, quarter) => sum + quarter.folders.Loli.amount,
@@ -831,7 +834,7 @@ function ArreglosMonthlySummariesPage() {
                       )
                     )}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-semibold text-primary whitespace-nowrap align-middle">
+                  <td className="px-4 py-2.5 text-right font-semibold text-primary-700 whitespace-nowrap align-middle">
                     {formatAmountWithCount(
                       quarterSummary.annualTotal.amount,
                       quarterSummary.annualTotal.count,

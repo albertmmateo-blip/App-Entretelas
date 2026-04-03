@@ -296,115 +296,119 @@ function AsignarModal({ lugares, productos, onClose, onSave, defaultProductoId =
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/40">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
-        <h3 className="text-lg font-semibold text-neutral-900 mb-4">Asignar a ubicación</h3>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div>
-            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
-            <label
-              htmlFor="asignar-producto"
-              className="block text-xs font-medium text-neutral-600 mb-1"
-            >
-              Producto *
-            </label>
-            <select
-              id="asignar-producto"
-              value={productoId}
-              onChange={(e) => setProductoId(e.target.value)}
-              required
-              className="w-full px-3 py-2 text-sm bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              <option value="">Seleccionar producto...</option>
-              {productos.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre}
-                  {p.ref ? ` (${p.ref})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
-            <label
-              htmlFor="asignar-lugar"
-              className="block text-xs font-medium text-neutral-600 mb-1"
-            >
-              Lugar *
-            </label>
-            <select
-              id="asignar-lugar"
-              value={lugarId}
-              onChange={(e) => setLugarId(e.target.value)}
-              required
-              className="w-full px-3 py-2 text-sm bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              <option value="">Seleccionar lugar...</option>
-              {lugares.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-          {selectedLugar?.compartimentos?.length > 0 && (
+    <div className="xp-modal-overlay">
+      <div className="xp-dialog w-full max-w-md mx-4">
+        <div className="xp-dialog__titlebar">
+          <span className="xp-dialog__titlebar-text">Asignar a ubicación</span>
+        </div>
+        <div className="xp-dialog__body items-stretch">
+          <form onSubmit={handleSubmit} className="space-y-3">
             <div>
               {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
               <label
-                htmlFor="asignar-compartimento"
+                htmlFor="asignar-producto"
                 className="block text-xs font-medium text-neutral-600 mb-1"
               >
-                Compartimento
+                Producto *
               </label>
               <select
-                id="asignar-compartimento"
-                value={compartimentoId}
-                onChange={(e) => setCompartimentoId(e.target.value)}
+                id="asignar-producto"
+                value={productoId}
+                onChange={(e) => setProductoId(e.target.value)}
+                required
                 className="w-full px-3 py-2 text-sm bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
               >
-                <option value="">Sin compartimento específico</option>
-                {selectedLugar.compartimentos.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nombre}
+                <option value="">Seleccionar producto...</option>
+                {productos.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nombre}
+                    {p.ref ? ` (${p.ref})` : ''}
                   </option>
                 ))}
               </select>
             </div>
-          )}
-          <div>
-            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
-            <label
-              htmlFor="asignar-notas"
-              className="block text-xs font-medium text-neutral-600 mb-1"
-            >
-              Notas
-            </label>
-            <input
-              id="asignar-notas"
-              type="text"
-              value={notas}
-              onChange={(e) => setNotas(e.target.value)}
-              placeholder="Opcional..."
-              className="w-full px-3 py-2 text-sm bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
-          </div>
-          <div className="flex gap-2 justify-end pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-neutral-200 rounded hover:bg-neutral-100 transition-colors text-sm"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={saving || !productoId || !lugarId}
-              className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors text-sm disabled:opacity-60"
-            >
-              {saving ? 'Guardando...' : 'Asignar'}
-            </button>
-          </div>
-        </form>
+            <div>
+              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+              <label
+                htmlFor="asignar-lugar"
+                className="block text-xs font-medium text-neutral-600 mb-1"
+              >
+                Lugar *
+              </label>
+              <select
+                id="asignar-lugar"
+                value={lugarId}
+                onChange={(e) => setLugarId(e.target.value)}
+                required
+                className="w-full px-3 py-2 text-sm bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
+              >
+                <option value="">Seleccionar lugar...</option>
+                {lugares.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {selectedLugar?.compartimentos?.length > 0 && (
+              <div>
+                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+                <label
+                  htmlFor="asignar-compartimento"
+                  className="block text-xs font-medium text-neutral-600 mb-1"
+                >
+                  Compartimento
+                </label>
+                <select
+                  id="asignar-compartimento"
+                  value={compartimentoId}
+                  onChange={(e) => setCompartimentoId(e.target.value)}
+                  className="w-full px-3 py-2 text-sm bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  <option value="">Sin compartimento específico</option>
+                  {selectedLugar.compartimentos.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div>
+              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+              <label
+                htmlFor="asignar-notas"
+                className="block text-xs font-medium text-neutral-600 mb-1"
+              >
+                Notas
+              </label>
+              <input
+                id="asignar-notas"
+                type="text"
+                value={notas}
+                onChange={(e) => setNotas(e.target.value)}
+                placeholder="Opcional..."
+                className="w-full px-3 py-2 text-sm bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+            </div>
+            <div className="flex gap-2 justify-end pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border border-neutral-200 rounded hover:bg-neutral-100 transition-colors text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={saving || !productoId || !lugarId}
+                className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors text-sm disabled:opacity-60"
+              >
+                {saving ? 'Guardando...' : 'Asignar'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
@@ -444,84 +448,94 @@ function EditAsignacionModal({ asignacion, lugares, onClose, onSave }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/40">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
-        <h3 className="text-lg font-semibold text-neutral-900 mb-1">Editar ubicación</h3>
-        <p className="text-sm text-neutral-500 mb-4">{asignacion.producto_nombre}</p>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div>
-            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
-            <label htmlFor="edit-lugar" className="block text-xs font-medium text-neutral-600 mb-1">
-              Lugar *
-            </label>
-            <select
-              id="edit-lugar"
-              value={lugarId}
-              onChange={(e) => setLugarId(e.target.value)}
-              required
-              className="w-full px-3 py-2 text-sm bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              {lugares.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-          {selectedLugar?.compartimentos?.length > 0 && (
+    <div className="xp-modal-overlay">
+      <div className="xp-dialog w-full max-w-md mx-4">
+        <div className="xp-dialog__titlebar">
+          <span className="xp-dialog__titlebar-text">Editar ubicación</span>
+        </div>
+        <div className="xp-dialog__body items-stretch">
+          <p className="text-sm text-neutral-500 m-0">{asignacion.producto_nombre}</p>
+          <form onSubmit={handleSubmit} className="space-y-3">
             <div>
               {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
               <label
-                htmlFor="edit-compartimento"
+                htmlFor="edit-lugar"
                 className="block text-xs font-medium text-neutral-600 mb-1"
               >
-                Compartimento
+                Lugar *
               </label>
               <select
-                id="edit-compartimento"
-                value={compartimentoId}
-                onChange={(e) => setCompartimentoId(e.target.value)}
+                id="edit-lugar"
+                value={lugarId}
+                onChange={(e) => setLugarId(e.target.value)}
+                required
                 className="w-full px-3 py-2 text-sm bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
               >
-                <option value="">Sin compartimento específico</option>
-                {selectedLugar.compartimentos.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nombre}
+                {lugares.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.nombre}
                   </option>
                 ))}
               </select>
             </div>
-          )}
-          <div>
-            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
-            <label htmlFor="edit-notas" className="block text-xs font-medium text-neutral-600 mb-1">
-              Notas
-            </label>
-            <input
-              id="edit-notas"
-              type="text"
-              value={notas}
-              onChange={(e) => setNotas(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
-          </div>
-          <div className="flex gap-2 justify-end pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-neutral-200 rounded hover:bg-neutral-100 transition-colors text-sm"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors text-sm disabled:opacity-60"
-            >
-              {saving ? 'Guardando...' : 'Guardar'}
-            </button>
-          </div>
-        </form>
+            {selectedLugar?.compartimentos?.length > 0 && (
+              <div>
+                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+                <label
+                  htmlFor="edit-compartimento"
+                  className="block text-xs font-medium text-neutral-600 mb-1"
+                >
+                  Compartimento
+                </label>
+                <select
+                  id="edit-compartimento"
+                  value={compartimentoId}
+                  onChange={(e) => setCompartimentoId(e.target.value)}
+                  className="w-full px-3 py-2 text-sm bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  <option value="">Sin compartimento específico</option>
+                  {selectedLugar.compartimentos.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div>
+              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+              <label
+                htmlFor="edit-notas"
+                className="block text-xs font-medium text-neutral-600 mb-1"
+              >
+                Notas
+              </label>
+              <input
+                id="edit-notas"
+                type="text"
+                value={notas}
+                onChange={(e) => setNotas(e.target.value)}
+                className="w-full px-3 py-2 text-sm bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+            </div>
+            <div className="flex gap-2 justify-end pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border border-neutral-200 rounded hover:bg-neutral-100 transition-colors text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors text-sm disabled:opacity-60"
+              >
+                {saving ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
@@ -576,146 +590,156 @@ function ArticuloModal({ lugares, producto, articulo = null, onClose, onSave }) 
   const btnLabel = isEditing ? 'Guardar' : 'Crear';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/40">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
-        <h3 className="text-lg font-semibold text-neutral-900 mb-1">
-          {isEditing ? 'Editar artículo' : 'Nuevo artículo'}
-        </h3>
-        <p className="text-sm text-neutral-500 mb-4">{producto.nombre}</p>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div>
-            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
-            <label htmlFor="art-nombre" className="block text-xs font-medium text-neutral-600 mb-1">
-              Nombre *
-            </label>
-            <input
-              id="art-nombre"
-              ref={firstRef}
-              type="text"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              required
-              placeholder="Ej: Bies Rojo, Bies Amarillo..."
-              className="w-full px-3 py-2 text-sm bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
-              <label htmlFor="art-ref" className="block text-xs font-medium text-neutral-600 mb-1">
-                Referencia
-              </label>
-              <input
-                id="art-ref"
-                type="text"
-                value={ref}
-                onChange={(e) => setRef(e.target.value)}
-                placeholder="Opcional..."
-                className="w-full px-3 py-2 text-sm bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
-              />
-            </div>
+    <div className="xp-modal-overlay">
+      <div className="xp-dialog w-full max-w-md mx-4">
+        <div className="xp-dialog__titlebar">
+          <span className="xp-dialog__titlebar-text">
+            {isEditing ? 'Editar artículo' : 'Nuevo artículo'}
+          </span>
+        </div>
+        <div className="xp-dialog__body items-stretch">
+          <p className="text-sm text-neutral-500 m-0">{producto.nombre}</p>
+          <form onSubmit={handleSubmit} className="space-y-3">
             <div>
               {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
               <label
-                htmlFor="art-notas"
+                htmlFor="art-nombre"
                 className="block text-xs font-medium text-neutral-600 mb-1"
               >
-                Notas
+                Nombre *
               </label>
               <input
-                id="art-notas"
+                id="art-nombre"
+                ref={firstRef}
                 type="text"
-                value={notas}
-                onChange={(e) => setNotas(e.target.value)}
-                placeholder="Opcional..."
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                required
+                placeholder="Ej: Bies Rojo, Bies Amarillo..."
                 className="w-full px-3 py-2 text-sm bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
               />
             </div>
-          </div>
-          <div>
-            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
-            <label htmlFor="art-desc" className="block text-xs font-medium text-neutral-600 mb-1">
-              Descripción
-            </label>
-            <textarea
-              id="art-desc"
-              value={descripcion}
-              onChange={(e) => setDescripcion(e.target.value)}
-              placeholder="Opcional..."
-              rows={2}
-              className="w-full px-3 py-2 text-sm bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
-            />
-          </div>
-          <div className="border-t border-neutral-100 pt-3">
-            <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">
-              Ubicación (opcional)
-            </p>
-            <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
                 <label
-                  htmlFor="art-lugar"
+                  htmlFor="art-ref"
                   className="block text-xs font-medium text-neutral-600 mb-1"
                 >
-                  Lugar
+                  Referencia
                 </label>
-                <select
-                  id="art-lugar"
-                  value={lugarId}
-                  onChange={(e) => setLugarId(e.target.value)}
+                <input
+                  id="art-ref"
+                  type="text"
+                  value={ref}
+                  onChange={(e) => setRef(e.target.value)}
+                  placeholder="Opcional..."
                   className="w-full px-3 py-2 text-sm bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  <option value="">Sin ubicación asignada</option>
-                  {lugares.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.nombre}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
-              {selectedLugar?.compartimentos?.length > 0 && (
+              <div>
+                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+                <label
+                  htmlFor="art-notas"
+                  className="block text-xs font-medium text-neutral-600 mb-1"
+                >
+                  Notas
+                </label>
+                <input
+                  id="art-notas"
+                  type="text"
+                  value={notas}
+                  onChange={(e) => setNotas(e.target.value)}
+                  placeholder="Opcional..."
+                  className="w-full px-3 py-2 text-sm bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+            </div>
+            <div>
+              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+              <label htmlFor="art-desc" className="block text-xs font-medium text-neutral-600 mb-1">
+                Descripción
+              </label>
+              <textarea
+                id="art-desc"
+                value={descripcion}
+                onChange={(e) => setDescripcion(e.target.value)}
+                placeholder="Opcional..."
+                rows={2}
+                className="w-full px-3 py-2 text-sm bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+              />
+            </div>
+            <div className="border-t border-neutral-100 pt-3">
+              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">
+                Ubicación (opcional)
+              </p>
+              <div className="space-y-2">
                 <div>
                   {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
                   <label
-                    htmlFor="art-compartimento"
+                    htmlFor="art-lugar"
                     className="block text-xs font-medium text-neutral-600 mb-1"
                   >
-                    Compartimento
+                    Lugar
                   </label>
                   <select
-                    id="art-compartimento"
-                    value={compartimentoId}
-                    onChange={(e) => setCompartimentoId(e.target.value)}
+                    id="art-lugar"
+                    value={lugarId}
+                    onChange={(e) => setLugarId(e.target.value)}
                     className="w-full px-3 py-2 text-sm bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
                   >
-                    <option value="">Sin compartimento específico</option>
-                    {selectedLugar.compartimentos.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.nombre}
+                    <option value="">Sin ubicación asignada</option>
+                    {lugares.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.nombre}
                       </option>
                     ))}
                   </select>
                 </div>
-              )}
+                {selectedLugar?.compartimentos?.length > 0 && (
+                  <div>
+                    {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+                    <label
+                      htmlFor="art-compartimento"
+                      className="block text-xs font-medium text-neutral-600 mb-1"
+                    >
+                      Compartimento
+                    </label>
+                    <select
+                      id="art-compartimento"
+                      value={compartimentoId}
+                      onChange={(e) => setCompartimentoId(e.target.value)}
+                      className="w-full px-3 py-2 text-sm bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
+                    >
+                      <option value="">Sin compartimento específico</option>
+                      {selectedLugar.compartimentos.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-          <div className="flex gap-2 justify-end pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-neutral-200 rounded hover:bg-neutral-100 transition-colors text-sm"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={saving || !nombre.trim()}
-              className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors text-sm disabled:opacity-60"
-            >
-              {saving ? 'Guardando...' : btnLabel}
-            </button>
-          </div>
-        </form>
+            <div className="flex gap-2 justify-end pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border border-neutral-200 rounded hover:bg-neutral-100 transition-colors text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={saving || !nombre.trim()}
+                className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors text-sm disabled:opacity-60"
+              >
+                {saving ? 'Guardando...' : btnLabel}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
@@ -1413,7 +1437,7 @@ function TabLugares({ state, dispatch, api }) {
         </div>
 
         {editingLugar === 'new' && (
-          <div className="border border-primary/30 rounded p-3 bg-primary/5">
+          <div className="xp-surface p-3">
             <p className="text-xs font-medium text-primary mb-2">Nuevo lugar</p>
             <InlineForm
               fields={lugarFields}
@@ -1544,7 +1568,7 @@ function TabLugares({ state, dispatch, api }) {
               </div>
 
               {editingCompartimento === 'new' && (
-                <div className="mb-3 border border-primary/30 rounded p-3 bg-primary/5">
+                <div className="mb-3 xp-surface p-3">
                   <InlineForm
                     fields={compartimentoFields}
                     onSubmit={handleCreateCompartimento}
@@ -1670,7 +1694,7 @@ function TabLugares({ state, dispatch, api }) {
 
                         {/* Edit inline form for this compartimento */}
                         {editingCompartimento === section.id && section.compObj && (
-                          <div className="mb-3 border border-primary/30 rounded p-3 bg-primary/5">
+                          <div className="mb-3 xp-surface p-3">
                             <InlineForm
                               fields={compartimentoFields}
                               initialValues={{
@@ -1768,6 +1792,8 @@ function TabProductos({ state, dispatch, api, onAsignar }) {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [articuloModal, setArticuloModal] = useState(null); // { productoId, articulo? }
   const [confirmDeleteArticulo, setConfirmDeleteArticulo] = useState(null);
+  const [expandedProductos, setExpandedProductos] = useState(new Set());
+  const [highlightedProductoId, setHighlightedProductoId] = useState(null);
 
   const productoFields = [
     {
@@ -1793,6 +1819,46 @@ function TabProductos({ state, dispatch, api, onAsignar }) {
         )
     );
   }, [state.productos, q]);
+
+  const sortedShortcuts = useMemo(() => {
+    const sorted = [...filtered].sort((a, b) =>
+      a.nombre.localeCompare(b.nombre, 'es-ES', { sensitivity: 'base' })
+    );
+    return sorted.map((p) => {
+      const articulos = p.articulos || [];
+      const totalEntries = articulos.length + p.asignaciones.length;
+      return { ...p, totalEntries };
+    });
+  }, [filtered]);
+
+  const toggleProducto = useCallback((id) => {
+    setExpandedProductos((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const navigateToProducto = useCallback((productoId) => {
+    setHighlightedProductoId(productoId);
+    setExpandedProductos((prev) => {
+      const next = new Set(prev);
+      next.add(productoId);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!highlightedProductoId) return undefined;
+    const el = document.getElementById(`producto-${highlightedProductoId}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    const timer = setTimeout(() => setHighlightedProductoId(null), 1500);
+    return () => clearTimeout(timer);
+  }, [highlightedProductoId]);
 
   const handleCreate = async (values) => {
     const res = await api.createProducto({
@@ -1886,171 +1952,237 @@ function TabProductos({ state, dispatch, api, onAsignar }) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {sortedShortcuts.length > 0 && (
+        <div className="mb-4 pb-4 border-b border-neutral-200 flex gap-2 flex-wrap">
+          {sortedShortcuts.map((producto) => (
+            <button
+              key={producto.id}
+              type="button"
+              onClick={() => navigateToProducto(producto.id)}
+              className="px-3 py-1.5 text-xs font-medium bg-neutral-100 border border-neutral-200 rounded hover:bg-neutral-200 hover:border-primary transition-colors text-neutral-700 hover:text-primary whitespace-nowrap"
+            >
+              {producto.nombre}
+              {producto.totalEntries > 0 && (
+                <span className="ml-1 text-neutral-500">({producto.totalEntries})</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="space-y-2">
         {filtered.map((producto) => {
           const isEditing = editingId === producto.id;
           const articulos = producto.articulos || [];
+          const isExpanded = expandedProductos.has(producto.id);
+          const totalEntries = articulos.length + producto.asignaciones.length;
+
           return (
             <div
               key={producto.id}
-              className="border border-neutral-200 rounded p-4 bg-white hover:border-neutral-300 transition-colors flex flex-col gap-3"
+              id={`producto-${producto.id}`}
+              className={`border rounded overflow-hidden transition-all duration-300 ${
+                highlightedProductoId === producto.id
+                  ? 'border-primary/50 ring-2 ring-primary/20'
+                  : 'border-neutral-200'
+              }`}
             >
-              {isEditing ? (
-                <InlineForm
-                  fields={productoFields}
-                  initialValues={{
-                    nombre: producto.nombre,
-                    ref: producto.ref || '',
-                    descripcion: producto.descripcion || '',
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => toggleProducto(producto.id)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    toggleProducto(producto.id);
+                  }
+                }}
+                className="w-full px-4 py-2.5 bg-neutral-50 flex items-center gap-2 hover:bg-neutral-100 transition-colors text-left cursor-pointer"
+              >
+                <span
+                  className="text-neutral-400 text-xs select-none transition-transform duration-150"
+                  style={{
+                    display: 'inline-block',
+                    transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
                   }}
-                  onSubmit={(values) => handleUpdate(producto.id, values)}
-                  onCancel={() => setEditingId(null)}
-                />
-              ) : (
-                <>
-                  {/* Product header */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="font-semibold text-neutral-900 text-sm">{producto.nombre}</h3>
-                      {producto.ref && (
-                        <span className="text-xs text-neutral-500 bg-neutral-100 px-1.5 py-0.5 rounded mt-0.5 inline-block">
-                          {producto.ref}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex gap-1 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => setEditingId(producto.id)}
-                        className="px-2 py-1 text-xs border border-neutral-200 rounded hover:bg-neutral-100 transition-colors"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmDelete(producto.id)}
-                        className="px-2 py-1 text-xs border border-danger/30 text-danger rounded hover:bg-danger/5 transition-colors"
-                      >
-                        X
-                      </button>
-                    </div>
+                >
+                  ▶
+                </span>
+                <span className="font-semibold text-neutral-900 flex-1">{producto.nombre}</span>
+                {producto.ref && (
+                  <span className="text-xs text-neutral-500 bg-neutral-200 px-1.5 py-0.5 rounded">
+                    {producto.ref}
+                  </span>
+                )}
+                {totalEntries > 0 && (
+                  <span className="text-xs text-neutral-500">({totalEntries})</span>
+                )}
+                {!isEditing && (
+                  <div className="flex gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setEditingId(producto.id);
+                      }}
+                      className="px-2 py-1 text-xs border border-neutral-200 rounded hover:bg-neutral-200 transition-colors"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setConfirmDelete(producto.id);
+                      }}
+                      className="px-2 py-1 text-xs border border-danger/30 text-danger rounded hover:bg-danger/5 transition-colors"
+                    >
+                      ✕
+                    </button>
                   </div>
+                )}
+              </div>
 
-                  {producto.descripcion && (
-                    <p className="text-xs text-neutral-600 whitespace-pre-wrap">
-                      {producto.descripcion}
-                    </p>
-                  )}
+              {isExpanded && (
+                <div className="border-t border-neutral-200 bg-white">
+                  {isEditing ? (
+                    <div className="p-4">
+                      <InlineForm
+                        fields={productoFields}
+                        initialValues={{
+                          nombre: producto.nombre,
+                          ref: producto.ref || '',
+                          descripcion: producto.descripcion || '',
+                        }}
+                        onSubmit={(values) => handleUpdate(producto.id, values)}
+                        onCancel={() => setEditingId(null)}
+                      />
+                    </div>
+                  ) : (
+                    <div className="p-4 space-y-4">
+                      {producto.descripcion && (
+                        <p className="text-xs text-neutral-600 whitespace-pre-wrap">
+                          {producto.descripcion}
+                        </p>
+                      )}
 
-                  {/* Artículos section */}
-                  <div className="border-t border-neutral-100 pt-2">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wide flex items-center gap-1.5">
-                        Artículos
-                        {articulos.length > 0 && (
-                          <span className="font-normal normal-case bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded-full text-xs">
-                            {articulos.length}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wide flex items-center gap-1.5">
+                            Artículos
+                            {articulos.length > 0 && (
+                              <span className="font-normal normal-case bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded-full text-xs">
+                                {articulos.length}
+                              </span>
+                            )}
                           </span>
-                        )}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setArticuloModal({ productoId: producto.id })}
-                        className="text-xs text-primary hover:text-primary/80 transition-colors font-medium"
-                      >
-                        + Añadir
-                      </button>
-                    </div>
-
-                    {articulos.length === 0 ? (
-                      <p className="text-xs text-neutral-400 italic">Sin artículos todavía.</p>
-                    ) : (
-                      <ul className="space-y-1">
-                        {articulos.map((art) => (
-                          <li
-                            key={art.id}
-                            className="group flex items-start gap-2 text-xs rounded px-2 py-1.5 bg-neutral-50 hover:bg-neutral-100 transition-colors"
+                          <button
+                            type="button"
+                            onClick={() => setArticuloModal({ productoId: producto.id })}
+                            className="text-xs text-primary hover:text-primary/80 transition-colors font-medium"
                           >
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="font-medium text-neutral-800">{art.nombre}</span>
-                                {art.ref && (
-                                  <span className="text-neutral-500 bg-neutral-200 px-1 py-0.5 rounded text-xs">
-                                    {art.ref}
-                                  </span>
-                                )}
-                              </div>
-                              {art.lugar_id ? (
-                                <div className="flex items-center gap-1 mt-0.5 text-neutral-500">
-                                  <span>📍</span>
-                                  <span className="truncate">
-                                    {art.compartimento_nombre
-                                      ? `${art.lugar_nombre} – ${art.compartimento_nombre}`
-                                      : art.lugar_nombre}
-                                  </span>
-                                </div>
-                              ) : (
-                                <div className="text-neutral-400 italic mt-0.5">Sin ubicación</div>
-                              )}
-                              {art.notas && (
-                                <div className="text-neutral-400 italic mt-0.5">{art.notas}</div>
-                              )}
-                            </div>
-                            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 pt-0.5">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setArticuloModal({ productoId: producto.id, articulo: art })
-                                }
-                                className="px-1.5 py-0.5 border border-neutral-200 rounded hover:bg-white transition-colors text-neutral-600"
-                              >
-                                ✏
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setConfirmDeleteArticulo(art.id)}
-                                className="px-1.5 py-0.5 border border-danger/30 text-danger rounded hover:bg-danger/5 transition-colors"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
+                            + Añadir
+                          </button>
+                        </div>
 
-                  {/* Product-level asignaciones (only shown if no artículos exist) */}
-                  {articulos.length === 0 && (
-                    <div className="border-t border-neutral-100 pt-2">
-                      {producto.asignaciones.length > 0 ? (
-                        <ul className="space-y-1">
-                          {producto.asignaciones.map((a) => (
-                            <li
-                              key={a.id}
-                              className="flex items-center gap-1.5 text-xs text-neutral-700 bg-neutral-50 rounded px-2 py-1"
-                            >
-                              <span className="text-neutral-400">📍</span>
-                              <span>{locationLabel(a)}</span>
-                              {a.notas && (
-                                <span className="text-neutral-400 italic">- {a.notas}</span>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-xs text-neutral-400 italic">Sin ubicación asignada.</p>
+                        {articulos.length === 0 ? (
+                          <p className="text-xs text-neutral-400 italic">Sin artículos todavía.</p>
+                        ) : (
+                          <ul className="space-y-1">
+                            {articulos.map((art) => (
+                              <li
+                                key={art.id}
+                                className="group flex items-start gap-2 text-xs rounded px-2 py-1.5 bg-neutral-50 hover:bg-neutral-100 transition-colors"
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-medium text-neutral-800">
+                                      {art.nombre}
+                                    </span>
+                                    {art.ref && (
+                                      <span className="text-neutral-500 bg-neutral-200 px-1 py-0.5 rounded text-xs">
+                                        {art.ref}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {art.lugar_id ? (
+                                    <div className="flex items-center gap-1 mt-0.5 text-neutral-500">
+                                      <span>📍</span>
+                                      <span className="truncate">
+                                        {art.compartimento_nombre
+                                          ? `${art.lugar_nombre} – ${art.compartimento_nombre}`
+                                          : art.lugar_nombre}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div className="text-neutral-400 italic mt-0.5">
+                                      Sin ubicación
+                                    </div>
+                                  )}
+                                  {art.notas && (
+                                    <div className="text-neutral-400 italic mt-0.5">
+                                      {art.notas}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 pt-0.5">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setArticuloModal({ productoId: producto.id, articulo: art })
+                                    }
+                                    className="px-1.5 py-0.5 border border-neutral-200 rounded hover:bg-white transition-colors text-neutral-600"
+                                  >
+                                    ✏
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmDeleteArticulo(art.id)}
+                                    className="px-1.5 py-0.5 border border-danger/30 text-danger rounded hover:bg-danger/5 transition-colors"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+
+                      {articulos.length === 0 && (
+                        <div>
+                          {producto.asignaciones.length > 0 ? (
+                            <ul className="space-y-1">
+                              {producto.asignaciones.map((a) => (
+                                <li
+                                  key={a.id}
+                                  className="flex items-center gap-1.5 text-xs text-neutral-700 bg-neutral-50 rounded px-2 py-1"
+                                >
+                                  <span className="text-neutral-400">📍</span>
+                                  <span>{locationLabel(a)}</span>
+                                  {a.notas && (
+                                    <span className="text-neutral-400 italic">- {a.notas}</span>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-xs text-neutral-400 italic">
+                              Sin ubicación asignada.
+                            </p>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => onAsignar(producto.id)}
+                            className="mt-2 w-full px-3 py-1.5 text-xs border border-neutral-200 rounded hover:border-primary hover:text-primary transition-colors text-neutral-600"
+                          >
+                            + Asignar a lugar
+                          </button>
+                        </div>
                       )}
-                      <button
-                        type="button"
-                        onClick={() => onAsignar(producto.id)}
-                        className="mt-2 w-full px-3 py-1.5 text-xs border border-neutral-200 rounded hover:border-primary hover:text-primary transition-colors text-neutral-600"
-                      >
-                        + Asignar a lugar
-                      </button>
                     </div>
                   )}
-                </>
+                </div>
               )}
             </div>
           );

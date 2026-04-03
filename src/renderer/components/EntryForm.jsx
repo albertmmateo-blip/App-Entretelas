@@ -205,11 +205,7 @@ function EntryForm({ fields, initialValues = {}, onSubmit, onCancel, showUrgente
   };
 
   return (
-    <form
-      ref={formRef}
-      onSubmit={handleSubmit}
-      className="bg-neutral-100 rounded-lg shadow p-6 space-y-6"
-    >
+    <form ref={formRef} onSubmit={handleSubmit} className="xp-form-panel p-6 space-y-6">
       {fields.map((field) => (
         <div key={field.name}>
           <label htmlFor={field.name} className="block text-sm font-medium text-neutral-700 mb-2">
@@ -226,7 +222,7 @@ function EntryForm({ fields, initialValues = {}, onSubmit, onCancel, showUrgente
                   onChange={handleChange}
                   maxLength={field.maxLength}
                   rows={6}
-                  className="w-full px-4 py-2 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent resize-y"
+                  className="w-full px-4 py-2 resize-y"
                 />
               );
             }
@@ -239,7 +235,7 @@ function EntryForm({ fields, initialValues = {}, onSubmit, onCancel, showUrgente
                   value={formData[field.name]}
                   onChange={handleChange}
                   required={field.required}
-                  className="w-full px-4 py-2 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full px-4 py-2"
                 >
                   <option value="">{field.placeholder || 'Selecciona una opción'}</option>
                   {(field.options || []).map((option) => (
@@ -260,7 +256,7 @@ function EntryForm({ fields, initialValues = {}, onSubmit, onCancel, showUrgente
                 onChange={handleChange}
                 required={field.required}
                 maxLength={field.maxLength}
-                className="w-full px-4 py-2 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-4 py-2"
               />
             );
           })()}
@@ -271,33 +267,19 @@ function EntryForm({ fields, initialValues = {}, onSubmit, onCancel, showUrgente
 
       {showUrgenteToggle && (
         <div
-          style={{
-            padding: '6px 8px',
-            border: '1px solid',
-            borderColor: formData.urgente ? '#c04040' : '#c0a882',
-            background: formData.urgente ? '#fff0f0' : 'transparent',
-            borderRadius: '2px',
-          }}
+          className={`px-3 py-2 border rounded ${formData.urgente ? 'bg-danger-100 border-danger-200' : 'bg-white border-neutral-200'}`}
         >
-          <label
-            htmlFor="urgente"
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-          >
+          <label htmlFor="urgente" className="flex items-center gap-2 cursor-pointer">
             <input
               id="urgente"
               type="checkbox"
               name="urgente"
               checked={formData.urgente}
               onChange={handleChange}
-              style={{ width: '13px', height: '13px', cursor: 'pointer', accentColor: '#8a3c07' }}
+              className="w-3.5 h-3.5 cursor-pointer accent-primary"
             />
             <span
-              style={{
-                fontFamily: 'Tahoma, sans-serif',
-                fontSize: '12px',
-                fontWeight: 'bold',
-                color: formData.urgente ? '#b02020' : '#5c2e0e',
-              }}
+              className={`text-xs font-bold ${formData.urgente ? 'text-danger-700' : 'text-neutral-700'}`}
             >
               Marcar como URGENTE!
             </span>
@@ -306,17 +288,13 @@ function EntryForm({ fields, initialValues = {}, onSubmit, onCancel, showUrgente
       )}
 
       <div className="flex justify-end gap-3 pt-4 border-t border-neutral-200">
-        <button
-          type="button"
-          onClick={handleCancel}
-          className="px-4 py-2 border border-neutral-200 rounded hover:bg-neutral-50 transition-colors"
-        >
+        <button type="button" onClick={handleCancel} className="px-4 py-2">
           Cancelar
         </button>
         <button
           type="submit"
           disabled={isSaving}
-          className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-4 py-2 bg-primary text-white disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSaving ? 'Guardando...' : 'Guardar'}
         </button>

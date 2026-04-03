@@ -202,12 +202,12 @@ function Contabilidad() {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-neutral-900">Contabilidad</h1>
+    <div className="xp-content-panel space-y-4">
+      <div className="xp-toolbar justify-between">
+        <h1 className="text-2xl font-bold text-neutral-900 m-0">Contabilidad</h1>
         <label
           htmlFor="office-upload-input"
-          className={`px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors cursor-pointer ${
+          className={`px-4 py-2 bg-primary text-white cursor-pointer ${
             uploadingFiles ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         >
@@ -224,10 +224,10 @@ function Contabilidad() {
         </label>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-6xl">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 max-w-6xl">
         <button
           onClick={() => navigate('/contabilidad/compra')}
-          className="flex flex-col items-center justify-center p-8 bg-neutral-100 rounded-lg border-2 border-neutral-200 hover:border-primary hover:bg-neutral-50 transition-colors"
+          className="xp-surface flex flex-col items-center justify-center p-8 hover:border-primary transition-colors"
           type="button"
         >
           <span className="text-6xl mb-4">📁</span>
@@ -237,7 +237,7 @@ function Contabilidad() {
 
         <button
           onClick={() => navigate('/contabilidad/venta')}
-          className="flex flex-col items-center justify-center p-8 bg-neutral-100 rounded-lg border-2 border-neutral-200 hover:border-primary hover:bg-neutral-50 transition-colors"
+          className="xp-surface flex flex-col items-center justify-center p-8 hover:border-primary transition-colors"
           type="button"
         >
           <span className="text-6xl mb-4">📁</span>
@@ -247,7 +247,7 @@ function Contabilidad() {
 
         <button
           onClick={() => navigate('/contabilidad/arreglos')}
-          className="flex flex-col items-center justify-center p-8 bg-neutral-100 rounded-lg border-2 border-neutral-200 hover:border-primary hover:bg-neutral-50 transition-colors"
+          className="xp-surface flex flex-col items-center justify-center p-8 hover:border-primary transition-colors"
           type="button"
         >
           <span className="text-6xl mb-4">📁</span>
@@ -258,7 +258,7 @@ function Contabilidad() {
         {officeFiles.map((file) => (
           <div
             key={file.id}
-            className="relative flex flex-col items-center justify-center p-8 bg-neutral-100 rounded-lg border-2 border-neutral-200"
+            className="xp-surface relative flex flex-col items-center justify-center p-8"
           >
             <button
               type="button"
@@ -290,7 +290,7 @@ function Contabilidad() {
             <button
               type="button"
               onClick={() => handleDeleteOfficeFile(file.id)}
-              className="absolute top-2 right-2 w-7 h-7 rounded-full bg-danger text-white flex items-center justify-center hover:bg-danger/90"
+              className="absolute top-2 right-2 w-7 h-7 rounded-full bg-danger text-white flex items-center justify-center"
               title="Eliminar archivo"
               aria-label={`Eliminar ${file.nombre_original}`}
             >
@@ -300,7 +300,7 @@ function Contabilidad() {
         ))}
 
         {!loadingFiles && officeFiles.length === 0 && (
-          <div className="flex flex-col items-center justify-center p-8 bg-neutral-100 rounded-lg border-2 border-dashed border-neutral-200">
+          <div className="xp-surface flex flex-col items-center justify-center p-8 border-dashed">
             <span className="text-5xl mb-3">📎</span>
             <span className="text-base font-semibold text-neutral-900 text-center">
               Sin archivos Office

@@ -301,22 +301,22 @@ function ClientesListView() {
   }
 
   return (
-    <div className="p-6">
+    <div className="xp-content-panel space-y-4">
       {/* Header with actions on the right */}
-      <div className="flex items-center mb-4">
-        <h1 className="text-2xl font-bold text-neutral-900 flex-1">Contabilidad Venta</h1>
+      <div className="xp-toolbar justify-between">
+        <h1 className="text-2xl font-bold text-neutral-900 flex-1 m-0">Contabilidad Venta</h1>
         <div className="ml-auto flex items-center gap-2">
           <button
             type="button"
             onClick={() => navigate('/contabilidad/venta/nuevo')}
-            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+            className="px-4 py-2 bg-primary text-white"
           >
             Nuevo Cliente
           </button>
           <button
             type="button"
             onClick={() => navigate('/contabilidad')}
-            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+            className="px-4 py-2 bg-primary text-white"
           >
             ← Volver
           </button>
@@ -324,7 +324,7 @@ function ClientesListView() {
       </div>
 
       {/* Search bar and folder dropdown */}
-      <div className="mb-4 relative z-30" ref={searchDropdownRef}>
+      <div className="relative z-30" ref={searchDropdownRef}>
         <input
           type="search"
           placeholder="Buscar por Razón social, Nº cliente o F26:nombre_factura..."
@@ -334,10 +334,10 @@ function ClientesListView() {
           onFocus={() => setIsSearchDropdownOpen(true)}
           onMouseDown={() => setIsSearchDropdownOpen(true)}
           data-search-input
-          className="w-full px-4 py-2 bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
+          className="w-full px-4 py-2"
         />
         {isSearchDropdownOpen && (
-          <div className="absolute left-0 right-0 mt-1 z-40 border border-neutral-200 rounded bg-white overflow-hidden shadow-sm">
+          <div className="absolute left-0 right-0 mt-1 z-40 xp-surface overflow-hidden">
             <div className="px-3 py-2 border-b border-neutral-200 flex items-center justify-between">
               <button
                 type="button"
@@ -404,10 +404,10 @@ function ClientesListView() {
         )}
       </div>
 
-      <div className="mt-3 overflow-hidden border border-neutral-200 rounded-lg bg-white">
+      <div className="mt-3 xp-surface overflow-hidden">
         <div className="max-h-56 overflow-auto">
           <table className="min-w-full text-sm text-left">
-            <thead className="bg-neutral-100 text-neutral-700 sticky top-0 z-10">
+            <thead className="sticky top-0 z-10 text-neutral-700 xp-table-header-surface border-b border-primary-200">
               <tr>
                 <th scope="col" className="px-4 py-2 font-semibold whitespace-nowrap">
                   Fecha
@@ -467,9 +467,9 @@ function ClientesListView() {
         </div>
       </div>
 
-      <div className="mb-4 mt-3 overflow-x-auto border border-neutral-200 rounded-lg bg-neutral-50">
+      <div className="mt-3 overflow-x-auto xp-surface">
         <table className="min-w-full text-sm text-left">
-          <thead className="bg-neutral-100 text-neutral-700">
+          <thead className="text-neutral-700 xp-table-header-surface border-b border-primary-200">
             <tr>
               <th scope="col" className="px-4 py-2 font-semibold">
                 Periodo
@@ -569,12 +569,14 @@ function ClientePDFView() {
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="flex items-center mb-6">
+    <div className="xp-content-panel max-w-6xl mx-auto space-y-4">
+      <div className="xp-toolbar justify-between">
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-neutral-900">{clienteDisplayName || 'Cliente'}</h1>
+          <h1 className="text-2xl font-bold text-neutral-900 m-0">
+            {clienteDisplayName || 'Cliente'}
+          </h1>
           {cliente?.fecha_creacion && (
-            <p className="text-sm text-neutral-500 mt-1">
+            <p className="text-sm text-neutral-500 mt-1 mb-0">
               Creado: {new Date(cliente.fecha_creacion).toLocaleDateString('es-ES')}
             </p>
           )}
@@ -583,14 +585,14 @@ function ClientePDFView() {
           <button
             type="button"
             onClick={() => navigate(`/contabilidad/venta/${entidadId}/editar`)}
-            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+            className="px-4 py-2 bg-primary text-white"
           >
             Editar cliente
           </button>
           <button
             type="button"
             onClick={() => navigate('/contabilidad/venta')}
-            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+            className="px-4 py-2 bg-primary text-white"
           >
             ← Volver
           </button>

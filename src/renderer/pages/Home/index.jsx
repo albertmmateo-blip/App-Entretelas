@@ -177,14 +177,14 @@ function Home() {
   }, [entries, searchQuery, moduleFilter, urgenteFilter, dateFilter]);
 
   return (
-    <div className="p-6">
+    <div className="xp-content-panel space-y-4">
       {/* Top logo banner */}
       {showLogo && (
         <div className="mb-6 flex justify-center">
           <img
             src={entretelarLogo}
             alt="Entretelar"
-            className="w-full max-w-[180px] md:max-w-[210px] h-auto mix-blend-multiply"
+            className="w-full max-w-[180px] md:max-w-[210px] h-auto mix-blend-multiply drop-shadow-sm"
             onError={() => {
               setShowLogo(false);
             }}
@@ -193,14 +193,14 @@ function Home() {
       )}
 
       {/* Search + filter bar */}
-      <div className="flex flex-wrap gap-3 mb-4 items-center">
+      <div className="xp-toolbar xp-toolbar--stacked">
         <input
           type="search"
           placeholder="🔍 Buscar..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           data-search-input
-          className="flex-1 min-w-[200px] px-4 py-2 bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
+          className="flex-1 min-w-[200px] px-4 py-2"
         />
 
         {/* Filter panel */}
@@ -208,7 +208,7 @@ function Home() {
           value={moduleFilter}
           onChange={(e) => setModuleFilter(e.target.value)}
           aria-label="Filtrar por módulo"
-          className="px-3 py-2 border border-neutral-200 rounded text-sm text-neutral-700 focus:ring-2 focus:ring-primary"
+          className="px-3 py-2 text-sm text-neutral-700"
         >
           <option value="all">Todos los módulos</option>
           {Object.entries(MODULE_NAMES).map(([key, name]) => (
@@ -222,7 +222,7 @@ function Home() {
           value={urgenteFilter}
           onChange={(e) => setUrgenteFilter(e.target.value)}
           aria-label="Filtrar por urgencia"
-          className="px-3 py-2 border border-neutral-200 rounded text-sm text-neutral-700 focus:ring-2 focus:ring-primary"
+          className="px-3 py-2 text-sm text-neutral-700"
         >
           <option value="all">Todos</option>
           <option value="urgent">Solo urgentes</option>
@@ -233,7 +233,7 @@ function Home() {
           value={dateFilter}
           onChange={(e) => setDateFilter(e.target.value)}
           aria-label="Filtrar por fecha"
-          className="px-3 py-2 border border-neutral-200 rounded text-sm text-neutral-700 focus:ring-2 focus:ring-primary"
+          className="px-3 py-2 text-sm text-neutral-700"
         >
           <option value="all">Todo el tiempo</option>
           <option value="7d">Últimos 7 días</option>
@@ -243,15 +243,15 @@ function Home() {
 
       {/* Entry count */}
       {!loading && (
-        <p className="text-xs text-neutral-400 mb-2">
+        <p className="xp-caption mb-2">
           {filteredEntries.length} entrada{filteredEntries.length !== 1 ? 's' : ''}
         </p>
       )}
 
       {/* Table */}
-      {loading && <div className="text-sm text-neutral-500 py-8 text-center">Cargando...</div>}
+      {loading && <div className="xp-caption py-8 text-center">Cargando...</div>}
       {!loading && filteredEntries.length === 0 && (
-        <div className="flex flex-col items-center py-16 text-neutral-400">
+        <div className="flex flex-col items-center py-16 text-neutral-400 xp-surface">
           <span className="text-5xl mb-4">📭</span>
           <p className="text-lg font-medium">
             {searchQuery ||

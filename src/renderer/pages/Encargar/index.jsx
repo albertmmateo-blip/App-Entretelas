@@ -4,7 +4,7 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import { EntriesGrid, EntryCard, EmptyState, LoadingState } from '../../components/entries';
 import useCRUD from '../../hooks/useCRUD';
 import { formatDateTime } from '../../utils/formatDateTime';
-import { URGENTE_STYLE } from '../../utils/urgente';
+import { URGENTE_CLASS_NAME } from '../../utils/urgente';
 import ProveedorForm from '../Facturas/ProveedorForm';
 import Catalogo from './Catalogo';
 
@@ -375,12 +375,9 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
                 return (
                   <div
                     key={`open-note-${proveedor.id}`}
-                    className="relative overflow-visible min-h-[240px] rounded p-4"
-                    style={
-                      isUrgente
-                        ? URGENTE_STYLE
-                        : { border: '2px solid #e5e5e5', background: '#fff' }
-                    }
+                    className={`relative overflow-visible min-h-[240px] rounded p-4 ${
+                      isUrgente ? URGENTE_CLASS_NAME : 'xp-surface'
+                    }`}
                     onClick={
                       isEditing ? undefined : () => handleOpenEditorForProveedor(proveedor.id)
                     }
@@ -722,8 +719,8 @@ function EncargarProveedorView() {
 
       {menuState && (
         <div
-          className="fixed bg-neutral-100 border border-neutral-200 rounded-lg shadow-lg py-1 z-50"
-          style={{ top: menuState.y, left: menuState.x }}
+          className="xp-context-menu fixed py-1 z-50"
+          style={{ top: menuState.y, left: menuState.x, right: 'auto' }}
         >
           <button
             type="button"

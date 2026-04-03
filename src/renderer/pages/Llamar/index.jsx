@@ -133,8 +133,8 @@ function LlamarList() {
       {/* Actions menu */}
       {menuState && (
         <div
-          className="fixed bg-neutral-100 border border-neutral-200 rounded-lg shadow-lg py-1 z-50"
-          style={{ top: menuState.y, left: menuState.x }}
+          className="xp-context-menu fixed py-1 z-50"
+          style={{ top: menuState.y, left: menuState.x, right: 'auto' }}
         >
           <button
             type="button"

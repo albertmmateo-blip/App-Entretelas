@@ -4,12 +4,12 @@ const ITEMS_PER_PAGE = 100;
 
 function getRowBackgroundClass(isUrgente, rowIndex) {
   if (isUrgente) {
-    return 'bg-danger-100/60 hover:bg-danger-100';
+    return 'bg-danger-100/80 hover:bg-danger-100';
   }
   if (rowIndex % 2 === 1) {
-    return 'bg-neutral-100/70 hover:bg-neutral-200/60';
+    return 'bg-neutral-100/90 hover:bg-primary-100/60';
   }
-  return 'bg-white hover:bg-neutral-100/70';
+  return 'bg-white hover:bg-primary-100/50';
 }
 
 function DataTable({
@@ -112,8 +112,7 @@ function DataTable({
     <div className="xp-inset-panel overflow-hidden">
       <table className="w-full">
         <thead
-          className={`border-b border-neutral-300 ${headerRowClassName}`}
-          style={{ background: 'linear-gradient(to bottom, #e8d4b0, #d0b888)' }}
+          className={`xp-table-header-surface border-b border-neutral-300 ${headerRowClassName}`}
         >
           <tr>
             {columns.map((column) => (
@@ -219,14 +218,11 @@ function DataTable({
 
       {menuState && renderActions && (
         <div
-          className="fixed py-1 z-50"
+          className="xp-context-menu fixed py-1 z-50"
           style={{
             top: menuState.y,
             left: menuState.x,
-            background: 'linear-gradient(to bottom, #fdf7ef, #f1e5d6)',
-            border: '2px outset #c0a882',
-            boxShadow: '2px 2px 4px rgba(0,0,0,0.3)',
-            borderRadius: '3px',
+            right: 'auto',
           }}
         >
           {renderActions(menuState.row).map((action) => (

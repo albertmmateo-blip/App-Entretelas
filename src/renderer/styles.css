@@ -1,46 +1,42 @@
 @import 'tailwindcss';
 
 @theme {
-  --logo-brown: #542e26;
-  --logo-orange: #e87722;
-  --logo-red: #cb2c30;
-  --dark-brown: #3e221c;
+  --logo-brown: #24406d;
+  --logo-orange: #2a6fdb;
+  --logo-red: #d53a32;
+  --dark-brown: #16233d;
 
-  --soft-tan: #f1e5d6;
+  --soft-tan: #ece9d8;
   --white: #ffffff;
-  --border-light: #decfbe;
-  --text-main: var(--logo-brown);
-  --text-secondary: #555;
-  --color-success: #28a745;
-  --color-error: #dc3545;
+  --border-light: #c7d1df;
+  --text-main: #213355;
+  --text-secondary: #5f6f8c;
+  --color-success: #2f8a42;
+  --color-error: #c43c35;
 
-  --color-primary: var(--logo-orange);
-  --color-primary-100: #fdf2e9;
-  --color-primary-200: #f9dfc5;
-  --color-primary-700: #9f4d15;
+  --color-primary: #2b64c5;
+  --color-primary-100: #e6eefb;
+  --color-primary-200: #c8dcfa;
+  --color-primary-700: #184b9d;
 
-  --color-danger: var(--logo-red);
-  --color-danger-100: #fbeaea;
-  --color-danger-200: #f4c3c5;
-  --color-danger-700: #8b1d20;
+  --color-danger: #c43c35;
+  --color-danger-100: #fbe7e6;
+  --color-danger-200: #f0c2bf;
+  --color-danger-700: #922823;
 
-  --color-success-100: #e8f5ed;
-  --color-success-200: #bfe3cb;
-  --color-success-700: #1d7034;
+  --color-success-100: #e7f4ea;
+  --color-success-200: #c8e2ce;
+  --color-success-700: #1f6b30;
 
-  --color-neutral-50: var(--soft-tan);
-  --color-neutral-100: #fdf7ef;
-  --color-neutral-200: var(--border-light);
-  --color-neutral-300: #c7b7a9;
-  --color-neutral-400: #9d8577;
+  --color-neutral-50: #f7f8fb;
+  --color-neutral-100: #f2f4f8;
+  --color-neutral-200: #d9e1ec;
+  --color-neutral-300: #bcc8d8;
+  --color-neutral-400: #91a1b8;
   --color-neutral-500: var(--text-secondary);
   --color-neutral-700: var(--text-main);
-  --color-neutral-900: #2f1813;
+  --color-neutral-900: #16233d;
 }
-
-/* ═══════════════════════════════════════════════════════
-   BASE  –  Windows XP / Tahoma feel
-═══════════════════════════════════════════════════════ */
 
 *,
 *::before,
@@ -58,37 +54,45 @@ body,
 body {
   font-family: Tahoma, 'Segoe UI', Arial, sans-serif;
   font-size: 13px;
-  background-color: var(--soft-tan);
-  color: var(--logo-brown);
+  color: var(--text-main);
   line-height: 1.45;
   -webkit-font-smoothing: auto;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.35), transparent 36%),
+    linear-gradient(180deg, #7bb1ef 0%, #5a8fd6 24%, #7cb0e8 48%, #d9e6f6 48%, #d9e6f6 100%);
 }
 
-/* ═══════════════════════════════════════════════════════
-   XP WINDOW  –  full-screen app shell
-═══════════════════════════════════════════════════════ */
+#root {
+  min-height: 100%;
+}
+
+::selection {
+  background: #2b64c5;
+  color: #fff;
+}
+
+a {
+  color: var(--color-primary-700);
+}
 
 .xp-window {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh;
   overflow: hidden;
-  background-color: var(--soft-tan);
+  background: linear-gradient(180deg, #dfe7f3 0%, #cfdaea 100%);
 }
-
-/* ── Title bar ─────────────────────────────────────── */
 
 .xp-titlebar {
   display: flex;
   align-items: center;
   height: 30px;
-  padding: 0 4px 0 8px;
-  background: linear-gradient(to bottom, #fbbf6e 0%, #e87722 18%, #c85e0f 72%, #8a3c07 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 230, 180, 0.6);
-  border-bottom: 1px solid #6b2f05;
+  padding: 0 6px 0 8px;
+  background: linear-gradient(180deg, #5f9de6 0%, #2d6fd0 48%, #245bb2 100%);
+  border-bottom: 1px solid #163d82;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
   flex-shrink: 0;
   user-select: none;
-  /* makes the whole bar draggable except buttons */
   -webkit-app-region: drag;
 }
 
@@ -103,24 +107,23 @@ body {
   border-radius: 2px;
   -webkit-app-region: no-drag;
   flex-shrink: 0;
-  opacity: 0.92;
-  transition:
-    opacity 0.1s,
-    filter 0.1s;
+  opacity: 0.95;
 }
+
 .xp-titlebar-icon-btn:hover {
   opacity: 1;
-  filter: brightness(1.15) drop-shadow(0 0 3px rgba(255, 200, 100, 0.7));
+  filter: brightness(1.08);
 }
+
 .xp-titlebar-icon-btn:active {
-  filter: brightness(0.85);
+  transform: translateY(1px);
 }
 
 .xp-titlebar-icon {
   width: 20px;
   height: 20px;
   flex-shrink: 0;
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45));
 }
 
 .xp-titlebar-text {
@@ -128,7 +131,7 @@ body {
   font-size: 12px;
   font-weight: bold;
   color: #fff;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.55);
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.55);
   letter-spacing: 0.02em;
 }
 
@@ -142,49 +145,72 @@ body {
   width: 22px;
   height: 22px;
   border-radius: 3px;
-  border: 1px solid rgba(0, 0, 0, 0.4);
+  border: 1px solid #184b9d;
   cursor: default;
   font-size: 11px;
   font-weight: bold;
   line-height: 1;
   color: #fff;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(to bottom, #f09540, #c85e0f);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  transition: filter 0.1s;
+  background: linear-gradient(180deg, #79aef0 0%, #3b7ae0 52%, #2f63bf 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 1px 0 rgba(0, 0, 0, 0.2);
+  transition:
+    filter 0.12s ease,
+    transform 0.12s ease;
   padding: 0;
   -webkit-app-region: no-drag;
 }
+
 .xp-title-btn:hover {
-  filter: brightness(1.2);
-}
-.xp-title-btn:active {
-  filter: brightness(0.9);
-}
-.xp-title-btn.close {
-  background: linear-gradient(to bottom, #e85050, #aa1c1c);
+  filter: brightness(1.08);
 }
 
-/* ── Help dropdown menu ────────────────────────────── */
+.xp-title-btn:active {
+  transform: translateY(1px);
+}
+
+.xp-title-btn.close {
+  background: linear-gradient(180deg, #f77a72 0%, #d84f4b 52%, #b72f2b 100%);
+  border-color: #8f1f1b;
+}
 
 .xp-help-menu {
   position: absolute;
   top: calc(100% + 4px);
   right: 0;
-  min-width: 190px;
-  background: #fff;
-  border: 1px solid #9f5a1a;
-  border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  min-width: 196px;
+  background: #f4f6fb;
+  border: 1px solid #7f9db9;
+  border-radius: 3px;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
   padding: 4px 0;
   z-index: 100;
   -webkit-app-region: no-drag;
 }
 
-.xp-help-menu-item {
+.xp-context-menu {
+  position: fixed;
+  min-width: 196px;
+  background: #f4f6fb;
+  border: 1px solid #7f9db9;
+  border-radius: 3px;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  padding: 4px 0;
+  z-index: 100;
+  -webkit-app-region: no-drag;
+}
+
+.xp-help-menu-item,
+.xp-context-menu-item {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -194,18 +220,19 @@ body {
   background: none;
   cursor: pointer;
   font-size: 12px;
-  color: #333;
+  color: var(--text-main);
   text-align: left;
   white-space: nowrap;
-  transition: background 0.1s;
 }
 
-.xp-help-menu-item:hover:not(:disabled) {
-  background: #e8d0b0;
+.xp-help-menu-item:hover:not(:disabled),
+.xp-context-menu-item:hover:not(:disabled) {
+  background: linear-gradient(180deg, #dbe8f7 0%, #c6dbf6 100%);
 }
 
-.xp-help-menu-item:disabled {
-  color: #aaa;
+.xp-help-menu-item:disabled,
+.xp-context-menu-item:disabled {
+  color: var(--text-secondary);
   cursor: default;
 }
 
@@ -214,45 +241,52 @@ body {
   flex-shrink: 0;
 }
 
-.xp-help-menu-divider {
+.xp-help-menu-divider,
+.xp-context-menu-divider {
   height: 1px;
-  background: #ddd;
+  background: #c4cfdd;
   margin: 4px 8px;
 }
 
-/* ── Export progress dialog ────────────────────────── */
-
-.export-progress-overlay {
+.export-progress-overlay,
+.xp-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(10, 28, 54, 0.44);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 200;
 }
 
-.export-progress-dialog {
+.export-progress-dialog,
+.xp-dialog {
   width: 320px;
   background: #ece9d8;
   border: 2px solid #0054e3;
   border-radius: 6px 6px 4px 4px;
   box-shadow:
-    0 6px 24px rgba(0, 0, 0, 0.4),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+    0 8px 28px rgba(0, 0, 0, 0.36),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35);
   overflow: hidden;
 }
 
-.export-progress-titlebar {
+.xp-dialog {
+  width: min(640px, calc(100vw - 32px));
+}
+
+.export-progress-titlebar,
+.xp-dialog__titlebar {
   height: 26px;
   display: flex;
   align-items: center;
   padding: 0 8px;
-  background: linear-gradient(to bottom, #0a68ff 0%, #0054e3 45%, #003db5 100%);
-  border-bottom: 1px solid #002a7a;
+  background: linear-gradient(180deg, #6ba5ef 0%, #2b64c5 52%, #1f4f9c 100%);
+  border-bottom: 1px solid #16407f;
 }
 
-.export-progress-titlebar-text {
+.export-progress-titlebar-text,
+.xp-dialog__titlebar-text {
   font-size: 12px;
   font-weight: bold;
   color: #fff;
@@ -260,7 +294,8 @@ body {
   letter-spacing: 0.02em;
 }
 
-.export-progress-body {
+.export-progress-body,
+.xp-dialog__body {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -270,8 +305,8 @@ body {
 
 .export-progress-label {
   font-size: 12px;
-  color: #333;
-  font-family: 'Tahoma', sans-serif;
+  color: var(--text-main);
+  font-family: Tahoma, sans-serif;
   margin: 0;
 }
 
@@ -279,23 +314,23 @@ body {
   width: 100%;
   height: 18px;
   background: #fff;
-  border: 1px solid #888;
+  border: 1px solid #8ba0bd;
   border-radius: 2px;
   overflow: hidden;
   position: relative;
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.12);
 }
 
 .export-progress-fill {
   height: 100%;
-  background: linear-gradient(to bottom, #3bde3b 0%, #22b622 50%, #1a9e1a 100%);
+  background: linear-gradient(180deg, #66d56f 0%, #31b043 48%, #238530 100%);
   transition: width 0.2s ease;
-  /* XP-style segmented blocks */
   background-image: repeating-linear-gradient(
     90deg,
     transparent,
     transparent 8px,
-    rgba(255, 255, 255, 0.3) 8px,
-    rgba(255, 255, 255, 0.3) 10px
+    rgba(255, 255, 255, 0.32) 8px,
+    rgba(255, 255, 255, 0.32) 10px
   );
 }
 
@@ -305,8 +340,8 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(59, 222, 59, 0.5) 40%,
-    rgba(59, 222, 59, 0.5) 60%,
+    rgba(96, 214, 96, 0.45) 40%,
+    rgba(96, 214, 96, 0.45) 60%,
     transparent 100%
   );
   animation: export-shimmer 1.5s ease-in-out infinite;
@@ -321,85 +356,69 @@ body {
   }
 }
 
-/* ── Navigation bar ────────────────────────────────── */
-
 .xp-navbar {
   display: flex;
   align-items: stretch;
-  height: 46px;
-  background: linear-gradient(to bottom, #f7e8d4 0%, #e8d0b0 55%, #d4b88a 100%);
-  border-bottom: 2px solid #9f5a1a;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.7),
-    0 2px 4px rgba(0, 0, 0, 0.18);
-  padding: 4px 6px 0;
+  min-height: 41px;
+  padding: 7px 10px 0;
+  gap: 4px;
   flex-shrink: 0;
-  gap: 3px;
+  background: linear-gradient(180deg, #dbe7f6 0%, #c8d8eb 52%, #b7cae1 100%);
+  border-bottom: 1px solid #90a7c0;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
-/* Each nav tab */
 .xp-nav-tab {
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 0 17px;
-  height: 100%;
-  border: 1px solid transparent;
+  padding: 0 16px;
+  height: 34px;
+  border: 1px solid #90a7c0;
   border-bottom: none;
   border-radius: 4px 4px 0 0;
   font-family: Tahoma, sans-serif;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: bold;
-  color: var(--logo-brown);
+  color: var(--text-main);
   text-decoration: none;
   cursor: default;
   white-space: nowrap;
-  background: transparent;
-  transition:
-    background 0.1s,
-    color 0.1s;
+  background: linear-gradient(180deg, #eef4fb 0%, #dbe7f4 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .xp-nav-tab .tab-icon {
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1;
 }
 
 .xp-nav-tab:hover:not(.active-tab) {
-  background: linear-gradient(to bottom, #fff8f0, #f5dfc0);
-  border-color: #c0843a #c0843a transparent;
-  color: #3a1f0f;
+  background: linear-gradient(180deg, #ffffff 0%, #e7eff9 100%);
+  color: #0f2f66;
 }
 
 .xp-nav-tab.active-tab {
-  background: linear-gradient(to bottom, #ffffff, #f8ede0);
-  border-color: #9f5a1a #9f5a1a transparent;
-  color: #3a1f0f;
-  /* active tab appears to "lift" above the content area */
+  background: linear-gradient(180deg, #ffffff 0%, #f5f7fb 100%);
+  border-color: #7f9db9;
+  color: #123f82;
   box-shadow:
-    -1px 0 0 #fff inset,
-    1px 0 0 #fff inset,
-    0 -1px 0 #fff inset;
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 -1px 0 #ffffff;
   position: relative;
-  /* cover the bottom border of the navbar to blend into content */
-  margin-bottom: -2px;
-  padding-bottom: 2px;
+  margin-bottom: -1px;
+  padding-bottom: 1px;
 }
 
-/* Urgente special colouring */
 .xp-nav-tab.urgente-tab {
-  color: #8b1d20;
-}
-.xp-nav-tab.urgente-tab:hover:not(.active-tab) {
-  background: linear-gradient(to bottom, #fff0f0, #f5c8c8);
-  border-color: #c04040 #c04040 transparent;
-  color: #6b1010;
-}
-.xp-nav-tab.urgente-tab.active-tab {
-  color: #8b1d20;
+  color: #922823;
 }
 
-/* ── Nav-tab count badges ───────────────────────────── */
+.xp-nav-tab.urgente-tab:hover:not(.active-tab) {
+  background: linear-gradient(180deg, #fff4f2 0%, #f8d8d5 100%);
+}
 
 .xp-nav-badge {
   display: inline-flex;
@@ -414,49 +433,109 @@ body {
   font-weight: bold;
   line-height: 1;
   border-radius: 11px;
-  background: linear-gradient(to bottom, #c8a06a, #9f6e2e);
-  border: 1px solid #7a4e18;
+  background: linear-gradient(180deg, #5e95e6 0%, #2b64c5 100%);
+  border: 1px solid #184b9d;
   color: #fff;
-  box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.35);
+  box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.28);
   vertical-align: middle;
   position: relative;
   top: -1px;
 }
 
 .xp-nav-badge--urgent {
-  background: linear-gradient(to bottom, #e87070, #b82020);
-  border-color: #8b1010;
+  background: linear-gradient(180deg, #f08b84 0%, #d24b44 100%);
+  border-color: #9d2f29;
 }
-
-/* ── Content / workspace area ──────────────────────── */
 
 .xp-workspace {
   flex: 1;
   overflow: auto;
-  background-color: var(--soft-tan);
-  /* subtle inner ridge, like an XP sunken panel */
-  box-shadow: inset 2px 2px 6px rgba(0, 0, 0, 0.12);
+  background: linear-gradient(180deg, #e9e5d4 0%, #ece9d8 100%);
+  box-shadow: inset 1px 1px 4px rgba(0, 0, 0, 0.12);
 }
 
-/* helper for pages that want a framed inner panel */
 .xp-content-panel {
   padding: 16px;
 }
 
-.xp-inset-panel {
-  background: #fdf7ef;
-  border: 1px solid #c0a882;
+.xp-inset-panel,
+.xp-surface {
+  background: #f7f8fb;
+  border: 1px solid #a9b8ca;
   border-radius: 3px;
   box-shadow:
-    inset 1px 1px 3px rgba(0, 0, 0, 0.1),
-    0 1px 0 rgba(255, 255, 255, 0.8);
+    inset 1px 1px 2px rgba(255, 255, 255, 0.75),
+    inset -1px -1px 2px rgba(0, 0, 0, 0.05),
+    0 1px 0 rgba(255, 255, 255, 0.75);
 }
 
-/* ═══════════════════════════════════════════════════════
-   XP-STYLE FORM CONTROLS  (global overrides)
-═══════════════════════════════════════════════════════ */
+.xp-card {
+  transition:
+    box-shadow 0.12s ease,
+    transform 0.12s ease;
+}
 
-/* Input / Textarea – sunken XP field */
+.xp-card:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.xp-card--urgent {
+  background: linear-gradient(180deg, #fff7f6 0%, #fce3e0 100%);
+  border-color: #d27a73;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset -1px -1px 2px rgba(0, 0, 0, 0.05),
+    0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.xp-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: linear-gradient(180deg, #eef4fb 0%, #dbe7f4 100%);
+  border: 1px solid #a9b8ca;
+  border-radius: 3px;
+}
+
+.xp-toolbar--stacked {
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.xp-button,
+button,
+[role='button'] {
+  font-family: Tahoma, sans-serif;
+  font-size: 13px;
+  cursor: default;
+}
+
+button:not(:disabled),
+input[type='button'],
+input[type='submit'] {
+  border-radius: 3px;
+  border: 1px solid #7f9db9;
+  background: linear-gradient(180deg, #fdfefe 0%, #e8eef7 48%, #d8e4f2 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+button:not(:disabled):hover,
+input[type='button']:hover,
+input[type='submit']:hover {
+  filter: brightness(1.02);
+}
+
+button:not(:disabled):active,
+input[type='button']:active,
+input[type='submit']:active {
+  transform: translateY(1px);
+}
+
 input[type='text'],
 input[type='password'],
 input[type='number'],
@@ -467,54 +546,110 @@ textarea,
 select {
   font-family: Tahoma, sans-serif;
   font-size: 13px;
-  border: 1px solid #938070;
-  border-top-color: #6b5040;
-  border-left-color: #6b5040;
-  background: #fff;
-  color: var(--logo-brown);
-  box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.15);
+  border: 1px solid #7f9db9;
+  border-top-color: #5d7ea3;
+  border-left-color: #5d7ea3;
+  background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+  color: var(--text-main);
+  box-shadow:
+    inset 1px 1px 2px rgba(0, 0, 0, 0.12),
+    inset -1px -1px 0 rgba(255, 255, 255, 0.7);
   border-radius: 2px;
   outline: none;
-  padding: 3px 5px;
+  padding: 3px 6px;
 }
+
 input:focus,
 textarea:focus,
 select:focus {
-  border-color: #e87722;
+  border-color: #2b64c5;
   box-shadow:
-    inset 1px 1px 3px rgba(0, 0, 0, 0.15),
-    0 0 0 2px rgba(232, 119, 34, 0.25);
+    inset 1px 1px 2px rgba(0, 0, 0, 0.12),
+    0 0 0 2px rgba(43, 100, 197, 0.2);
 }
 
-/* XP-style push button */
-button,
-[role='button'] {
-  font-family: Tahoma, sans-serif;
-  font-size: 13px;
-  cursor: default;
+.xp-card,
+.xp-control-panel,
+.xp-form-panel {
+  background: #f7f8fb;
+  border: 1px solid #a9b8ca;
+  border-radius: 3px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
-/* ═══════════════════════════════════════════════════════
-   SCROLLBAR  –  XP-ish look (Chromium only)
-═══════════════════════════════════════════════════════ */
+.xp-card-header,
+.xp-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(180deg, #fefefe 0%, #e8eef7 100%);
+  border-bottom: 1px solid #c6d2e1;
+  font-weight: bold;
+  color: #163d82;
+}
+
+.xp-table-header-surface {
+  background: linear-gradient(180deg, #eef4fb 0%, #dbe7f4 100%);
+}
+
+.xp-card-body,
+.xp-section-body {
+  padding: 12px;
+}
+
+.xp-muted {
+  color: var(--text-secondary);
+}
+
+.xp-caption {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.xp-divider {
+  height: 1px;
+  background: #c4cfdd;
+  border: 0;
+  margin: 10px 0;
+}
+
+.xp-statusbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 10px;
+  background: linear-gradient(180deg, #d6e0ee 0%, #c7d3e3 100%);
+  border-top: 1px solid #a9b8ca;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
 
 ::-webkit-scrollbar {
   width: 16px;
   height: 16px;
 }
+
 ::-webkit-scrollbar-track {
-  background: #e8d4b8;
-  border: 1px solid #c0a070;
+  background: #dde6f1;
+  border: 1px solid #9fb2c9;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(to right, #f0c080, #d08030);
-  border: 1px solid #9f5a1a;
+  background: linear-gradient(180deg, #dce7f5 0%, #95b7e9 34%, #5d92db 100%);
+  border: 1px solid #587da8;
   border-radius: 2px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to right, #f8d098, #e08838);
+  background: linear-gradient(180deg, #ebf1fa 0%, #aac8f2 34%, #729de0 100%);
 }
+
 ::-webkit-scrollbar-button {
   display: none;
 }

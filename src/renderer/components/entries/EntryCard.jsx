@@ -1,5 +1,5 @@
 import React from 'react';
-import { URGENTE_STYLE } from '../../utils/urgente';
+import { URGENTE_CLASS_NAME } from '../../utils/urgente';
 
 /**
  * EntryCard - Standardized card component for entry lists
@@ -38,10 +38,9 @@ function EntryCard({ urgente, onClick, children, onActionClick }) {
           onClick?.();
         }
       }}
-      className={`rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer p-4 relative text-left ${
-        urgente ? '' : 'bg-neutral-100 border border-neutral-200'
+      className={`xp-card cursor-pointer p-4 relative text-left transition-shadow ${
+        urgente ? URGENTE_CLASS_NAME : ''
       }`}
-      style={urgente ? URGENTE_STYLE : undefined}
     >
       {/* Urgente indicator */}
       {urgente ? (

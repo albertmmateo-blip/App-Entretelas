@@ -195,22 +195,22 @@ function ProveedoresListView({ tipo = 'compra' }) {
   }
 
   return (
-    <div className="p-6">
+    <div className="xp-content-panel space-y-4">
       {/* Header with actions on the right */}
-      <div className="flex items-center mb-4">
-        <h1 className="text-2xl font-bold text-neutral-900 flex-1">{sectionTitle}</h1>
+      <div className="xp-toolbar justify-between">
+        <h1 className="text-2xl font-bold text-neutral-900 flex-1 m-0">{sectionTitle}</h1>
         <div className="ml-auto flex items-center gap-2">
           <button
             type="button"
             onClick={() => navigate(`${basePath}/nuevo`)}
-            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+            className="px-4 py-2 bg-primary text-white"
           >
             Nuevo Proveedor
           </button>
           <button
             type="button"
             onClick={() => navigate('/contabilidad')}
-            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+            className="px-4 py-2 bg-primary text-white"
           >
             ← Volver
           </button>
@@ -218,20 +218,20 @@ function ProveedoresListView({ tipo = 'compra' }) {
       </div>
 
       {/* Search bar */}
-      <div className="mb-4">
+      <div>
         <input
           type="search"
           placeholder="Buscar proveedor..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           data-search-input
-          className="w-full px-4 py-2 bg-neutral-100 border border-neutral-200 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
+          className="w-full px-4 py-2"
         />
       </div>
 
       {/* Proveedor folder shortcuts */}
       {sortedProveedores.length > 0 && (
-        <div className="mb-4">
+        <div className="space-y-3">
           <div className="flex flex-wrap gap-2">
             {sortedProveedores.map((proveedor) => (
               <button
@@ -258,10 +258,10 @@ function ProveedoresListView({ tipo = 'compra' }) {
             ))}
           </div>
           {isCompra && (
-            <div className="mt-3 overflow-hidden border border-neutral-200 rounded-lg bg-white">
+            <div className="mt-3 xp-surface overflow-hidden">
               <div className="max-h-56 overflow-auto">
                 <table className="min-w-full text-sm text-left">
-                  <thead className="bg-neutral-100 text-neutral-700 sticky top-0 z-10">
+                  <thead className="sticky top-0 z-10 text-neutral-700 xp-table-header-surface border-b border-primary-200">
                     <tr>
                       <th scope="col" className="px-4 py-2 font-semibold whitespace-nowrap">
                         Fecha
@@ -329,9 +329,9 @@ function ProveedoresListView({ tipo = 'compra' }) {
           )}
 
           {isCompra && (
-            <div className="mt-3 overflow-x-auto border border-neutral-200 rounded-lg bg-neutral-50">
+            <div className="mt-3 overflow-x-auto xp-surface">
               <table className="min-w-full text-sm text-left">
-                <thead className="bg-neutral-100 text-neutral-700">
+                <thead className="text-neutral-700 xp-table-header-surface border-b border-primary-200">
                   <tr>
                     <th scope="col" className="px-4 py-2 font-semibold">
                       Periodo
@@ -437,23 +437,23 @@ function ProveedorPDFView({ tipo = 'compra' }) {
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="flex items-center mb-6">
-        <h1 className="text-2xl font-bold text-neutral-900 flex-1">
+    <div className="xp-content-panel max-w-6xl mx-auto space-y-4">
+      <div className="xp-toolbar justify-between">
+        <h1 className="text-2xl font-bold text-neutral-900 flex-1 m-0">
           {proveedor?.razon_social || 'Proveedor'}
         </h1>
         <div className="ml-auto flex items-center gap-2">
           <button
             type="button"
             onClick={() => navigate(`${basePath}/${entidadId}/editar`)}
-            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+            className="px-4 py-2 bg-primary text-white"
           >
             Editar proveedor
           </button>
           <button
             type="button"
             onClick={() => navigate(basePath)}
-            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+            className="px-4 py-2 bg-primary text-white"
           >
             ← Volver
           </button>
