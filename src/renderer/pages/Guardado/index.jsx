@@ -919,8 +919,8 @@ function TabBuscar({ state, dispatch, api }) {
             onClick={() => setViewMode(mode)}
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
               viewMode === mode
-                ? 'border-primary text-primary'
-                : 'border-transparent text-neutral-500 hover:text-neutral-700'
+                ? 'border-primary text-primary-700'
+                : 'border-transparent text-primary/80 hover:text-primary-700'
             }`}
           >
             {label}
@@ -2283,8 +2283,8 @@ export default function Guardado() {
             onClick={() => setActiveTab(tab.id)}
             className={`px-5 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
               activeTab === tab.id
-                ? 'border-primary text-primary'
-                : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'
+                ? 'border-primary text-primary-700'
+                : 'border-transparent text-primary/80 hover:text-primary-700 hover:border-neutral-300'
             }`}
           >
             <span className="mr-1.5">{tab.icon}</span>
