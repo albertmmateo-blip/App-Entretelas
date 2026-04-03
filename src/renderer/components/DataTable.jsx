@@ -4,7 +4,7 @@ const ITEMS_PER_PAGE = 100;
 
 function getRowBackgroundClass(isUrgente, rowIndex) {
   if (isUrgente) {
-    return 'bg-danger-100/80 hover:bg-danger-100';
+    return 'bg-danger-100/80 hover:bg-danger-200';
   }
   if (rowIndex % 2 === 1) {
     return 'bg-neutral-100/90 hover:bg-primary-100/60';
@@ -121,7 +121,7 @@ function DataTable({
                   <button
                     type="button"
                     onClick={() => handleSort(column.key)}
-                    className={`w-full text-xs font-semibold uppercase tracking-wide text-neutral-600 hover:text-neutral-900 flex items-center justify-end gap-1 transition-colors ${headerLabelClassName}`}
+                    className={`xp-table-header-button text-xs font-semibold uppercase tracking-wide text-neutral-600 hover:text-neutral-900 ${headerLabelClassName}`}
                   >
                     {column.label}
                     {renderSortIndicator(column)}
