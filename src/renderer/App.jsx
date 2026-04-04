@@ -10,9 +10,11 @@ import Urgente from './pages/Urgente';
 import Notas from './pages/Notas';
 import Llamar from './pages/Llamar';
 import Encargar from './pages/Encargar';
+import Stock from './pages/Stock';
 import Email from './pages/Email';
 import Secret from './pages/Secret';
 import Guardado from './pages/Guardado';
+import { NAV_LINKS } from './config/navigation';
 
 import iconUrl from './assets/icon.svg';
 
@@ -272,16 +274,6 @@ export function AppLayout() {
     }
   }, [isSecretPromptOpen]);
 
-  const navLinks = [
-    { path: '/', label: 'Home', icon: '🏠', end: true },
-    { path: '/urgente', label: 'URGENTE!', icon: '⚠️', urgent: true, countKey: 'urgente' },
-    { path: '/notas', label: 'Notas', icon: '📝', countKey: 'notas' },
-    { path: '/llamar', label: 'Llamar', icon: '📞', countKey: 'llamar' },
-    { path: '/encargar', label: 'Encargar', icon: '📦', countKey: 'encargar' },
-    { path: '/contabilidad', label: 'Contabilidad', icon: '📄' },
-    { path: '/guardado', label: 'Guardado', icon: '📍' },
-  ];
-
   return (
     <div className="xp-window">
       {/* XP Title Bar */}
@@ -295,7 +287,7 @@ export function AppLayout() {
 
       {/* XP Navigation Tab Bar */}
       <nav className="xp-navbar">
-        {navLinks.map(({ path, label, icon, end, urgent, countKey }) => {
+        {NAV_LINKS.map(({ path, label, icon, end, urgent, countKey }) => {
           const count = countKey ? navCounts[countKey] : 0;
           return (
             <NavLink
@@ -316,17 +308,6 @@ export function AppLayout() {
             </NavLink>
           );
         })}
-
-        {/* Spacer pushes Email to the far right */}
-        <div style={{ flex: 1 }} />
-
-        <NavLink
-          to="/email"
-          className={({ isActive }) => `xp-nav-tab${isActive ? ' active-tab' : ''}`}
-        >
-          <span className="tab-icon">📧</span>
-          <span>E-mail</span>
-        </NavLink>
       </nav>
 
       {/* Content area */}
@@ -355,6 +336,7 @@ export function AppLayout() {
           <Route path="/encargar/proveedor/nuevo" element={<Encargar />} />
           <Route path="/encargar/proveedor/:proveedorId" element={<Encargar />} />
           <Route path="/encargar/proveedor/:proveedorId/editar" element={<Encargar />} />
+          <Route path="/stock" element={<Stock />} />
           <Route path="/contabilidad" element={<ContabilidadRoute />} />
           <Route path="/contabilidad/compra" element={<ContabilidadRoute />} />
           <Route path="/contabilidad/compra/:proveedorId" element={<ContabilidadRoute />} />

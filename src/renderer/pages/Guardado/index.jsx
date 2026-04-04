@@ -2257,8 +2257,8 @@ export default function Guardado() {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-5">
-        <h1 className="text-2xl font-bold text-neutral-900">Guardado</h1>
+      <div className="xp-toolbar justify-between mb-5">
+        <h1 className="text-2xl font-bold text-neutral-900 m-0">📍 Guardado</h1>
         <div className="text-sm text-neutral-500 flex gap-4">
           <span>
             {state.lugares.length} {state.lugares.length !== 1 ? 'lugares' : 'lugar'}

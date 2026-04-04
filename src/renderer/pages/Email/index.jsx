@@ -76,7 +76,11 @@ function Email() {
   }, [pendingExternalUrl]);
 
   return (
-    <div className="h-full w-full">
+    <div className="h-full w-full p-6 flex flex-col gap-4">
+      <div className="xp-toolbar justify-between">
+        <h1 className="text-2xl font-bold text-neutral-900 m-0">📧 E-mail</h1>
+      </div>
+
       <webview
         ref={webviewRef}
         src="https://mail.google.com"
@@ -84,6 +88,7 @@ function Email() {
         allowpopups="false"
         disablewebsecurity="false"
         nodeintegration="false"
+        className="flex-1 min-h-0"
         style={{ width: '100%', height: '100%' }}
       />
 

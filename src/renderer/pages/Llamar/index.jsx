@@ -69,8 +69,8 @@ function LlamarList() {
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold text-neutral-900">📞 Llamar</h1>
+      <div className="xp-toolbar justify-between mb-4">
+        <h1 className="text-2xl font-bold text-neutral-900 m-0">📞 Llamar</h1>
         <button
           type="button"
           onClick={() => navigate('/llamar/nueva')}

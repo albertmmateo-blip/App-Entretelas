@@ -110,6 +110,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
     updateArticulo: (id, data) => ipcRenderer.invoke('guardado:updateArticulo', id, data),
     deleteArticulo: (id) => ipcRenderer.invoke('guardado:deleteArticulo', id),
   },
+  // Stock module
+  stock: {
+    getTree: () => ipcRenderer.invoke('stock:getTree'),
+    createFamilia: (data) => ipcRenderer.invoke('stock:createFamilia', data),
+    updateFamilia: (id, data) => ipcRenderer.invoke('stock:updateFamilia', id, data),
+    deleteFamilia: (id) => ipcRenderer.invoke('stock:deleteFamilia', id),
+    createProducto: (data) => ipcRenderer.invoke('stock:createProducto', data),
+    updateProducto: (id, data) => ipcRenderer.invoke('stock:updateProducto', id, data),
+    deleteProducto: (id) => ipcRenderer.invoke('stock:deleteProducto', id),
+    createArticulo: (data) => ipcRenderer.invoke('stock:createArticulo', data),
+    updateArticulo: (id, data) => ipcRenderer.invoke('stock:updateArticulo', id, data),
+    deleteArticulo: (id) => ipcRenderer.invoke('stock:deleteArticulo', id),
+    setArticuloCantidad: (id, cantidad) =>
+      ipcRenderer.invoke('stock:setArticuloCantidad', id, cantidad),
+    adjustArticuloCantidad: (id, delta) =>
+      ipcRenderer.invoke('stock:adjustArticuloCantidad', id, delta),
+  },
   // Import/Export
   data: {
     export: () => ipcRenderer.invoke('data:export'),

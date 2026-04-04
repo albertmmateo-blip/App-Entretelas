@@ -294,9 +294,9 @@ function EncargarWorkspaceView({ preselectedEntryId = null }) {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-4">
+      <div className="xp-toolbar justify-between mb-4">
         <div className="relative flex items-center gap-2" ref={dropdownRef}>
-          <h1 className="text-2xl font-bold text-neutral-900">📁 Encargar</h1>
+          <h1 className="text-2xl font-bold text-neutral-900 m-0">📁 Encargar</h1>
           <button
             type="button"
             onClick={() => setIsDropdownOpen((prev) => !prev)}
@@ -665,10 +665,10 @@ function EncargarProveedorView() {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-4">
+      <div className="xp-toolbar justify-between mb-4">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900">
-            {proveedor?.razon_social || `Proveedor ${entidadId}`}
+          <h1 className="text-2xl font-bold text-neutral-900 m-0">
+            {`📁 ${proveedor?.razon_social || `Proveedor ${entidadId}`}`}
           </h1>
         </div>
         <div className="flex items-center gap-2">

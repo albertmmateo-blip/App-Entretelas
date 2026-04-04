@@ -369,6 +369,10 @@ a {
   padding: 7px 10px 0;
   gap: 4px;
   flex-shrink: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #7392bf #c7d9f3;
   background: linear-gradient(180deg, #c7d9f3 0%, #aebfe0 52%, #96afcf 100%);
   border-bottom: 1px solid #7b93b0;
   box-shadow:
@@ -376,17 +380,31 @@ a {
     0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
+.xp-navbar::-webkit-scrollbar {
+  height: 9px;
+}
+
+.xp-navbar::-webkit-scrollbar-track {
+  background: #c7d9f3;
+}
+
+.xp-navbar::-webkit-scrollbar-thumb {
+  background: #7392bf;
+  border-radius: 999px;
+}
+
 .xp-nav-tab {
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 0 16px;
+  padding: 0 13px;
   height: 34px;
+  flex-shrink: 0;
   border: 1px solid #90a7c0;
   border-bottom: none;
   border-radius: 4px 4px 0 0;
   font-family: Tahoma, sans-serif;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: bold;
   color: var(--color-primary-700);
   text-decoration: none;
@@ -399,8 +417,20 @@ a {
 }
 
 .xp-nav-tab .tab-icon {
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1;
+}
+
+@media (max-width: 1180px) {
+  .xp-nav-tab {
+    padding: 0 10px;
+    gap: 6px;
+    font-size: 13px;
+  }
+
+  .xp-nav-tab .tab-icon {
+    font-size: 15px;
+  }
 }
 
 .xp-nav-tab:hover:not(.active-tab) {
