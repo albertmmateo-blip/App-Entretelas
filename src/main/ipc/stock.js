@@ -70,6 +70,7 @@ function mapArticulo(row) {
   return {
     id: row.id,
     producto_id: row.producto_id,
+    familia_id: row.familia_id,
     parent_articulo_id: row.parent_articulo_id,
     name: row.nombre,
     ref: row.ref,
@@ -95,7 +96,7 @@ function buildTree(db) {
     .all();
   const articulos = db
     .prepare(
-      'SELECT * FROM stock_articulos ORDER BY producto_id ASC, COALESCE(parent_articulo_id, 0) ASC, orden ASC, nombre COLLATE NOCASE ASC, id ASC'
+      'SELECT * FROM stock_articulos ORDER BY COALESCE(producto_id, 0) ASC, COALESCE(familia_id, 0) ASC, COALESCE(parent_articulo_id, 0) ASC, orden ASC, nombre COLLATE NOCASE ASC, id ASC'
     )
     .all();
 
@@ -106,8 +107,17 @@ function buildTree(db) {
   }, {});
 
   const articulosByProducto = articulos.reduce((acc, articulo) => {
+    if (articulo.producto_id === null || articulo.producto_id === undefined) return acc;
     if (!acc[articulo.producto_id]) acc[articulo.producto_id] = [];
     acc[articulo.producto_id].push(articulo);
+    return acc;
+  }, {});
+
+  const directArticulosByFamilia = articulos.reduce((acc, articulo) => {
+    if (articulo.producto_id !== null && articulo.producto_id !== undefined) return acc;
+    if (articulo.familia_id === null || articulo.familia_id === undefined) return acc;
+    if (!acc[articulo.familia_id]) acc[articulo.familia_id] = [];
+    acc[articulo.familia_id].push(articulo);
     return acc;
   }, {});
 
@@ -118,19 +128,21 @@ function buildTree(db) {
     return acc;
   }, {});
 
+  function mapRootWithVariants(articulo) {
+    const variants = (variantsByParent[articulo.id] || []).map(mapArticulo);
+    const variantTotal = variants.reduce((sum, v) => sum + v.quantity, 0);
+    return {
+      ...mapArticulo(articulo),
+      variants,
+      stock_total: articulo.cantidad + variantTotal,
+    };
+  }
+
   return familias.map((familia) => {
     const familyProducts = (productosByFamilia[familia.id] || []).map((producto) => {
       const rootArticulos = (articulosByProducto[producto.id] || [])
         .filter((articulo) => !articulo.parent_articulo_id)
-        .map((articulo) => {
-          const variants = (variantsByParent[articulo.id] || []).map(mapArticulo);
-          const variantTotal = variants.reduce((sum, variant) => sum + variant.quantity, 0);
-          return {
-            ...mapArticulo(articulo),
-            variants,
-            stock_total: articulo.cantidad + variantTotal,
-          };
-        });
+        .map(mapRootWithVariants);
 
       const stockTotal = rootArticulos.reduce((sum, articulo) => sum + articulo.stock_total, 0);
 
@@ -149,6 +161,13 @@ function buildTree(db) {
       };
     });
 
+    const directArticulos = (directArticulosByFamilia[familia.id] || [])
+      .filter((a) => !a.parent_articulo_id)
+      .map(mapRootWithVariants);
+
+    const productStockTotal = familyProducts.reduce((sum, p) => sum + p.stock_total, 0);
+    const directStockTotal = directArticulos.reduce((sum, a) => sum + a.stock_total, 0);
+
     return {
       id: familia.id,
       name: familia.nombre,
@@ -159,32 +178,47 @@ function buildTree(db) {
       fecha_creacion: familia.fecha_creacion,
       fecha_mod: familia.fecha_mod,
       products: familyProducts,
-      stock_total: familyProducts.reduce((sum, producto) => sum + producto.stock_total, 0),
+      direct_articles: directArticulos,
+      stock_total: productStockTotal + directStockTotal,
     };
   });
 }
 
-function ensureParentMatchesProduct(db, parentArticuloId, productoId) {
+function ensureParentMatchesScope(db, parentArticuloId, productoId, familiaId) {
   if (parentArticuloId === null || parentArticuloId === undefined) {
     return { valid: true };
   }
 
   const parent = db
-    .prepare('SELECT id, producto_id, parent_articulo_id FROM stock_articulos WHERE id = ?')
+    .prepare(
+      'SELECT id, producto_id, familia_id, parent_articulo_id FROM stock_articulos WHERE id = ?'
+    )
     .get(parentArticuloId);
 
   if (!parent) {
     return { valid: false, error: { code: 'NOT_FOUND', message: 'parent_articulo_id not found' } };
   }
 
-  if (parent.producto_id !== productoId) {
-    return {
-      valid: false,
-      error: {
-        code: 'INVALID_INPUT',
-        message: 'parent_articulo_id must belong to the same producto',
-      },
-    };
+  if (productoId !== null && productoId !== undefined) {
+    if (parent.producto_id !== productoId) {
+      return {
+        valid: false,
+        error: {
+          code: 'INVALID_INPUT',
+          message: 'parent_articulo_id must belong to the same producto',
+        },
+      };
+    }
+  } else if (familiaId !== null && familiaId !== undefined) {
+    if (parent.familia_id !== familiaId || parent.producto_id !== null) {
+      return {
+        valid: false,
+        error: {
+          code: 'INVALID_INPUT',
+          message: 'parent_articulo_id must be a direct article of the same familia',
+        },
+      };
+    }
   }
 
   if (parent.parent_articulo_id) {
@@ -478,10 +512,12 @@ function registerStockHandlers(deps = {}) {
 
   ipc.handle('stock:createArticulo', async (_event, data) => {
     try {
-      if (!isPositiveInteger(data?.producto_id)) {
+      const hasProducto = isPositiveInteger(data?.producto_id);
+      const hasFamilia = isPositiveInteger(data?.familia_id);
+      if (!hasProducto && !hasFamilia) {
         return {
           success: false,
-          error: { code: 'INVALID_INPUT', message: 'producto_id is required' },
+          error: { code: 'INVALID_INPUT', message: 'producto_id or familia_id is required' },
         };
       }
       const validation = validateTextField(data?.nombre, 'nombre');
@@ -492,11 +528,25 @@ function registerStockHandlers(deps = {}) {
       }
 
       const db = getDb();
-      const producto = db
-        .prepare('SELECT id FROM stock_productos WHERE id = ?')
-        .get(data.producto_id);
-      if (!producto) {
-        return { success: false, error: { code: 'NOT_FOUND', message: 'Producto not found' } };
+      let resolvedProductoId = null;
+      let resolvedFamiliaId = null;
+
+      if (hasProducto) {
+        const producto = db
+          .prepare('SELECT id FROM stock_productos WHERE id = ?')
+          .get(data.producto_id);
+        if (!producto) {
+          return { success: false, error: { code: 'NOT_FOUND', message: 'Producto not found' } };
+        }
+        resolvedProductoId = data.producto_id;
+      } else {
+        const familia = db
+          .prepare('SELECT id FROM stock_familias WHERE id = ?')
+          .get(data.familia_id);
+        if (!familia) {
+          return { success: false, error: { code: 'NOT_FOUND', message: 'Familia not found' } };
+        }
+        resolvedFamiliaId = data.familia_id;
       }
 
       const parentArticuloId = data?.parent_articulo_id ?? null;
@@ -510,23 +560,39 @@ function registerStockHandlers(deps = {}) {
             },
           };
         }
-        const parentCheck = ensureParentMatchesProduct(db, parentArticuloId, data.producto_id);
+        const parentCheck = ensureParentMatchesScope(
+          db,
+          parentArticuloId,
+          resolvedProductoId,
+          resolvedFamiliaId
+        );
         if (!parentCheck.valid) return { success: false, error: parentCheck.error };
       }
 
-      const nextOrden =
-        db
-          .prepare(
-            'SELECT COALESCE(MAX(orden), -1) AS maxOrden FROM stock_articulos WHERE producto_id = ? AND COALESCE(parent_articulo_id, 0) = COALESCE(?, 0)'
-          )
-          .get(data.producto_id, parentArticuloId).maxOrden + 1;
+      let nextOrden;
+      if (resolvedProductoId !== null) {
+        nextOrden =
+          db
+            .prepare(
+              'SELECT COALESCE(MAX(orden), -1) AS maxOrden FROM stock_articulos WHERE producto_id = ? AND COALESCE(parent_articulo_id, 0) = COALESCE(?, 0)'
+            )
+            .get(resolvedProductoId, parentArticuloId).maxOrden + 1;
+      } else {
+        nextOrden =
+          db
+            .prepare(
+              'SELECT COALESCE(MAX(orden), -1) AS maxOrden FROM stock_articulos WHERE familia_id = ? AND producto_id IS NULL AND COALESCE(parent_articulo_id, 0) = COALESCE(?, 0)'
+            )
+            .get(resolvedFamiliaId, parentArticuloId).maxOrden + 1;
+      }
 
       const info = db
         .prepare(
-          'INSERT INTO stock_articulos (producto_id, parent_articulo_id, nombre, ref, color, color_hex, descripcion, notas, cantidad, orden) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+          'INSERT INTO stock_articulos (producto_id, familia_id, parent_articulo_id, nombre, ref, color, color_hex, descripcion, notas, cantidad, orden) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         )
         .run(
-          data.producto_id,
+          resolvedProductoId,
+          resolvedFamiliaId,
           parentArticuloId,
           normalizeText(data.nombre),
           normalizeText(data.ref),
@@ -563,14 +629,36 @@ function registerStockHandlers(deps = {}) {
         return { success: false, error: { code: 'NOT_FOUND', message: 'Articulo not found' } };
       }
 
-      const nextProductoId = Number.isInteger(data?.producto_id)
-        ? data.producto_id
-        : existing.producto_id;
-      const producto = db
-        .prepare('SELECT id FROM stock_productos WHERE id = ?')
-        .get(nextProductoId);
-      if (!producto) {
-        return { success: false, error: { code: 'NOT_FOUND', message: 'Producto not found' } };
+      // Resolve producto_id / familia_id — caller passes whichever applies
+      const incomingProductoId =
+        'producto_id' in (data || {}) ? data.producto_id : existing.producto_id;
+      const incomingFamiliaId =
+        'familia_id' in (data || {}) ? data.familia_id : existing.familia_id;
+
+      let nextProductoId = null;
+      let nextFamiliaId = null;
+
+      if (isPositiveInteger(incomingProductoId)) {
+        const producto = db
+          .prepare('SELECT id FROM stock_productos WHERE id = ?')
+          .get(incomingProductoId);
+        if (!producto) {
+          return { success: false, error: { code: 'NOT_FOUND', message: 'Producto not found' } };
+        }
+        nextProductoId = incomingProductoId;
+      } else if (isPositiveInteger(incomingFamiliaId)) {
+        const familia = db
+          .prepare('SELECT id FROM stock_familias WHERE id = ?')
+          .get(incomingFamiliaId);
+        if (!familia) {
+          return { success: false, error: { code: 'NOT_FOUND', message: 'Familia not found' } };
+        }
+        nextFamiliaId = incomingFamiliaId;
+      } else {
+        return {
+          success: false,
+          error: { code: 'INVALID_INPUT', message: 'producto_id or familia_id is required' },
+        };
       }
 
       const nextParentArticuloId =
@@ -587,7 +675,12 @@ function registerStockHandlers(deps = {}) {
             },
           };
         }
-        const parentCheck = ensureParentMatchesProduct(db, nextParentArticuloId, nextProductoId);
+        const parentCheck = ensureParentMatchesScope(
+          db,
+          nextParentArticuloId,
+          nextProductoId,
+          nextFamiliaId
+        );
         if (!parentCheck.valid) return { success: false, error: parentCheck.error };
       }
 
@@ -601,9 +694,10 @@ function registerStockHandlers(deps = {}) {
       }
 
       db.prepare(
-        'UPDATE stock_articulos SET producto_id = ?, parent_articulo_id = ?, nombre = ?, ref = ?, color = ?, color_hex = ?, descripcion = ?, notas = ?, cantidad = ?, orden = ? WHERE id = ?'
+        'UPDATE stock_articulos SET producto_id = ?, familia_id = ?, parent_articulo_id = ?, nombre = ?, ref = ?, color = ?, color_hex = ?, descripcion = ?, notas = ?, cantidad = ?, orden = ? WHERE id = ?'
       ).run(
         nextProductoId,
+        nextFamiliaId,
         nextParentArticuloId,
         nextName,
         'ref' in (data || {}) ? normalizeText(data.ref) : existing.ref,

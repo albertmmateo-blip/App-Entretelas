@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import ConfirmDialog from '../../components/ConfirmDialog';
 
 function matchesQuery(value, query) {
@@ -14,6 +14,10 @@ function idsMatch(left, right) {
 function normalizeTree(data) {
   return data.map((family) => ({
     ...family,
+    direct_articles: (family.direct_articles || []).map((article) => ({
+      ...article,
+      variants: article.variants || [],
+    })),
     products: (family.products || []).map((product) => ({
       ...product,
       articles: (product.articles || []).map((article) => ({
@@ -28,6 +32,9 @@ function familyMatchesSearch(family, query) {
   if (!query) return true;
   return (
     matchesQuery(family.name, query) ||
+    family.direct_articles.some(
+      (article) => matchesQuery(article.name, query) || matchesQuery(article.color, query)
+    ) ||
     family.products.some(
       (product) =>
         matchesQuery(product.name, query) ||
@@ -127,11 +134,12 @@ function ColorInput({ value, onChange, disabled }) {
 function Stock() {
   const [families, setFamilies] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFamilyId, setSelectedFamilyId] = useState('');
-  const [selectedProductId, setSelectedProductId] = useState('');
+  const [expandedFamilyIds, setExpandedFamilyIds] = useState(new Set());
+  const [expandedProductIds, setExpandedProductIds] = useState(new Set());
 
   // Create form
   const [createType, setCreateType] = useState('family');
+  const [createArticleParent, setCreateArticleParent] = useState('product');
   const [createName, setCreateName] = useState('');
   const [createRef, setCreateRef] = useState('');
   const [createColor, setCreateColor] = useState('');
@@ -153,6 +161,7 @@ function Stock() {
 
   // Context menu + delete confirm
   const [menuState, setMenuState] = useState(null);
+  const menuAnchorRef = useRef(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const stockAPI = window.electronAPI?.stock;
@@ -182,15 +191,13 @@ function Stock() {
     };
   }, [stockAPI]);
 
-  // Set default selections after first load
+  // Set default create selections after first load
   React.useEffect(() => {
-    if (families.length > 0 && !selectedFamilyId) {
-      setSelectedFamilyId(families[0].id);
-      setSelectedProductId(families[0].products?.[0]?.id ?? '');
+    if (families.length > 0 && !createFamilyId) {
       setCreateFamilyId(families[0].id);
       setCreateProductId(families[0].products?.[0]?.id ?? '');
     }
-  }, [families, selectedFamilyId]);
+  }, [families, createFamilyId]);
 
   // Close context menu on outside click
   React.useEffect(() => {
@@ -202,28 +209,31 @@ function Stock() {
     return undefined;
   }, [menuState]);
 
+  // Keep context menu anchored to its trigger button while scrolling.
+  // isMenuOpen isolates the open/closed transition so the effect does not
+  // re-run on every position update (which would create an infinite loop).
+  const isMenuOpen = menuState !== null;
+  React.useEffect(() => {
+    const anchor = menuAnchorRef.current;
+    if (!isMenuOpen || !anchor) return undefined;
+    const updatePosition = () => {
+      const rect = anchor.getBoundingClientRect();
+      setMenuState((prev) => (prev ? { ...prev, x: rect.right, y: rect.bottom + 2 } : null));
+    };
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    updatePosition();
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMenuOpen]);
+
   const filteredFamilies = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     return families.filter((family) => familyMatchesSearch(family, query));
   }, [families, searchQuery]);
-
-  const activeFamily = useMemo(() => {
-    if (!filteredFamilies.length) return null;
-    return (
-      filteredFamilies.find((family) => idsMatch(family.id, selectedFamilyId)) ??
-      filteredFamilies[0] ??
-      null
-    );
-  }, [filteredFamilies, selectedFamilyId]);
-
-  const activeProduct = useMemo(() => {
-    if (!activeFamily) return null;
-    return (
-      activeFamily.products.find((product) => idsMatch(product.id, selectedProductId)) ??
-      activeFamily.products[0] ??
-      null
-    );
-  }, [activeFamily, selectedProductId]);
 
   const refreshTree = async () => {
     if (!stockAPI?.getTree) return;
@@ -231,6 +241,48 @@ function Stock() {
     if (response?.success && Array.isArray(response.data)) {
       setFamilies(normalizeTree(response.data));
     }
+  };
+
+  const expandFamily = (id) => {
+    setExpandedFamilyIds((prev) => new Set([...prev, String(id)]));
+  };
+
+  const collapseFamily = (id) => {
+    setExpandedFamilyIds((prev) => {
+      const next = new Set(prev);
+      next.delete(String(id));
+      return next;
+    });
+  };
+
+  const toggleFamily = (id) => {
+    setExpandedFamilyIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(String(id))) next.delete(String(id));
+      else next.add(String(id));
+      return next;
+    });
+  };
+
+  const expandProduct = (id) => {
+    setExpandedProductIds((prev) => new Set([...prev, String(id)]));
+  };
+
+  const collapseProduct = (id) => {
+    setExpandedProductIds((prev) => {
+      const next = new Set(prev);
+      next.delete(String(id));
+      return next;
+    });
+  };
+
+  const toggleProduct = (id) => {
+    setExpandedProductIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(String(id))) next.delete(String(id));
+      else next.add(String(id));
+      return next;
+    });
   };
 
   // ---- Quantity ----
@@ -254,13 +306,8 @@ function Stock() {
         return;
       }
       await refreshTree();
-      if (type === 'family' && idsMatch(id, selectedFamilyId)) {
-        setSelectedFamilyId('');
-        setSelectedProductId('');
-      }
-      if (type === 'product' && idsMatch(id, selectedProductId)) {
-        setSelectedProductId('');
-      }
+      if (type === 'family') collapseFamily(id);
+      if (type === 'product') collapseProduct(id);
       setDeleteConfirm(null);
     } catch (err) {
       setError(`Error al eliminar: ${err.message}`);
@@ -297,7 +344,8 @@ function Stock() {
         color: item.color || '',
         color_hex: item.color_hex || '',
         cantidad: item.quantity ?? 0,
-        producto_id: item.producto_id,
+        producto_id: item.producto_id ?? null,
+        familia_id: item.familia_id ?? null,
         parent_articulo_id: item.parent_articulo_id ?? null,
         orden: item.order ?? 0,
       });
@@ -338,6 +386,7 @@ function Stock() {
           color_hex: editState.color_hex || null,
           cantidad: Math.max(0, editState.cantidad),
           producto_id: editState.producto_id,
+          familia_id: editState.familia_id,
           parent_articulo_id: editState.parent_articulo_id,
           orden: editState.orden,
         });
@@ -391,8 +440,7 @@ function Stock() {
           return;
         }
         await refreshTree();
-        setSelectedFamilyId(response.data.id);
-        setSelectedProductId('');
+        expandFamily(response.data.id);
         setCreateFamilyId(response.data.id);
       } else if (createType === 'product') {
         if (!createFamilyId) {
@@ -410,28 +458,51 @@ function Stock() {
           return;
         }
         await refreshTree();
-        setSelectedFamilyId(createFamilyId);
-        setSelectedProductId(response.data.id);
+        expandFamily(createFamilyId);
+        expandProduct(response.data.id);
         setCreateProductId(response.data.id);
       } else if (createType === 'article') {
-        if (!createProductId) {
-          setCreateError('Debes seleccionar un producto primero');
+        if (!createFamilyId) {
+          setCreateError('Debes seleccionar una familia primero');
           return;
         }
-        const productIdInt = parseId(createProductId, 'ID de producto no válido');
-        const response = await stockAPI?.createArticulo({
-          producto_id: productIdInt,
-          nombre: name,
-          color: createColor.trim() || null,
-          color_hex: createColorHex.trim() || null,
-          cantidad: Math.max(0, parseInt(createQuantity, 10) || 0),
-        });
-        if (!response?.success) {
-          setCreateError(response?.error?.message || 'Error al crear artículo');
-          return;
+        const familyIdInt = parseId(createFamilyId, 'ID de familia no válido');
+
+        if (createArticleParent === 'family') {
+          const response = await stockAPI?.createArticulo({
+            familia_id: familyIdInt,
+            nombre: name,
+            color: createColor.trim() || null,
+            color_hex: createColorHex.trim() || null,
+            cantidad: Math.max(0, parseInt(createQuantity, 10) || 0),
+          });
+          if (!response?.success) {
+            setCreateError(response?.error?.message || 'Error al crear artículo');
+            return;
+          }
+          await refreshTree();
+          expandFamily(createFamilyId);
+        } else {
+          if (!createProductId) {
+            setCreateError('Debes seleccionar un producto primero');
+            return;
+          }
+          const productIdInt = parseId(createProductId, 'ID de producto no válido');
+          const response = await stockAPI?.createArticulo({
+            producto_id: productIdInt,
+            nombre: name,
+            color: createColor.trim() || null,
+            color_hex: createColorHex.trim() || null,
+            cantidad: Math.max(0, parseInt(createQuantity, 10) || 0),
+          });
+          if (!response?.success) {
+            setCreateError(response?.error?.message || 'Error al crear artículo');
+            return;
+          }
+          await refreshTree();
+          expandFamily(createFamilyId);
+          expandProduct(createProductId);
         }
-        await refreshTree();
-        setSelectedProductId(createProductId);
       }
       setCreateName('');
       setCreateRef('');
@@ -443,6 +514,12 @@ function Stock() {
     } finally {
       setIsCreating(false);
     }
+  };
+
+  const handleCreateFamilyChange = (event) => {
+    setCreateFamilyId(event.target.value);
+    const fam = families.find((family) => idsMatch(family.id, event.target.value));
+    setCreateProductId(fam?.products[0]?.id ?? '');
   };
 
   // ---- Shared class names ----
@@ -475,429 +552,260 @@ function Stock() {
         />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
-        {/* Left: families panel */}
-        <section className="xp-surface overflow-hidden">
+      <div className="space-y-4">
+        {/* Stock tree */}
+        <div className="xp-surface overflow-hidden">
           <div className="xp-card-header">
-            <span>Familias</span>
-            <span className="xp-caption">{filteredFamilies.length} visibles</span>
+            <span>Árbol de stock</span>
+            <span className="xp-caption">Familia · Producto · Artículo</span>
           </div>
-          <div className="max-h-[640px] space-y-2 overflow-auto p-3">
+          <div className="p-3 space-y-0.5">
             {filteredFamilies.length === 0 ? (
-              <div className="rounded border border-dashed border-neutral-300 bg-white p-6 text-center text-sm text-neutral-500">
-                No hay resultados para la búsqueda actual.
+              <div className="rounded border border-dashed border-neutral-300 bg-white p-6 text-sm text-neutral-500">
+                No hay familias que coincidan con la búsqueda.
               </div>
             ) : (
               filteredFamilies.map((family) => {
-                const isActive = idsMatch(family.id, activeFamily?.id);
-                const isEditing = editState?.type === 'family' && idsMatch(editState.id, family.id);
-
-                if (isEditing) {
-                  return (
-                    <div
-                      key={family.id}
-                      className="rounded border border-primary bg-primary-50 p-3 space-y-2"
-                    >
-                      <input
-                        type="text"
-                        value={editState.nombre}
-                        onChange={(e) => setEditState((s) => ({ ...s, nombre: e.target.value }))}
-                        className={inputSm}
-                        placeholder="Nombre de la familia"
-                        ref={(input) => input?.focus()}
-                      />
-                      <input
-                        type="text"
-                        value={editState.codigo}
-                        onChange={(e) => setEditState((s) => ({ ...s, codigo: e.target.value }))}
-                        className={inputSm}
-                        placeholder="Código (opcional)"
-                      />
-                      {editError && <div className="text-xs text-danger-700">{editError}</div>}
-                      <div className="flex gap-2 justify-end">
-                        <button
-                          type="button"
-                          onClick={cancelEdit}
-                          disabled={isSaving}
-                          className={btnCancel}
-                        >
-                          Cancelar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={saveEdit}
-                          disabled={isSaving}
-                          className={btnSave}
-                        >
-                          {isSaving ? 'Guardando...' : 'Guardar'}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                }
+                const isFamilyOpen = expandedFamilyIds.has(String(family.id));
+                const isEditingFamily =
+                  editState?.type === 'family' && idsMatch(editState.id, family.id);
 
                 return (
-                  <div
-                    key={family.id}
-                    className={`rounded border px-3 py-3 transition-colors ${isActive ? 'border-primary bg-primary-100' : 'border-neutral-200 bg-white hover:bg-neutral-50'}`}
-                  >
-                    <button
-                      type="button"
-                      className="w-full text-left"
-                      onClick={() => {
-                        setSelectedFamilyId(family.id);
-                        setSelectedProductId(family.products[0]?.id ?? '');
-                      }}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="font-semibold text-neutral-900">{family.name}</div>
-                        <div className="text-right text-xs text-neutral-500">
-                          <div>{family.products.length} productos</div>
-                          <div>{family.stock_total ?? 0} uds</div>
-                        </div>
-                      </div>
-                      <div className="mt-2 text-xs text-neutral-600">
-                        {family.products.map((p) => p.name).join(' · ') || 'Sin productos'}
-                      </div>
-                    </button>
-                    <div className="mt-2 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMenuState({
-                            type: 'family',
-                            item: family,
-                            x: e.clientX,
-                            y: e.clientY,
-                          });
-                        }}
-                        className={btnDots}
-                        aria-label="Abrir menú de acciones"
-                      >
-                        ⋮
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </section>
-
-        {/* Right: detail + tree + create */}
-        <section className="space-y-4">
-          {/* Stock tree */}
-          <div className="xp-surface overflow-hidden">
-            <div className="xp-card-header">
-              <span>Árbol de stock</span>
-              <span className="xp-caption">Familia · Producto · Artículo</span>
-            </div>
-            <div className="space-y-4 p-4">
-              {!activeFamily ? (
-                <div className="rounded border border-dashed border-neutral-300 bg-white p-6 text-sm text-neutral-500">
-                  No hay familias que coincidan con la búsqueda.
-                </div>
-              ) : (
-                activeFamily.products.map((product) => {
-                  const productIsActive = idsMatch(product.id, activeProduct?.id);
-                  const isEditingProduct =
-                    editState?.type === 'product' && idsMatch(editState.id, product.id);
-
-                  return (
-                    <div key={product.id} className="rounded border border-neutral-200 bg-white">
-                      {isEditingProduct ? (
-                        <div className="border-b bg-primary-50 px-4 py-3 space-y-2">
-                          <input
-                            type="text"
-                            value={editState.nombre}
-                            onChange={(e) =>
-                              setEditState((s) => ({ ...s, nombre: e.target.value }))
-                            }
-                            className={inputSm}
-                            placeholder="Nombre del producto"
-                            ref={(input) => input?.focus()}
-                          />
-                          <input
-                            type="text"
-                            value={editState.ref}
-                            onChange={(e) => setEditState((s) => ({ ...s, ref: e.target.value }))}
-                            className={inputSm}
-                            placeholder="Referencia (opcional)"
-                          />
-                          {editError && <div className="text-xs text-danger-700">{editError}</div>}
-                          <div className="flex gap-2 justify-end">
-                            <button
-                              type="button"
-                              onClick={cancelEdit}
-                              disabled={isSaving}
-                              className={btnCancel}
-                            >
-                              Cancelar
-                            </button>
-                            <button
-                              type="button"
-                              onClick={saveEdit}
-                              disabled={isSaving}
-                              className={btnSave}
-                            >
-                              {isSaving ? 'Guardando...' : 'Guardar'}
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div
-                          className={`flex items-center justify-between gap-3 border-b px-4 py-3 ${productIsActive ? 'bg-primary-100' : 'bg-neutral-50 hover:bg-neutral-100'}`}
-                        >
+                  <div key={family.id}>
+                    {isEditingFamily ? (
+                      <div className="rounded border border-primary bg-primary-50 p-3 space-y-2">
+                        <input
+                          type="text"
+                          value={editState.nombre}
+                          onChange={(e) => setEditState((s) => ({ ...s, nombre: e.target.value }))}
+                          className={inputSm}
+                          placeholder="Nombre de la familia"
+                          ref={(input) => input?.focus()}
+                        />
+                        <input
+                          type="text"
+                          value={editState.codigo}
+                          onChange={(e) => setEditState((s) => ({ ...s, codigo: e.target.value }))}
+                          className={inputSm}
+                          placeholder="Código (opcional)"
+                        />
+                        {editError && <div className="text-xs text-danger-700">{editError}</div>}
+                        <div className="flex gap-2 justify-end">
                           <button
                             type="button"
-                            className="flex flex-1 items-center justify-between gap-3 text-left"
-                            onClick={() => {
-                              setSelectedFamilyId(activeFamily.id);
-                              setSelectedProductId(product.id);
-                            }}
+                            onClick={cancelEdit}
+                            disabled={isSaving}
+                            className={btnCancel}
                           >
-                            <div>
-                              <div className="font-semibold text-neutral-900">{product.name}</div>
-                              <div className="text-xs text-neutral-500">
-                                {product.ref || 'Sin referencia'}
-                              </div>
-                            </div>
-                            <div className="text-right text-xs text-neutral-500">
-                              <div>{(product.articles || []).length} artículos</div>
-                              <div>{product.stock_total ?? 0} uds</div>
-                            </div>
+                            Cancelar
                           </button>
-                          <div className="shrink-0">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setMenuState({
-                                  type: 'product',
-                                  item: product,
-                                  x: e.clientX,
-                                  y: e.clientY,
-                                });
-                              }}
-                              className={btnDots}
-                              aria-label="Abrir menú de acciones"
-                            >
-                              ⋮
-                            </button>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={saveEdit}
+                            disabled={isSaving}
+                            className={btnSave}
+                          >
+                            {isSaving ? 'Guardando...' : 'Guardar'}
+                          </button>
                         </div>
-                      )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 rounded px-2 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors">
+                        <button
+                          type="button"
+                          className="flex flex-1 items-center gap-2 text-left min-w-0"
+                          onClick={() => toggleFamily(family.id)}
+                          aria-expanded={isFamilyOpen}
+                        >
+                          <span className="text-xs text-neutral-400 w-3 shrink-0">
+                            {isFamilyOpen ? '▼' : '▶'}
+                          </span>
+                          <span className="text-lg leading-none shrink-0">
+                            {isFamilyOpen ? '📂' : '📁'}
+                          </span>
+                          <span className="font-bold text-neutral-900 truncate">{family.name}</span>
+                          <span className="ml-auto shrink-0 text-xs text-neutral-500 pl-2">
+                            {family.direct_articles.length > 0
+                              ? `${family.direct_articles.length} artículos · `
+                              : ''}
+                            {family.products.length} productos · {family.stock_total ?? 0} uds
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            menuAnchorRef.current = e.currentTarget;
+                            setMenuState({
+                              type: 'family',
+                              item: family,
+                              x: rect.right,
+                              y: rect.bottom + 2,
+                            });
+                          }}
+                          className={btnDots}
+                          aria-label="Abrir menú de acciones"
+                        >
+                          ⋮
+                        </button>
+                      </div>
+                    )}
+                    {isFamilyOpen && (
+                      <div className="ml-5 mt-0.5 mb-1 space-y-0.5 border-l-2 border-amber-200 pl-3">
+                        {family.direct_articles.length > 0 && (
+                          <div className="mb-1 space-y-1 border-b border-amber-100 pb-1">
+                            {family.direct_articles.map((article) => {
+                              const isEditingDirectArticle =
+                                editState?.type === 'article' && idsMatch(editState.id, article.id);
 
-                      {/* Articles */}
-                      <div className="space-y-2 p-4">
-                        {product.articles.length === 0 ? (
-                          <div className="text-sm italic text-neutral-400">Sin artículos</div>
-                        ) : (
-                          product.articles.map((article) => {
-                            const isEditingArticle =
-                              editState?.type === 'article' && idsMatch(editState.id, article.id);
+                              if (isEditingDirectArticle) {
+                                return (
+                                  <div
+                                    key={article.id}
+                                    className="rounded border border-primary bg-primary-50 p-3 space-y-2"
+                                  >
+                                    <div className="grid gap-2 sm:grid-cols-3">
+                                      <input
+                                        type="text"
+                                        value={editState.nombre}
+                                        onChange={(e) =>
+                                          setEditState((s) => ({ ...s, nombre: e.target.value }))
+                                        }
+                                        className={inputSm}
+                                        placeholder="Nombre"
+                                        ref={(input) => input?.focus()}
+                                      />
+                                      <input
+                                        type="text"
+                                        value={editState.color}
+                                        onChange={(e) =>
+                                          setEditState((s) => ({ ...s, color: e.target.value }))
+                                        }
+                                        className={inputSm}
+                                        placeholder="Color (opcional)"
+                                      />
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        value={editState.cantidad}
+                                        onChange={handleEditCantidadChange}
+                                        className={inputSm}
+                                        placeholder="Cantidad"
+                                      />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs text-neutral-500 shrink-0">
+                                        Color HEX:
+                                      </span>
+                                      <ColorInput
+                                        value={editState.color_hex || ''}
+                                        onChange={(v) =>
+                                          setEditState((s) => ({ ...s, color_hex: v }))
+                                        }
+                                        disabled={isSaving}
+                                      />
+                                    </div>
+                                    {editError && (
+                                      <div className="text-xs text-danger-700">{editError}</div>
+                                    )}
+                                    <div className="flex gap-2 justify-end">
+                                      <button
+                                        type="button"
+                                        onClick={cancelEdit}
+                                        disabled={isSaving}
+                                        className={btnCancel}
+                                      >
+                                        Cancelar
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={saveEdit}
+                                        disabled={isSaving}
+                                        className={btnSave}
+                                      >
+                                        {isSaving ? 'Guardando...' : 'Guardar'}
+                                      </button>
+                                    </div>
+                                    {article.variants.length > 0 && (
+                                      <div className="ml-4 space-y-1 border-l-2 border-neutral-300 pl-3">
+                                        {article.variants.map((variant) => (
+                                          <div
+                                            key={variant.id}
+                                            className="flex items-center justify-between gap-2 rounded border border-neutral-200 bg-white px-3 py-2"
+                                          >
+                                            <div>
+                                              <div className="text-sm font-medium text-neutral-800">
+                                                {variant.name}
+                                              </div>
+                                              <div className="flex items-center gap-1.5 text-xs text-neutral-500">
+                                                <ColorDot hex={variant.color_hex} />
+                                                {variant.color || 'Sin color'}
+                                              </div>
+                                            </div>
+                                            <QuantityControl
+                                              value={variant.quantity}
+                                              onChange={(nextQty) =>
+                                                changeArticuloQuantity(variant.id, nextQty)
+                                              }
+                                            />
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              }
 
-                            if (isEditingArticle) {
                               return (
                                 <div
                                   key={article.id}
-                                  className="rounded border border-primary bg-primary-50 p-3 space-y-2"
+                                  className="flex flex-col gap-2 rounded border border-amber-200 bg-amber-50 p-2.5 lg:flex-row lg:items-center lg:justify-between"
                                 >
-                                  <div className="grid gap-2 sm:grid-cols-3">
-                                    <input
-                                      type="text"
-                                      value={editState.nombre}
-                                      onChange={(e) =>
-                                        setEditState((s) => ({ ...s, nombre: e.target.value }))
-                                      }
-                                      className={inputSm}
-                                      placeholder="Nombre"
-                                      ref={(input) => input?.focus()}
-                                    />
-                                    <input
-                                      type="text"
-                                      value={editState.color}
-                                      onChange={(e) =>
-                                        setEditState((s) => ({ ...s, color: e.target.value }))
-                                      }
-                                      className={inputSm}
-                                      placeholder="Color (opcional)"
-                                    />
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      value={editState.cantidad}
-                                      onChange={handleEditCantidadChange}
-                                      className={inputSm}
-                                      placeholder="Cantidad"
-                                    />
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className="text-sm shrink-0">📄</span>
+                                    <div className="min-w-0">
+                                      <div className="font-medium text-neutral-900 truncate">
+                                        {article.name}
+                                      </div>
+                                      <div className="flex items-center gap-1.5 text-xs text-neutral-500">
+                                        <ColorDot hex={article.color_hex} />
+                                        {article.color || 'Sin color'}
+                                      </div>
+                                    </div>
                                   </div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs text-neutral-500 shrink-0">
-                                      Color HEX:
-                                    </span>
-                                    <ColorInput
-                                      value={editState.color_hex || ''}
-                                      onChange={(v) =>
-                                        setEditState((s) => ({ ...s, color_hex: v }))
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <QuantityControl
+                                      value={article.quantity}
+                                      onChange={(nextQty) =>
+                                        changeArticuloQuantity(article.id, nextQty)
                                       }
-                                      disabled={isSaving}
                                     />
-                                  </div>
-                                  {editError && (
-                                    <div className="text-xs text-danger-700">{editError}</div>
-                                  )}
-                                  <div className="flex gap-2 justify-end">
                                     <button
                                       type="button"
-                                      onClick={cancelEdit}
-                                      disabled={isSaving}
-                                      className={btnCancel}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        menuAnchorRef.current = e.currentTarget;
+                                        setMenuState({
+                                          type: 'article',
+                                          item: article,
+                                          x: rect.right,
+                                          y: rect.bottom + 2,
+                                        });
+                                      }}
+                                      className={btnDots}
+                                      aria-label="Abrir menú de acciones"
                                     >
-                                      Cancelar
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={saveEdit}
-                                      disabled={isSaving}
-                                      className={btnSave}
-                                    >
-                                      {isSaving ? 'Guardando...' : 'Guardar'}
+                                      ⋮
                                     </button>
                                   </div>
-                                </div>
-                              );
-                            }
-
-                            return (
-                              <div
-                                key={article.id}
-                                className="flex flex-col gap-2 rounded border border-neutral-200 bg-neutral-50 p-3 lg:flex-row lg:items-center lg:justify-between"
-                              >
-                                <div>
-                                  <div className="font-medium text-neutral-900">{article.name}</div>
-                                  <div className="flex items-center gap-1.5 text-xs text-neutral-500">
-                                    <ColorDot hex={article.color_hex} />
-                                    {article.color || 'Sin color'}
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <QuantityControl
-                                    value={article.quantity}
-                                    onChange={(nextQty) =>
-                                      changeArticuloQuantity(article.id, nextQty)
-                                    }
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setMenuState({
-                                        type: 'article',
-                                        item: article,
-                                        x: e.clientX,
-                                        y: e.clientY,
-                                      });
-                                    }}
-                                    className={btnDots}
-                                    aria-label="Abrir menú de acciones"
-                                  >
-                                    ⋮
-                                  </button>
-                                </div>
-
-                                {article.variants.length > 0 && (
-                                  <div className="col-span-full mt-2 ml-4 space-y-1 border-l-2 border-neutral-300 pl-3">
-                                    {article.variants.map((variant) => {
-                                      const isEditingVariant =
-                                        editState?.type === 'article' &&
-                                        idsMatch(editState.id, variant.id);
-
-                                      if (isEditingVariant) {
-                                        return (
-                                          <div
-                                            key={variant.id}
-                                            className="rounded border border-primary bg-primary-50 p-2 space-y-2"
-                                          >
-                                            <div className="grid gap-2 sm:grid-cols-3">
-                                              <input
-                                                type="text"
-                                                value={editState.nombre}
-                                                onChange={(e) =>
-                                                  setEditState((s) => ({
-                                                    ...s,
-                                                    nombre: e.target.value,
-                                                  }))
-                                                }
-                                                className={inputSm}
-                                                placeholder="Nombre"
-                                                ref={(input) => input?.focus()}
-                                              />
-                                              <input
-                                                type="text"
-                                                value={editState.color}
-                                                onChange={(e) =>
-                                                  setEditState((s) => ({
-                                                    ...s,
-                                                    color: e.target.value,
-                                                  }))
-                                                }
-                                                className={inputSm}
-                                                placeholder="Color (opcional)"
-                                              />
-                                              <input
-                                                type="number"
-                                                min="0"
-                                                value={editState.cantidad}
-                                                onChange={handleEditCantidadChange}
-                                                className={inputSm}
-                                                placeholder="Cantidad"
-                                              />
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                              <span className="text-xs text-neutral-500 shrink-0">
-                                                Color HEX:
-                                              </span>
-                                              <ColorInput
-                                                value={editState.color_hex || ''}
-                                                onChange={(v) =>
-                                                  setEditState((s) => ({ ...s, color_hex: v }))
-                                                }
-                                                disabled={isSaving}
-                                              />
-                                            </div>
-                                            {editError && (
-                                              <div className="text-xs text-danger-700">
-                                                {editError}
-                                              </div>
-                                            )}
-                                            <div className="flex gap-2 justify-end">
-                                              <button
-                                                type="button"
-                                                onClick={cancelEdit}
-                                                disabled={isSaving}
-                                                className={btnCancel}
-                                              >
-                                                Cancelar
-                                              </button>
-                                              <button
-                                                type="button"
-                                                onClick={saveEdit}
-                                                disabled={isSaving}
-                                                className={btnSave}
-                                              >
-                                                {isSaving ? 'Guardando...' : 'Guardar'}
-                                              </button>
-                                            </div>
-                                          </div>
-                                        );
-                                      }
-
-                                      return (
+                                  {article.variants.length > 0 && (
+                                    <div className="col-span-full mt-1 ml-6 space-y-1 border-l-2 border-amber-300 pl-3">
+                                      {article.variants.map((variant) => (
                                         <div
                                           key={variant.id}
-                                          className="flex items-center justify-between gap-2 rounded border border-neutral-200 bg-white px-3 py-2"
+                                          className="flex items-center justify-between gap-2 rounded border border-amber-200 bg-white px-3 py-2"
                                         >
                                           <div>
                                             <div className="text-sm font-medium text-neutral-800">
@@ -919,11 +827,14 @@ function Stock() {
                                               type="button"
                                               onClick={(e) => {
                                                 e.stopPropagation();
+                                                const rect =
+                                                  e.currentTarget.getBoundingClientRect();
+                                                menuAnchorRef.current = e.currentTarget;
                                                 setMenuState({
                                                   type: 'article',
                                                   item: variant,
-                                                  x: e.clientX,
-                                                  y: e.clientY,
+                                                  x: rect.right,
+                                                  y: rect.bottom + 2,
                                                 });
                                               }}
                                               className={btnDots}
@@ -933,8 +844,395 @@ function Stock() {
                                             </button>
                                           </div>
                                         </div>
-                                      );
-                                    })}
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {family.products.length === 0 && family.direct_articles.length === 0 ? (
+                          <div className="py-2 px-3 text-sm italic text-neutral-400">
+                            Sin productos
+                          </div>
+                        ) : (
+                          family.products.map((product) => {
+                            const isProductOpen = expandedProductIds.has(String(product.id));
+                            const isEditingProduct =
+                              editState?.type === 'product' && idsMatch(editState.id, product.id);
+
+                            return (
+                              <div key={product.id}>
+                                {isEditingProduct ? (
+                                  <div className="rounded border border-primary bg-primary-50 p-3 space-y-2">
+                                    <input
+                                      type="text"
+                                      value={editState.nombre}
+                                      onChange={(e) =>
+                                        setEditState((s) => ({ ...s, nombre: e.target.value }))
+                                      }
+                                      className={inputSm}
+                                      placeholder="Nombre del producto"
+                                      ref={(input) => input?.focus()}
+                                    />
+                                    <input
+                                      type="text"
+                                      value={editState.ref}
+                                      onChange={(e) =>
+                                        setEditState((s) => ({ ...s, ref: e.target.value }))
+                                      }
+                                      className={inputSm}
+                                      placeholder="Referencia (opcional)"
+                                    />
+                                    {editError && (
+                                      <div className="text-xs text-danger-700">{editError}</div>
+                                    )}
+                                    <div className="flex gap-2 justify-end">
+                                      <button
+                                        type="button"
+                                        onClick={cancelEdit}
+                                        disabled={isSaving}
+                                        className={btnCancel}
+                                      >
+                                        Cancelar
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={saveEdit}
+                                        disabled={isSaving}
+                                        className={btnSave}
+                                      >
+                                        {isSaving ? 'Guardando...' : 'Guardar'}
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1 rounded px-2 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors">
+                                    <button
+                                      type="button"
+                                      className="flex flex-1 items-center gap-2 text-left min-w-0"
+                                      onClick={() => toggleProduct(product.id)}
+                                      aria-expanded={isProductOpen}
+                                    >
+                                      <span className="text-xs text-neutral-400 w-3 shrink-0">
+                                        {isProductOpen ? '▼' : '▶'}
+                                      </span>
+                                      <span className="text-base leading-none shrink-0">
+                                        {isProductOpen ? '📂' : '📁'}
+                                      </span>
+                                      <span className="font-semibold text-neutral-800 truncate">
+                                        {product.name}
+                                      </span>
+                                      {product.ref && (
+                                        <span className="text-xs text-neutral-500 shrink-0">
+                                          {product.ref}
+                                        </span>
+                                      )}
+                                      <span className="ml-auto shrink-0 text-xs text-neutral-500 pl-2">
+                                        {(product.articles || []).length} artículos ·{' '}
+                                        {product.stock_total ?? 0} uds
+                                      </span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        menuAnchorRef.current = e.currentTarget;
+                                        setMenuState({
+                                          type: 'product',
+                                          item: product,
+                                          x: rect.right,
+                                          y: rect.bottom + 2,
+                                        });
+                                      }}
+                                      className={btnDots}
+                                      aria-label="Abrir menú de acciones"
+                                    >
+                                      ⋮
+                                    </button>
+                                  </div>
+                                )}
+                                {isProductOpen && (
+                                  <div className="ml-5 mt-0.5 mb-0.5 space-y-1 border-l-2 border-blue-200 pl-3 py-1">
+                                    {product.articles.length === 0 ? (
+                                      <div className="py-1 px-3 text-sm italic text-neutral-400">
+                                        Sin artículos
+                                      </div>
+                                    ) : (
+                                      product.articles.map((article) => {
+                                        const isEditingArticle =
+                                          editState?.type === 'article' &&
+                                          idsMatch(editState.id, article.id);
+
+                                        if (isEditingArticle) {
+                                          return (
+                                            <div
+                                              key={article.id}
+                                              className="rounded border border-primary bg-primary-50 p-3 space-y-2"
+                                            >
+                                              <div className="grid gap-2 sm:grid-cols-3">
+                                                <input
+                                                  type="text"
+                                                  value={editState.nombre}
+                                                  onChange={(e) =>
+                                                    setEditState((s) => ({
+                                                      ...s,
+                                                      nombre: e.target.value,
+                                                    }))
+                                                  }
+                                                  className={inputSm}
+                                                  placeholder="Nombre"
+                                                  ref={(input) => input?.focus()}
+                                                />
+                                                <input
+                                                  type="text"
+                                                  value={editState.color}
+                                                  onChange={(e) =>
+                                                    setEditState((s) => ({
+                                                      ...s,
+                                                      color: e.target.value,
+                                                    }))
+                                                  }
+                                                  className={inputSm}
+                                                  placeholder="Color (opcional)"
+                                                />
+                                                <input
+                                                  type="number"
+                                                  min="0"
+                                                  value={editState.cantidad}
+                                                  onChange={handleEditCantidadChange}
+                                                  className={inputSm}
+                                                  placeholder="Cantidad"
+                                                />
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-xs text-neutral-500 shrink-0">
+                                                  Color HEX:
+                                                </span>
+                                                <ColorInput
+                                                  value={editState.color_hex || ''}
+                                                  onChange={(v) =>
+                                                    setEditState((s) => ({ ...s, color_hex: v }))
+                                                  }
+                                                  disabled={isSaving}
+                                                />
+                                              </div>
+                                              {editError && (
+                                                <div className="text-xs text-danger-700">
+                                                  {editError}
+                                                </div>
+                                              )}
+                                              <div className="flex gap-2 justify-end">
+                                                <button
+                                                  type="button"
+                                                  onClick={cancelEdit}
+                                                  disabled={isSaving}
+                                                  className={btnCancel}
+                                                >
+                                                  Cancelar
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={saveEdit}
+                                                  disabled={isSaving}
+                                                  className={btnSave}
+                                                >
+                                                  {isSaving ? 'Guardando...' : 'Guardar'}
+                                                </button>
+                                              </div>
+                                            </div>
+                                          );
+                                        }
+
+                                        return (
+                                          <div
+                                            key={article.id}
+                                            className="flex flex-col gap-2 rounded border border-neutral-200 bg-white p-2.5 lg:flex-row lg:items-center lg:justify-between"
+                                          >
+                                            <div className="flex items-center gap-2 min-w-0">
+                                              <span className="text-sm shrink-0">📄</span>
+                                              <div className="min-w-0">
+                                                <div className="font-medium text-neutral-900 truncate">
+                                                  {article.name}
+                                                </div>
+                                                <div className="flex items-center gap-1.5 text-xs text-neutral-500">
+                                                  <ColorDot hex={article.color_hex} />
+                                                  {article.color || 'Sin color'}
+                                                </div>
+                                              </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 shrink-0">
+                                              <QuantityControl
+                                                value={article.quantity}
+                                                onChange={(nextQty) =>
+                                                  changeArticuloQuantity(article.id, nextQty)
+                                                }
+                                              />
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  const rect =
+                                                    e.currentTarget.getBoundingClientRect();
+                                                  menuAnchorRef.current = e.currentTarget;
+                                                  setMenuState({
+                                                    type: 'article',
+                                                    item: article,
+                                                    x: rect.right,
+                                                    y: rect.bottom + 2,
+                                                  });
+                                                }}
+                                                className={btnDots}
+                                                aria-label="Abrir menú de acciones"
+                                              >
+                                                ⋮
+                                              </button>
+                                            </div>
+                                            {article.variants.length > 0 && (
+                                              <div className="col-span-full mt-1 ml-6 space-y-1 border-l-2 border-neutral-300 pl-3">
+                                                {article.variants.map((variant) => {
+                                                  const isEditingVariant =
+                                                    editState?.type === 'article' &&
+                                                    idsMatch(editState.id, variant.id);
+
+                                                  if (isEditingVariant) {
+                                                    return (
+                                                      <div
+                                                        key={variant.id}
+                                                        className="rounded border border-primary bg-primary-50 p-2 space-y-2"
+                                                      >
+                                                        <div className="grid gap-2 sm:grid-cols-3">
+                                                          <input
+                                                            type="text"
+                                                            value={editState.nombre}
+                                                            onChange={(e) =>
+                                                              setEditState((s) => ({
+                                                                ...s,
+                                                                nombre: e.target.value,
+                                                              }))
+                                                            }
+                                                            className={inputSm}
+                                                            placeholder="Nombre"
+                                                            ref={(input) => input?.focus()}
+                                                          />
+                                                          <input
+                                                            type="text"
+                                                            value={editState.color}
+                                                            onChange={(e) =>
+                                                              setEditState((s) => ({
+                                                                ...s,
+                                                                color: e.target.value,
+                                                              }))
+                                                            }
+                                                            className={inputSm}
+                                                            placeholder="Color (opcional)"
+                                                          />
+                                                          <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={editState.cantidad}
+                                                            onChange={handleEditCantidadChange}
+                                                            className={inputSm}
+                                                            placeholder="Cantidad"
+                                                          />
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                          <span className="text-xs text-neutral-500 shrink-0">
+                                                            Color HEX:
+                                                          </span>
+                                                          <ColorInput
+                                                            value={editState.color_hex || ''}
+                                                            onChange={(v) =>
+                                                              setEditState((s) => ({
+                                                                ...s,
+                                                                color_hex: v,
+                                                              }))
+                                                            }
+                                                            disabled={isSaving}
+                                                          />
+                                                        </div>
+                                                        {editError && (
+                                                          <div className="text-xs text-danger-700">
+                                                            {editError}
+                                                          </div>
+                                                        )}
+                                                        <div className="flex gap-2 justify-end">
+                                                          <button
+                                                            type="button"
+                                                            onClick={cancelEdit}
+                                                            disabled={isSaving}
+                                                            className={btnCancel}
+                                                          >
+                                                            Cancelar
+                                                          </button>
+                                                          <button
+                                                            type="button"
+                                                            onClick={saveEdit}
+                                                            disabled={isSaving}
+                                                            className={btnSave}
+                                                          >
+                                                            {isSaving ? 'Guardando...' : 'Guardar'}
+                                                          </button>
+                                                        </div>
+                                                      </div>
+                                                    );
+                                                  }
+
+                                                  return (
+                                                    <div
+                                                      key={variant.id}
+                                                      className="flex items-center justify-between gap-2 rounded border border-neutral-200 bg-white px-3 py-2"
+                                                    >
+                                                      <div>
+                                                        <div className="text-sm font-medium text-neutral-800">
+                                                          {variant.name}
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 text-xs text-neutral-500">
+                                                          <ColorDot hex={variant.color_hex} />
+                                                          {variant.color || 'Sin color'}
+                                                        </div>
+                                                      </div>
+                                                      <div className="flex items-center gap-2">
+                                                        <QuantityControl
+                                                          value={variant.quantity}
+                                                          onChange={(nextQty) =>
+                                                            changeArticuloQuantity(
+                                                              variant.id,
+                                                              nextQty
+                                                            )
+                                                          }
+                                                        />
+                                                        <button
+                                                          type="button"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const rect =
+                                                              e.currentTarget.getBoundingClientRect();
+                                                            menuAnchorRef.current = e.currentTarget;
+                                                            setMenuState({
+                                                              type: 'article',
+                                                              item: variant,
+                                                              x: rect.right,
+                                                              y: rect.bottom + 2,
+                                                            });
+                                                          }}
+                                                          className={btnDots}
+                                                          aria-label="Abrir menú de acciones"
+                                                        >
+                                                          ⋮
+                                                        </button>
+                                                      </div>
+                                                    </div>
+                                                  );
+                                                })}
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      })
+                                    )}
                                   </div>
                                 )}
                               </div>
@@ -942,172 +1240,187 @@ function Stock() {
                           })
                         )}
                       </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
           </div>
+        </div>
 
-          {/* Create form */}
-          <form onSubmit={createEntry} className="xp-surface overflow-hidden">
-            <div className="xp-card-header">
-              <span>Crear nuevo elemento</span>
-              <span className="xp-caption">Familia, producto o artículo</span>
-            </div>
-            <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-4">
-              {createError && (
-                <div className="col-span-full rounded border border-danger-200 bg-danger-100 px-3 py-2 text-sm text-danger-700">
-                  {createError}
-                </div>
-              )}
+        {/* Create form */}
+        <form onSubmit={createEntry} className="xp-surface overflow-hidden">
+          <div className="xp-card-header">
+            <span>Crear nuevo elemento</span>
+            <span className="xp-caption">Familia, producto o artículo</span>
+          </div>
+          <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-4">
+            {createError && (
+              <div className="col-span-full rounded border border-danger-200 bg-danger-100 px-3 py-2 text-sm text-danger-700">
+                {createError}
+              </div>
+            )}
 
-              <label htmlFor="stock-create-type" className="space-y-1">
-                <span className="block text-xs font-semibold uppercase text-neutral-500">Tipo</span>
+            <label htmlFor="stock-create-type" className="space-y-1">
+              <span className="block text-xs font-semibold uppercase text-neutral-500">Tipo</span>
+              <select
+                id="stock-create-type"
+                value={createType}
+                onChange={(event) => setCreateType(event.target.value)}
+                disabled={isCreating}
+                className="w-full px-3 py-2"
+              >
+                <option value="family">Familia</option>
+                <option value="product">Producto</option>
+                <option value="article">Artículo</option>
+              </select>
+            </label>
+
+            {createType === 'article' && (
+              <label htmlFor="stock-create-article-parent" className="space-y-1">
+                <span className="block text-xs font-semibold uppercase text-neutral-500">
+                  Ubicación
+                </span>
                 <select
-                  id="stock-create-type"
-                  value={createType}
-                  onChange={(event) => setCreateType(event.target.value)}
+                  id="stock-create-article-parent"
+                  value={createArticleParent}
+                  onChange={(e) => setCreateArticleParent(e.target.value)}
                   disabled={isCreating}
                   className="w-full px-3 py-2"
                 >
-                  <option value="family">Familia</option>
-                  <option value="product">Producto</option>
-                  <option value="article">Artículo</option>
+                  <option value="product">Bajo un producto</option>
+                  <option value="family">Directamente bajo familia</option>
                 </select>
               </label>
+            )}
 
-              <label htmlFor="stock-create-name" className="space-y-1">
-                <span className="block text-xs font-semibold uppercase text-neutral-500">
-                  Nombre
-                </span>
-                <input
-                  id="stock-create-name"
-                  type="text"
-                  value={createName}
-                  onChange={(event) => setCreateName(event.target.value)}
-                  disabled={isCreating}
-                  className="w-full px-3 py-2"
-                  placeholder="Nombre visible"
-                />
-              </label>
+            <label htmlFor="stock-create-name" className="space-y-1">
+              <span className="block text-xs font-semibold uppercase text-neutral-500">Nombre</span>
+              <input
+                id="stock-create-name"
+                type="text"
+                value={createName}
+                onChange={(event) => setCreateName(event.target.value)}
+                disabled={isCreating}
+                className="w-full px-3 py-2"
+                placeholder="Nombre visible"
+              />
+            </label>
 
-              <label htmlFor="stock-create-ref" className="space-y-1">
-                <span className="block text-xs font-semibold uppercase text-neutral-500">
-                  Referencia
-                </span>
-                <input
-                  id="stock-create-ref"
-                  type="text"
-                  value={createRef}
-                  onChange={(event) => setCreateRef(event.target.value)}
-                  disabled={isCreating || createType !== 'product'}
-                  className="w-full px-3 py-2"
-                  placeholder="Referencia del producto"
-                />
-              </label>
+            <label htmlFor="stock-create-ref" className="space-y-1">
+              <span className="block text-xs font-semibold uppercase text-neutral-500">
+                Referencia
+              </span>
+              <input
+                id="stock-create-ref"
+                type="text"
+                value={createRef}
+                onChange={(event) => setCreateRef(event.target.value)}
+                disabled={isCreating || createType !== 'product'}
+                className="w-full px-3 py-2"
+                placeholder="Referencia del producto"
+              />
+            </label>
 
-              <label htmlFor="stock-create-color" className="space-y-1">
-                <span className="block text-xs font-semibold uppercase text-neutral-500">
-                  Color
-                </span>
-                <input
-                  id="stock-create-color"
-                  type="text"
-                  value={createColor}
-                  onChange={(event) => setCreateColor(event.target.value)}
-                  disabled={isCreating || createType !== 'article'}
-                  className="w-full px-3 py-2"
-                  placeholder="Color del artículo"
-                />
-              </label>
+            <label htmlFor="stock-create-color" className="space-y-1">
+              <span className="block text-xs font-semibold uppercase text-neutral-500">Color</span>
+              <input
+                id="stock-create-color"
+                type="text"
+                value={createColor}
+                onChange={(event) => setCreateColor(event.target.value)}
+                disabled={isCreating || createType !== 'article'}
+                className="w-full px-3 py-2"
+                placeholder="Color del artículo"
+              />
+            </label>
 
-              <div className="space-y-1">
-                <span className="block text-xs font-semibold uppercase text-neutral-500">
-                  Color HEX
-                </span>
-                <ColorInput
-                  value={createColorHex}
-                  onChange={(v) => setCreateColorHex(v)}
-                  disabled={isCreating || createType !== 'article'}
-                />
-              </div>
+            <div className="space-y-1">
+              <span className="block text-xs font-semibold uppercase text-neutral-500">
+                Color HEX
+              </span>
+              <ColorInput
+                value={createColorHex}
+                onChange={(v) => setCreateColorHex(v)}
+                disabled={isCreating || createType !== 'article'}
+              />
+            </div>
 
-              <label htmlFor="stock-create-quantity" className="space-y-1">
-                <span className="block text-xs font-semibold uppercase text-neutral-500">
-                  Cantidad
-                </span>
-                <input
-                  id="stock-create-quantity"
-                  type="number"
-                  min="0"
-                  value={createQuantity}
-                  onChange={(event) =>
-                    setCreateQuantity(Math.max(0, parseInt(event.target.value, 10) || 0))
-                  }
-                  disabled={isCreating || createType !== 'article'}
-                  className="w-full px-3 py-2"
-                />
-              </label>
+            <label htmlFor="stock-create-quantity" className="space-y-1">
+              <span className="block text-xs font-semibold uppercase text-neutral-500">
+                Cantidad
+              </span>
+              <input
+                id="stock-create-quantity"
+                type="number"
+                min="0"
+                value={createQuantity}
+                onChange={(event) =>
+                  setCreateQuantity(Math.max(0, parseInt(event.target.value, 10) || 0))
+                }
+                disabled={isCreating || createType !== 'article'}
+                className="w-full px-3 py-2"
+              />
+            </label>
 
-              <label htmlFor="stock-create-family" className="space-y-1">
-                <span className="block text-xs font-semibold uppercase text-neutral-500">
-                  Familia
-                </span>
-                <select
-                  id="stock-create-family"
-                  value={createFamilyId}
-                  onChange={(event) => {
-                    setCreateFamilyId(event.target.value);
-                    const fam = families.find((family) => idsMatch(family.id, event.target.value));
-                    setCreateProductId(fam?.products[0]?.id ?? '');
-                  }}
-                  disabled={isCreating || createType === 'family'}
-                  className="w-full px-3 py-2"
-                >
-                  <option value="">Selecciona una familia</option>
-                  {families.map((fam) => (
-                    <option key={fam.id} value={fam.id}>
-                      {fam.name}
+            <label htmlFor="stock-create-family" className="space-y-1">
+              <span className="block text-xs font-semibold uppercase text-neutral-500">
+                Familia
+              </span>
+              <select
+                id="stock-create-family"
+                value={createFamilyId}
+                onChange={handleCreateFamilyChange}
+                disabled={isCreating || createType === 'family'}
+                className="w-full px-3 py-2"
+              >
+                <option value="">Selecciona una familia</option>
+                {families.map((fam) => (
+                  <option key={fam.id} value={fam.id}>
+                    {fam.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label htmlFor="stock-create-product" className="space-y-1">
+              <span className="block text-xs font-semibold uppercase text-neutral-500">
+                Producto
+              </span>
+              <select
+                id="stock-create-product"
+                value={createProductId}
+                onChange={(event) => setCreateProductId(event.target.value)}
+                disabled={
+                  isCreating ||
+                  createType === 'family' ||
+                  createType === 'product' ||
+                  (createType === 'article' && createArticleParent === 'family')
+                }
+                className="w-full px-3 py-2"
+              >
+                <option value="">Selecciona un producto</option>
+                {families
+                  .find((fam) => idsMatch(fam.id, createFamilyId))
+                  ?.products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
                     </option>
                   ))}
-                </select>
-              </label>
+              </select>
+            </label>
 
-              <label htmlFor="stock-create-product" className="space-y-1">
-                <span className="block text-xs font-semibold uppercase text-neutral-500">
-                  Producto
-                </span>
-                <select
-                  id="stock-create-product"
-                  value={createProductId}
-                  onChange={(event) => setCreateProductId(event.target.value)}
-                  disabled={isCreating || createType === 'family' || createType === 'product'}
-                  className="w-full px-3 py-2"
-                >
-                  <option value="">Selecciona un producto</option>
-                  {families
-                    .find((fam) => idsMatch(fam.id, createFamilyId))
-                    ?.products.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-
-              <div className="col-span-full flex items-end justify-end">
-                <button
-                  type="submit"
-                  disabled={isCreating}
-                  className="px-4 py-2 font-semibold bg-primary text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isCreating ? 'Creando...' : 'Crear'}
-                </button>
-              </div>
+            <div className="col-span-full flex items-end justify-end">
+              <button
+                type="submit"
+                disabled={isCreating}
+                className="px-4 py-2 font-semibold bg-primary text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isCreating ? 'Creando...' : 'Crear'}
+              </button>
             </div>
-          </form>
-        </section>
+          </div>
+        </form>
       </div>
 
       {/* Context menu */}
@@ -1116,7 +1429,29 @@ function Stock() {
           role="menu"
           tabIndex={-1}
           className="xp-context-menu fixed py-1 z-50"
-          style={{ top: menuState.y, left: menuState.x, right: 'auto' }}
+          style={{ top: menuState.y, left: menuState.x, transform: 'translateX(-100%)' }}
+          ref={(node) => {
+            if (!node) return;
+            const viewportPadding = 4;
+            const rect = node.getBoundingClientRect();
+            const overflowLeft = viewportPadding - rect.left;
+            if (overflowLeft > 0) {
+              // eslint-disable-next-line no-param-reassign
+              node.style.left = `${parseFloat(node.style.left) + overflowLeft}px`;
+            }
+            const adjustedRect = node.getBoundingClientRect();
+            const overflowRight = adjustedRect.right - window.innerWidth + viewportPadding;
+            if (overflowRight > 0) {
+              // eslint-disable-next-line no-param-reassign
+              node.style.left = `${parseFloat(node.style.left) - overflowRight}px`;
+            }
+            const finalRect = node.getBoundingClientRect();
+            const overflowBottom = finalRect.bottom - window.innerHeight + viewportPadding;
+            if (overflowBottom > 0) {
+              // eslint-disable-next-line no-param-reassign
+              node.style.top = `${parseFloat(node.style.top) - overflowBottom}px`;
+            }
+          }}
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
         >

@@ -166,4 +166,98 @@ describe('Stock IPC Handlers', () => {
     expect(response.success).toBe(false);
     expect(response.error.code).toBe('INVALID_INPUT');
   });
+
+  it('creates articles directly under a familia without a producto', async () => {
+    const createFamilia = mockHandlers['stock:createFamilia'];
+    const createArticulo = mockHandlers['stock:createArticulo'];
+    const getTree = mockHandlers['stock:getTree'];
+
+    const familiaRes = await createFamilia(null, { nombre: 'Cintas', codigo: 'F-D1' });
+    expect(familiaRes.success).toBe(true);
+
+    const articuloRes = await createArticulo(null, {
+      familia_id: familiaRes.data.id,
+      nombre: 'Cinta roja',
+      color: 'Rojo',
+      cantidad: 4,
+    });
+    expect(articuloRes.success).toBe(true);
+    expect(articuloRes.data.familia_id).toBe(familiaRes.data.id);
+    expect(articuloRes.data.producto_id).toBeNull();
+
+    const treeRes = await getTree();
+    expect(treeRes.success).toBe(true);
+
+    const familia = treeRes.data.find((f) => f.id === familiaRes.data.id);
+    expect(familia).toBeDefined();
+    expect(familia.direct_articles).toHaveLength(1);
+    expect(familia.direct_articles[0].name).toBe('Cinta roja');
+    expect(familia.direct_articles[0].quantity).toBe(4);
+    expect(familia.stock_total).toBe(4);
+    expect(familia.products).toHaveLength(0);
+  });
+
+  it('includes direct-familia articles in family stock_total alongside product articles', async () => {
+    const createFamilia = mockHandlers['stock:createFamilia'];
+    const createProducto = mockHandlers['stock:createProducto'];
+    const createArticulo = mockHandlers['stock:createArticulo'];
+    const getTree = mockHandlers['stock:getTree'];
+
+    const familiaRes = await createFamilia(null, { nombre: 'Mixta', codigo: 'F-D2' });
+
+    const productoRes = await createProducto(null, {
+      familia_id: familiaRes.data.id,
+      nombre: 'Producto dentro',
+    });
+    const productoArticuloRes = await createArticulo(null, {
+      producto_id: productoRes.data.id,
+      nombre: 'Artículo en producto',
+      cantidad: 3,
+    });
+    expect(productoArticuloRes.success).toBe(true);
+
+    const directoRes = await createArticulo(null, {
+      familia_id: familiaRes.data.id,
+      nombre: 'Artículo directo',
+      cantidad: 5,
+    });
+    expect(directoRes.success).toBe(true);
+
+    const treeRes = await getTree();
+    const familia = treeRes.data.find((f) => f.id === familiaRes.data.id);
+
+    expect(familia.products).toHaveLength(1);
+    expect(familia.direct_articles).toHaveLength(1);
+    expect(familia.stock_total).toBe(8);
+  });
+
+  it('rejects direct-familia article with parent_articulo_id from a different familia', async () => {
+    const createFamilia = mockHandlers['stock:createFamilia'];
+    const createArticulo = mockHandlers['stock:createArticulo'];
+
+    const familiaARes = await createFamilia(null, { nombre: 'Familia A', codigo: 'FA' });
+    const familiaBRes = await createFamilia(null, { nombre: 'Familia B', codigo: 'FB' });
+
+    const parentRes = await createArticulo(null, {
+      familia_id: familiaARes.data.id,
+      nombre: 'Base A',
+    });
+
+    const response = await createArticulo(null, {
+      familia_id: familiaBRes.data.id,
+      parent_articulo_id: parentRes.data.id,
+      nombre: 'Invalid variant',
+    });
+
+    expect(response.success).toBe(false);
+    expect(response.error.code).toBe('INVALID_INPUT');
+  });
+
+  it('rejects createArticulo when neither producto_id nor familia_id is provided', async () => {
+    const createArticulo = mockHandlers['stock:createArticulo'];
+
+    const response = await createArticulo(null, { nombre: 'Sin padre' });
+    expect(response.success).toBe(false);
+    expect(response.error.code).toBe('INVALID_INPUT');
+  });
 });
