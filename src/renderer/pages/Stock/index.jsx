@@ -124,16 +124,9 @@ function ColorInput({ value, onChange, disabled }) {
   );
 }
 
-const SECTION_TABS = [
-  { key: 'familias', label: 'Familias' },
-  { key: 'productos', label: 'Productos' },
-  { key: 'articulos', label: 'Artículos' },
-];
-
 function Stock() {
   const [families, setFamilies] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeSection, setActiveSection] = useState('familias');
   const [selectedFamilyId, setSelectedFamilyId] = useState('');
   const [selectedProductId, setSelectedProductId] = useState('');
 
@@ -472,26 +465,14 @@ function Stock() {
         </div>
       )}
 
-      <div className="xp-toolbar xp-toolbar--stacked">
+      <div className="xp-toolbar">
         <input
           type="search"
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
           placeholder="Buscar familia, producto o artículo..."
-          className="min-w-[240px] flex-1 px-4 py-2"
+          className="w-full px-4 py-2"
         />
-        <div className="flex flex-wrap gap-2">
-          {SECTION_TABS.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveSection(tab.key)}
-              className={`px-4 py-2 text-sm font-semibold ${activeSection === tab.key ? 'bg-primary text-white' : 'bg-white text-neutral-700'}`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
@@ -606,28 +587,6 @@ function Stock() {
 
         {/* Right: detail + tree + create */}
         <section className="space-y-4">
-          {/* Summary */}
-          <div className="xp-surface overflow-hidden">
-            <div className="xp-card-header">
-              <span>Resumen de selección</span>
-              <span className="xp-caption">{activeSection}</span>
-            </div>
-            <div className="grid gap-3 p-4 md:grid-cols-2">
-              <div className="rounded border border-neutral-200 bg-white p-3">
-                <div className="text-xs uppercase text-neutral-500">Familia</div>
-                <div className="font-semibold text-neutral-900">
-                  {activeFamily?.name ?? 'Sin selección'}
-                </div>
-              </div>
-              <div className="rounded border border-neutral-200 bg-white p-3">
-                <div className="text-xs uppercase text-neutral-500">Producto</div>
-                <div className="font-semibold text-neutral-900">
-                  {activeProduct?.name ?? 'Sin selección'}
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* Stock tree */}
           <div className="xp-surface overflow-hidden">
             <div className="xp-card-header">
