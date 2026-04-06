@@ -5,6 +5,35 @@ const { app } = require('electron');
 
 let db = null;
 
+// SQLite identifier fragment: bare word, "double-quoted", [bracketed], or `backticked`.
+const SQLITE_IDENTIFIER = '(?:"[^"]+"|\\[[^\\]]+\\]|`[^`]+`|\\w+)';
+
+// "duplicate column name: <col>"  — SQLite's error for ADD COLUMN when col already exists.
+const RE_DUPLICATE_COLUMN_NAME = new RegExp(`^duplicate column name: ${SQLITE_IDENTIFIER}$`);
+
+// "table <t> already has column named <col>"  — alternative phrasing in some SQLite builds.
+const RE_TABLE_ALREADY_HAS_COLUMN = new RegExp(
+  `^table ${SQLITE_IDENTIFIER} already has column named ${SQLITE_IDENTIFIER}$`
+);
+
+/**
+ * Returns true when the error is a SQLite "column already exists" error produced by
+ * ALTER TABLE ... ADD COLUMN on a column that is already present in the schema.
+ * Only the two known SQLite phrasings are matched so that unrelated SQLITE_ERROR
+ * messages are never silently swallowed.
+ *
+ * @param {Error} error
+ * @returns {boolean}
+ */
+function isSqliteDuplicateColumnError(error) {
+  return (
+    error.code === 'SQLITE_ERROR' &&
+    typeof error.message === 'string' &&
+    (RE_DUPLICATE_COLUMN_NAME.test(error.message) ||
+      RE_TABLE_ALREADY_HAS_COLUMN.test(error.message))
+  );
+}
+
 /**
  * Applies pending migrations to the database.
  * Migrations are SQL files in src/main/db/migrations/ numbered 001_*.sql, 002_*.sql, etc.
@@ -49,8 +78,20 @@ function applyMigrations(database) {
 
         console.log(`Migration ${file} applied successfully`);
       } catch (error) {
-        console.error(`Failed to apply migration ${file}:`, error);
-        throw error;
+        // ALTER TABLE ... ADD COLUMN on a column that already exists means this
+        // migration was already applied to a DB that had the column from a previous
+        // schema version. Treat it as a no-op and advance user_version normally.
+        const isDuplicateColumn = isSqliteDuplicateColumnError(error);
+
+        if (isDuplicateColumn) {
+          console.warn(
+            `Migration ${file}: column already exists, marking as applied — ${error.message}`
+          );
+          database.pragma(`user_version = ${migrationNumber}`);
+        } else {
+          console.error(`Failed to apply migration ${file}:`, error);
+          throw error;
+        }
       }
     }
   });

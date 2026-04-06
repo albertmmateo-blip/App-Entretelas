@@ -74,6 +74,7 @@ function mapArticulo(row) {
     name: row.nombre,
     ref: row.ref,
     color: row.color,
+    color_hex: row.color_hex,
     description: row.descripcion,
     notes: row.notas,
     quantity: row.cantidad,
@@ -522,7 +523,7 @@ function registerStockHandlers(deps = {}) {
 
       const info = db
         .prepare(
-          'INSERT INTO stock_articulos (producto_id, parent_articulo_id, nombre, ref, color, descripcion, notas, cantidad, orden) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+          'INSERT INTO stock_articulos (producto_id, parent_articulo_id, nombre, ref, color, color_hex, descripcion, notas, cantidad, orden) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         )
         .run(
           data.producto_id,
@@ -530,6 +531,7 @@ function registerStockHandlers(deps = {}) {
           normalizeText(data.nombre),
           normalizeText(data.ref),
           normalizeText(data.color),
+          normalizeText(data.color_hex),
           normalizeText(data.descripcion),
           normalizeText(data.notas),
           Number.isInteger(data?.cantidad) ? data.cantidad : 0,
@@ -599,13 +601,14 @@ function registerStockHandlers(deps = {}) {
       }
 
       db.prepare(
-        'UPDATE stock_articulos SET producto_id = ?, parent_articulo_id = ?, nombre = ?, ref = ?, color = ?, descripcion = ?, notas = ?, cantidad = ?, orden = ? WHERE id = ?'
+        'UPDATE stock_articulos SET producto_id = ?, parent_articulo_id = ?, nombre = ?, ref = ?, color = ?, color_hex = ?, descripcion = ?, notas = ?, cantidad = ?, orden = ? WHERE id = ?'
       ).run(
         nextProductoId,
         nextParentArticuloId,
         nextName,
         'ref' in (data || {}) ? normalizeText(data.ref) : existing.ref,
         'color' in (data || {}) ? normalizeText(data.color) : existing.color,
+        'color_hex' in (data || {}) ? normalizeText(data.color_hex) : existing.color_hex,
         'descripcion' in (data || {}) ? normalizeText(data.descripcion) : existing.descripcion,
         'notas' in (data || {}) ? normalizeText(data.notas) : existing.notas,
         nextQuantity,
