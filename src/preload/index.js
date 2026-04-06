@@ -109,6 +109,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     createArticulo: (data) => ipcRenderer.invoke('guardado:createArticulo', data),
     updateArticulo: (id, data) => ipcRenderer.invoke('guardado:updateArticulo', id, data),
     deleteArticulo: (id) => ipcRenderer.invoke('guardado:deleteArticulo', id),
+    uploadArticuloFoto: (params) => ipcRenderer.invoke('guardado:uploadArticuloFoto', params),
+    getArticuloFotos: (articuloId) => ipcRenderer.invoke('guardado:getArticuloFotos', articuloId),
+    getArticuloFotoBytes: (relativePath) =>
+      ipcRenderer.invoke('guardado:getArticuloFotoBytes', relativePath),
+    deleteArticuloFoto: (fotoId) => ipcRenderer.invoke('guardado:deleteArticuloFoto', fotoId),
   },
   // Stock module
   stock: {
@@ -126,6 +131,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('stock:setArticuloCantidad', id, cantidad),
     adjustArticuloCantidad: (id, delta) =>
       ipcRenderer.invoke('stock:adjustArticuloCantidad', id, delta),
+    uploadArticuloFoto: (params) => ipcRenderer.invoke('stock:uploadArticuloFoto', params),
+    getArticuloFotos: (articuloId) => ipcRenderer.invoke('stock:getArticuloFotos', articuloId),
+    getArticuloFotoBytes: (relativePath) =>
+      ipcRenderer.invoke('stock:getArticuloFotoBytes', relativePath),
+    deleteArticuloFoto: (fotoId) => ipcRenderer.invoke('stock:deleteArticuloFoto', fotoId),
   },
   // Import/Export
   data: {

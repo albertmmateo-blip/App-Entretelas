@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import PhotoModal from '../../components/PhotoModal';
 
 function matchesQuery(value, query) {
   return String(value || '')
@@ -131,6 +132,23 @@ function ColorInput({ value, onChange, disabled }) {
   );
 }
 
+function FotoIcon({ hasFoto, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className={`text-xs leading-none px-0.5 hover:scale-110 transition-transform ${hasFoto ? 'opacity-80' : 'opacity-30 hover:opacity-60'}`}
+      aria-label={hasFoto ? 'Ver foto' : 'Subir foto'}
+      title={hasFoto ? 'Ver foto' : 'Subir foto'}
+    >
+      🖼️
+    </button>
+  );
+}
+
 function Stock() {
   const [families, setFamilies] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -163,6 +181,11 @@ function Stock() {
   const [menuState, setMenuState] = useState(null);
   const menuAnchorRef = useRef(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  // Photo state
+  const [photoModal, setPhotoModal] = useState(null);
+  const fotoInputRef = useRef(null);
+  const fotoTargetRef = useRef(null);
 
   const stockAPI = window.electronAPI?.stock;
 
@@ -312,6 +335,71 @@ function Stock() {
     } catch (err) {
       setError(`Error al eliminar: ${err.message}`);
       setDeleteConfirm(null);
+    }
+  };
+
+  // ---- Photo helpers ----
+  const handleUploadFoto = (articuloId) => {
+    fotoTargetRef.current = articuloId;
+    if (fotoInputRef.current) {
+      fotoInputRef.current.value = '';
+      fotoInputRef.current.click();
+    }
+  };
+
+  const handleFotoFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    const articuloId = fotoTargetRef.current;
+    if (!file || !articuloId) return;
+    const arrayBuf = await file.arrayBuffer();
+    const res = await stockAPI.uploadArticuloFoto({
+      articulo_id: articuloId,
+      filename: file.name,
+      buffer: arrayBuf,
+    });
+    if (res?.success) {
+      await refreshTree();
+    }
+  };
+
+  const handleViewFoto = async (articuloId, articuloName) => {
+    const listRes = await stockAPI.getArticuloFotos(articuloId);
+    if (!listRes?.success || listRes.data.length === 0) return;
+    const foto = listRes.data[0];
+    const bytesRes = await stockAPI.getArticuloFotoBytes(foto.ruta_relativa);
+    if (!bytesRes?.success) return;
+    const ext = foto.nombre_guardado.split('.').pop().toLowerCase();
+    const mimeMap = {
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      webp: 'image/webp',
+      bmp: 'image/bmp',
+    };
+    const blob = new Blob([bytesRes.data], { type: mimeMap[ext] || 'image/jpeg' });
+    const url = URL.createObjectURL(blob);
+    setPhotoModal({ src: url, alt: articuloName, fotoId: foto.id, articuloId });
+  };
+
+  const closePhotoModal = () => {
+    if (photoModal?.src) URL.revokeObjectURL(photoModal.src);
+    setPhotoModal(null);
+  };
+
+  const handleDeleteFoto = async () => {
+    if (!photoModal) return;
+    const res = await stockAPI.deleteArticuloFoto(photoModal.fotoId);
+    if (res?.success) {
+      await refreshTree();
+      closePhotoModal();
+    }
+  };
+
+  const handleFotoIconClick = (articuloId, articuloName, hasFoto) => {
+    if (hasFoto) {
+      handleViewFoto(articuloId, articuloName);
+    } else {
+      handleUploadFoto(articuloId);
     }
   };
 
@@ -764,6 +852,16 @@ function Stock() {
                                 >
                                   <div className="flex items-center gap-2 min-w-0">
                                     <span className="text-sm shrink-0">📄</span>
+                                    <FotoIcon
+                                      hasFoto={article.has_foto}
+                                      onClick={() =>
+                                        handleFotoIconClick(
+                                          article.id,
+                                          article.name,
+                                          article.has_foto
+                                        )
+                                      }
+                                    />
                                     <div className="min-w-0">
                                       <div className="font-medium text-neutral-900 truncate">
                                         {article.name}
@@ -807,13 +905,25 @@ function Stock() {
                                           key={variant.id}
                                           className="flex items-center justify-between gap-2 rounded border border-amber-200 bg-white px-3 py-2"
                                         >
-                                          <div>
-                                            <div className="text-sm font-medium text-neutral-800">
-                                              {variant.name}
-                                            </div>
-                                            <div className="flex items-center gap-1.5 text-xs text-neutral-500">
-                                              <ColorDot hex={variant.color_hex} />
-                                              {variant.color || 'Sin color'}
+                                          <div className="flex items-center gap-1.5">
+                                            <FotoIcon
+                                              hasFoto={variant.has_foto}
+                                              onClick={() =>
+                                                handleFotoIconClick(
+                                                  variant.id,
+                                                  variant.name,
+                                                  variant.has_foto
+                                                )
+                                              }
+                                            />
+                                            <div>
+                                              <div className="text-sm font-medium text-neutral-800">
+                                                {variant.name}
+                                              </div>
+                                              <div className="flex items-center gap-1.5 text-xs text-neutral-500">
+                                                <ColorDot hex={variant.color_hex} />
+                                                {variant.color || 'Sin color'}
+                                              </div>
                                             </div>
                                           </div>
                                           <div className="flex items-center gap-2">
@@ -1053,6 +1163,16 @@ function Stock() {
                                           >
                                             <div className="flex items-center gap-2 min-w-0">
                                               <span className="text-sm shrink-0">📄</span>
+                                              <FotoIcon
+                                                hasFoto={article.has_foto}
+                                                onClick={() =>
+                                                  handleFotoIconClick(
+                                                    article.id,
+                                                    article.name,
+                                                    article.has_foto
+                                                  )
+                                                }
+                                              />
                                               <div className="min-w-0">
                                                 <div className="font-medium text-neutral-900 truncate">
                                                   {article.name}
@@ -1185,13 +1305,25 @@ function Stock() {
                                                       key={variant.id}
                                                       className="flex items-center justify-between gap-2 rounded border border-neutral-200 bg-white px-3 py-2"
                                                     >
-                                                      <div>
-                                                        <div className="text-sm font-medium text-neutral-800">
-                                                          {variant.name}
-                                                        </div>
-                                                        <div className="flex items-center gap-1.5 text-xs text-neutral-500">
-                                                          <ColorDot hex={variant.color_hex} />
-                                                          {variant.color || 'Sin color'}
+                                                      <div className="flex items-center gap-1.5">
+                                                        <FotoIcon
+                                                          hasFoto={variant.has_foto}
+                                                          onClick={() =>
+                                                            handleFotoIconClick(
+                                                              variant.id,
+                                                              variant.name,
+                                                              variant.has_foto
+                                                            )
+                                                          }
+                                                        />
+                                                        <div>
+                                                          <div className="text-sm font-medium text-neutral-800">
+                                                            {variant.name}
+                                                          </div>
+                                                          <div className="flex items-center gap-1.5 text-xs text-neutral-500">
+                                                            <ColorDot hex={variant.color_hex} />
+                                                            {variant.color || 'Sin color'}
+                                                          </div>
                                                         </div>
                                                       </div>
                                                       <div className="flex items-center gap-2">
@@ -1465,6 +1597,22 @@ function Stock() {
           >
             Editar
           </button>
+          {menuState.type === 'article' && (
+            <button
+              type="button"
+              onClick={() => {
+                if (menuState.item.has_foto) {
+                  handleViewFoto(menuState.item.id, menuState.item.name);
+                } else {
+                  handleUploadFoto(menuState.item.id);
+                }
+                setMenuState(null);
+              }}
+              className="block w-full text-left px-4 py-2 text-sm hover:bg-neutral-50 text-neutral-700"
+            >
+              {menuState.item.has_foto ? '🖼️ Ver foto' : '📷 Subir foto'}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => {
@@ -1487,6 +1635,25 @@ function Stock() {
           onCancel={() => setDeleteConfirm(null)}
           confirmText="Eliminar"
           confirmDanger
+        />
+      )}
+
+      {/* Hidden file input for photo upload */}
+      <input
+        ref={fotoInputRef}
+        type="file"
+        accept=".jpg,.jpeg,.png,.webp,.bmp"
+        className="hidden"
+        onChange={handleFotoFileChange}
+      />
+
+      {/* Photo lightbox */}
+      {photoModal && (
+        <PhotoModal
+          src={photoModal.src}
+          alt={photoModal.alt}
+          onClose={closePhotoModal}
+          onDelete={handleDeleteFoto}
         />
       )}
     </div>

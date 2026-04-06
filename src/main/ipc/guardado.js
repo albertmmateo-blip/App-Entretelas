@@ -1,4 +1,6 @@
-const { ipcMain } = require('electron');
+const { ipcMain, app } = require('electron');
+const fs = require('fs');
+const path = require('path');
 const { getDatabase } = require('../db/connection');
 
 /**
@@ -894,6 +896,17 @@ function registerGuardadoHandlers(deps = {}) {
       }
 
       db.prepare(`DELETE FROM guardado_articulos WHERE id = ?`).run(id);
+
+      // Clean up photo files from disk
+      try {
+        const fotosDir = path.join(app.getPath('userData'), 'guardado_fotos', String(id));
+        if (fs.existsSync(fotosDir)) {
+          fs.rmSync(fotosDir, { recursive: true, force: true });
+        }
+      } catch {
+        // Photo cleanup is best-effort
+      }
+
       return { success: true };
     } catch (error) {
       console.error('Error in guardado:deleteArticulo:', error);

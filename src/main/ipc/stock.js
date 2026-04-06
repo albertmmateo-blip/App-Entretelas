@@ -1,4 +1,6 @@
-const { ipcMain } = require('electron');
+const { ipcMain, app } = require('electron');
+const fs = require('fs');
+const path = require('path');
 const { getDatabase } = require('../db/connection');
 
 function isPositiveInteger(value) {
@@ -80,6 +82,7 @@ function mapArticulo(row) {
     notes: row.notas,
     quantity: row.cantidad,
     order: row.orden,
+    has_foto: Boolean(row.has_foto),
     fecha_creacion: row.fecha_creacion,
     fecha_mod: row.fecha_mod,
   };
@@ -96,7 +99,11 @@ function buildTree(db) {
     .all();
   const articulos = db
     .prepare(
-      'SELECT * FROM stock_articulos ORDER BY COALESCE(producto_id, 0) ASC, COALESCE(familia_id, 0) ASC, COALESCE(parent_articulo_id, 0) ASC, orden ASC, nombre COLLATE NOCASE ASC, id ASC'
+      `SELECT id, producto_id, familia_id, parent_articulo_id, nombre, ref, color, color_hex,
+              descripcion, notas, cantidad, orden, fecha_creacion, fecha_mod,
+              EXISTS(SELECT 1 FROM stock_articulo_fotos WHERE stock_articulo_fotos.articulo_id = stock_articulos.id) AS has_foto
+       FROM stock_articulos
+       ORDER BY COALESCE(producto_id, 0) ASC, COALESCE(familia_id, 0) ASC, COALESCE(parent_articulo_id, 0) ASC, orden ASC, nombre COLLATE NOCASE ASC, id ASC`
     )
     .all();
 
@@ -514,10 +521,13 @@ function registerStockHandlers(deps = {}) {
     try {
       const hasProducto = isPositiveInteger(data?.producto_id);
       const hasFamilia = isPositiveInteger(data?.familia_id);
-      if (!hasProducto && !hasFamilia) {
+      if (hasProducto === hasFamilia) {
         return {
           success: false,
-          error: { code: 'INVALID_INPUT', message: 'producto_id or familia_id is required' },
+          error: {
+            code: 'INVALID_INPUT',
+            message: 'Either producto_id or familia_id is required (but not both)',
+          },
         };
       }
       const validation = validateTextField(data?.nombre, 'nombre');
@@ -733,7 +743,28 @@ function registerStockHandlers(deps = {}) {
         return { success: false, error: { code: 'NOT_FOUND', message: 'Articulo not found' } };
       }
 
+      // Collect all articulo IDs that will be cascade-deleted (self + child variants)
+      const childIds = db
+        .prepare('SELECT id FROM stock_articulos WHERE parent_articulo_id = ?')
+        .all(id)
+        .map((r) => r.id);
+      const allIds = [id, ...childIds];
+
       db.prepare('DELETE FROM stock_articulos WHERE id = ?').run(id);
+
+      // Clean up photo files on disk (best-effort)
+      const baseDir = path.join(app.getPath('userData'), 'stock_fotos');
+      for (const articuloId of allIds) {
+        const articuloDir = path.join(baseDir, String(articuloId));
+        try {
+          if (fs.existsSync(articuloDir)) {
+            fs.rmSync(articuloDir, { recursive: true, force: true });
+          }
+        } catch {
+          // Best-effort cleanup
+        }
+      }
+
       return { success: true };
     } catch (error) {
       console.error('Error in stock:deleteArticulo:', error);

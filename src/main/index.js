@@ -14,7 +14,9 @@ const { registerClientesHandlers } = require('./ipc/clientes');
 const { registerFacturasHandlers } = require('./ipc/facturas');
 const { registerSystemHandlers } = require('./ipc/system');
 const { registerGuardadoHandlers } = require('./ipc/guardado');
+const { registerGuardadoFotosHandlers } = require('./ipc/guardadoFotos');
 const { registerStockHandlers } = require('./ipc/stock');
+const { registerStockFotosHandlers } = require('./ipc/stockFotos');
 const { registerImportExportHandlers } = require('./ipc/importExport');
 
 let mainWindow;
@@ -159,7 +161,9 @@ if (!gotTheLock) {
     registerFacturasHandlers();
     registerSystemHandlers();
     registerGuardadoHandlers();
+    registerGuardadoFotosHandlers();
     registerStockHandlers();
+    registerStockFotosHandlers();
     registerImportExportHandlers();
 
     // Window control IPC handlers

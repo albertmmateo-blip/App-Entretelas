@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import PhotoModal from '../../components/PhotoModal';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Data hook
@@ -1786,6 +1787,23 @@ function TabLugares({ state, dispatch, api }) {
 // TAB: Productos
 // ─────────────────────────────────────────────────────────────────────────────
 
+function GuardadoFotoIcon({ hasFoto, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className={`text-xs leading-none px-0.5 hover:scale-110 transition-transform ${hasFoto ? 'opacity-80' : 'opacity-30 hover:opacity-60'}`}
+      aria-label={hasFoto ? 'Ver foto' : 'Subir foto'}
+      title={hasFoto ? 'Ver foto' : 'Subir foto'}
+    >
+      🖼️
+    </button>
+  );
+}
+
 function TabProductos({ state, dispatch, api, onAsignar }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [editingId, setEditingId] = useState(null);
@@ -1794,6 +1812,12 @@ function TabProductos({ state, dispatch, api, onAsignar }) {
   const [confirmDeleteArticulo, setConfirmDeleteArticulo] = useState(null);
   const [expandedProductos, setExpandedProductos] = useState(new Set());
   const [highlightedProductoId, setHighlightedProductoId] = useState(null);
+
+  // Photo state
+  const [articuloFotoFlags, setArticuloFotoFlags] = useState({}); // { [articuloId]: boolean }
+  const [photoModal, setPhotoModal] = useState(null); // { src, alt, fotoId, articuloId }
+  const fotoInputRef = useRef(null);
+  const fotoTargetRef = useRef(null); // articuloId being uploaded to
 
   const productoFields = [
     {
@@ -1902,8 +1926,110 @@ function TabProductos({ state, dispatch, api, onAsignar }) {
   const handleDeleteArticulo = async () => {
     if (!confirmDeleteArticulo) return;
     const res = await api.deleteArticulo(confirmDeleteArticulo);
-    if (res.success) dispatch({ type: 'DELETE_ARTICULO', id: confirmDeleteArticulo });
+    if (res.success) {
+      dispatch({ type: 'DELETE_ARTICULO', id: confirmDeleteArticulo });
+      setArticuloFotoFlags((prev) => {
+        const next = { ...prev };
+        delete next[confirmDeleteArticulo];
+        return next;
+      });
+    }
     setConfirmDeleteArticulo(null);
+  };
+
+  // ── Photo helpers ────────────────────────────────────────────────────
+  const refreshFotoFlag = useCallback(
+    async (articuloId) => {
+      const res = await api.getArticuloFotos(articuloId);
+      if (res?.success) {
+        setArticuloFotoFlags((prev) => ({ ...prev, [articuloId]: res.data.length > 0 }));
+      }
+    },
+    [api]
+  );
+
+  // Load foto flags for all visible articles
+  useEffect(() => {
+    const allArticulos = state.productos.flatMap((p) => p.articulos || []);
+    if (!allArticulos.length || !api?.getArticuloFotos) return undefined;
+    let cancelled = false;
+    (async () => {
+      const flags = {};
+      await Promise.all(
+        allArticulos.map(async (a) => {
+          const res = await api.getArticuloFotos(a.id);
+          if (res?.success) flags[a.id] = res.data.length > 0;
+        })
+      );
+      if (!cancelled) setArticuloFotoFlags(flags);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [state.productos, api]);
+
+  const handleUploadFoto = (articuloId) => {
+    fotoTargetRef.current = articuloId;
+    if (fotoInputRef.current) {
+      fotoInputRef.current.value = '';
+      fotoInputRef.current.click();
+    }
+  };
+
+  const handleFotoFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    const articuloId = fotoTargetRef.current;
+    if (!file || !articuloId) return;
+    const arrayBuf = await file.arrayBuffer();
+    const res = await api.uploadArticuloFoto({
+      articulo_id: articuloId,
+      filename: file.name,
+      buffer: arrayBuf,
+    });
+    if (res?.success) {
+      await refreshFotoFlag(articuloId);
+    }
+  };
+
+  const handleViewFoto = async (articuloId, articuloName) => {
+    const listRes = await api.getArticuloFotos(articuloId);
+    if (!listRes?.success || listRes.data.length === 0) return;
+    const foto = listRes.data[0];
+    const bytesRes = await api.getArticuloFotoBytes(foto.ruta_relativa);
+    if (!bytesRes?.success) return;
+    const ext = foto.nombre_guardado.split('.').pop().toLowerCase();
+    const mimeMap = {
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      webp: 'image/webp',
+      bmp: 'image/bmp',
+    };
+    const blob = new Blob([bytesRes.data], { type: mimeMap[ext] || 'image/jpeg' });
+    const url = URL.createObjectURL(blob);
+    setPhotoModal({ src: url, alt: articuloName, fotoId: foto.id, articuloId });
+  };
+
+  const closePhotoModal = () => {
+    if (photoModal?.src) URL.revokeObjectURL(photoModal.src);
+    setPhotoModal(null);
+  };
+
+  const handleDeleteFoto = async () => {
+    if (!photoModal) return;
+    const res = await api.deleteArticuloFoto(photoModal.fotoId);
+    if (res?.success) {
+      await refreshFotoFlag(photoModal.articuloId);
+      closePhotoModal();
+    }
+  };
+
+  const handleFotoIconClick = (articuloId, articuloName) => {
+    if (articuloFotoFlags[articuloId]) {
+      handleViewFoto(articuloId, articuloName);
+    } else {
+      handleUploadFoto(articuloId);
+    }
   };
 
   const articuloModalProducto = articuloModal
@@ -2096,6 +2222,10 @@ function TabProductos({ state, dispatch, api, onAsignar }) {
                               >
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-1.5 flex-wrap">
+                                    <GuardadoFotoIcon
+                                      hasFoto={!!articuloFotoFlags[art.id]}
+                                      onClick={() => handleFotoIconClick(art.id, art.nombre)}
+                                    />
                                     <span className="font-medium text-neutral-800">
                                       {art.nombre}
                                     </span>
@@ -2126,6 +2256,14 @@ function TabProductos({ state, dispatch, api, onAsignar }) {
                                   )}
                                 </div>
                                 <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 pt-0.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUploadFoto(art.id)}
+                                    className="px-1.5 py-0.5 border border-neutral-200 rounded hover:bg-white transition-colors text-neutral-600"
+                                    title="Subir foto"
+                                  >
+                                    📷
+                                  </button>
                                   <button
                                     type="button"
                                     onClick={() =>
@@ -2218,6 +2356,25 @@ function TabProductos({ state, dispatch, api, onAsignar }) {
           onCancel={() => setConfirmDeleteArticulo(null)}
           confirmText="Eliminar"
           confirmDanger
+        />
+      )}
+
+      {/* Hidden file input for photo upload */}
+      <input
+        ref={fotoInputRef}
+        type="file"
+        accept=".jpg,.jpeg,.png,.webp,.bmp"
+        className="hidden"
+        onChange={handleFotoFileChange}
+      />
+
+      {/* Photo lightbox */}
+      {photoModal && (
+        <PhotoModal
+          src={photoModal.src}
+          alt={photoModal.alt}
+          onClose={closePhotoModal}
+          onDelete={handleDeleteFoto}
         />
       )}
     </div>
