@@ -64,8 +64,13 @@ body {
 
 button.bg-primary {
   font-weight: 600;
-  color: var(--color-primary-700);
+  background: var(--color-primary);
+  color: #ffffff;
   text-shadow: none;
+}
+
+button.bg-primary:hover {
+  background: color-mix(in srgb, var(--color-primary) 90%, black);
 }
 
 #root {
@@ -573,6 +578,23 @@ button:not(:disabled):active,
 input[type='button']:active,
 input[type='submit']:active {
   transform: translateY(1px);
+}
+
+button.bg-danger {
+  font-weight: 600;
+  background: var(--color-danger);
+  color: #ffffff;
+  text-shadow: none;
+}
+
+button.bg-danger:hover {
+  background: color-mix(in srgb, var(--color-danger) 90%, black);
+}
+
+button.bg-primary:focus-visible,
+button.bg-danger:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 input[type='text'],

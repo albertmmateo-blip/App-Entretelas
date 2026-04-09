@@ -141,8 +141,8 @@ function FotoIcon({ hasFoto, onClick }) {
         onClick();
       }}
       className={`text-xs leading-none px-0.5 hover:scale-110 transition-transform ${hasFoto ? 'opacity-80' : 'opacity-30 hover:opacity-60'}`}
-      aria-label={hasFoto ? 'Ver foto' : 'Subir foto'}
-      title={hasFoto ? 'Ver foto' : 'Subir foto'}
+      aria-label={hasFoto ? 'Ver fotos' : 'Subir foto'}
+      title={hasFoto ? 'Ver fotos' : 'Subir foto'}
     >
       🖼️
     </button>
@@ -339,11 +339,45 @@ function Stock() {
   };
 
   // ---- Photo helpers ----
+  const mimeMap = {
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    webp: 'image/webp',
+    bmp: 'image/bmp',
+  };
+
   const handleUploadFoto = (articuloId) => {
     fotoTargetRef.current = articuloId;
     if (fotoInputRef.current) {
       fotoInputRef.current.value = '';
       fotoInputRef.current.click();
+    }
+  };
+
+  const loadAllPhotos = async (articuloId) => {
+    const listRes = await stockAPI.getArticuloFotos(articuloId);
+    if (!listRes?.success || listRes.data.length === 0) return null;
+    const photos = [];
+    for (const foto of listRes.data) {
+      const bytesRes = await stockAPI.getArticuloFotoBytes(foto.ruta_relativa);
+      if (!bytesRes?.success) continue;
+      const ext = foto.nombre_guardado.split('.').pop().toLowerCase();
+      const blob = new Blob([bytesRes.data], { type: mimeMap[ext] || 'image/jpeg' });
+      photos.push({ src: URL.createObjectURL(blob), fotoId: foto.id });
+    }
+    return photos.length > 0 ? photos : null;
+  };
+
+  const reloadModalPhotos = async (articuloId, articuloName) => {
+    if (photoModal?.photos) {
+      photoModal.photos.forEach((p) => URL.revokeObjectURL(p.src));
+    }
+    const photos = await loadAllPhotos(articuloId);
+    if (photos) {
+      setPhotoModal({ photos, alt: articuloName, articuloId });
+    } else {
+      setPhotoModal(null);
     }
   };
 
@@ -359,40 +393,42 @@ function Stock() {
     });
     if (res?.success) {
       await refreshTree();
+      if (photoModal && photoModal.articuloId === articuloId) {
+        await reloadModalPhotos(articuloId, photoModal.alt);
+      }
     }
   };
 
   const handleViewFoto = async (articuloId, articuloName) => {
-    const listRes = await stockAPI.getArticuloFotos(articuloId);
-    if (!listRes?.success || listRes.data.length === 0) return;
-    const foto = listRes.data[0];
-    const bytesRes = await stockAPI.getArticuloFotoBytes(foto.ruta_relativa);
-    if (!bytesRes?.success) return;
-    const ext = foto.nombre_guardado.split('.').pop().toLowerCase();
-    const mimeMap = {
-      jpg: 'image/jpeg',
-      jpeg: 'image/jpeg',
-      png: 'image/png',
-      webp: 'image/webp',
-      bmp: 'image/bmp',
-    };
-    const blob = new Blob([bytesRes.data], { type: mimeMap[ext] || 'image/jpeg' });
-    const url = URL.createObjectURL(blob);
-    setPhotoModal({ src: url, alt: articuloName, fotoId: foto.id, articuloId });
+    const photos = await loadAllPhotos(articuloId);
+    if (!photos) return;
+    setPhotoModal({ photos, alt: articuloName, articuloId });
   };
 
   const closePhotoModal = () => {
-    if (photoModal?.src) URL.revokeObjectURL(photoModal.src);
+    if (photoModal?.photos) {
+      photoModal.photos.forEach((p) => URL.revokeObjectURL(p.src));
+    }
     setPhotoModal(null);
   };
 
-  const handleDeleteFoto = async () => {
+  const handleDeleteFoto = async (fotoId) => {
     if (!photoModal) return;
-    const res = await stockAPI.deleteArticuloFoto(photoModal.fotoId);
+    const res = await stockAPI.deleteArticuloFoto(fotoId);
     if (res?.success) {
       await refreshTree();
-      closePhotoModal();
+      const remaining = photoModal.photos.filter((p) => p.fotoId !== fotoId);
+      if (remaining.length === 0) {
+        closePhotoModal();
+      } else {
+        setPhotoModal((prev) => ({ ...prev, photos: remaining }));
+      }
     }
+  };
+
+  const handleAddFotoFromModal = () => {
+    if (!photoModal) return;
+    handleUploadFoto(photoModal.articuloId);
   };
 
   const handleFotoIconClick = (articuloId, articuloName, hasFoto) => {
@@ -1610,7 +1646,7 @@ function Stock() {
               }}
               className="block w-full text-left px-4 py-2 text-sm hover:bg-neutral-50 text-neutral-700"
             >
-              {menuState.item.has_foto ? '🖼️ Ver foto' : '📷 Subir foto'}
+              {menuState.item.has_foto ? '🖼️ Ver fotos' : '📷 Subir foto'}
             </button>
           )}
           <button
@@ -1650,10 +1686,11 @@ function Stock() {
       {/* Photo lightbox */}
       {photoModal && (
         <PhotoModal
-          src={photoModal.src}
+          photos={photoModal.photos}
           alt={photoModal.alt}
           onClose={closePhotoModal}
           onDelete={handleDeleteFoto}
+          onAdd={handleAddFotoFromModal}
         />
       )}
     </div>

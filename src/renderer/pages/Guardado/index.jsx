@@ -1815,7 +1815,7 @@ function TabProductos({ state, dispatch, api, onAsignar }) {
 
   // Photo state
   const [articuloFotoFlags, setArticuloFotoFlags] = useState({}); // { [articuloId]: boolean }
-  const [photoModal, setPhotoModal] = useState(null); // { src, alt, fotoId, articuloId }
+  const [photoModal, setPhotoModal] = useState(null); // { photos: [{src, fotoId}], alt, articuloId }
   const fotoInputRef = useRef(null);
   const fotoTargetRef = useRef(null); // articuloId being uploaded to
 
@@ -1976,6 +1976,41 @@ function TabProductos({ state, dispatch, api, onAsignar }) {
     }
   };
 
+  const mimeMap = {
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    webp: 'image/webp',
+    bmp: 'image/bmp',
+  };
+
+  const loadAllPhotos = async (articuloId) => {
+    const listRes = await api.getArticuloFotos(articuloId);
+    if (!listRes?.success || listRes.data.length === 0) return null;
+    const photos = [];
+    for (const foto of listRes.data) {
+      const bytesRes = await api.getArticuloFotoBytes(foto.ruta_relativa);
+      if (!bytesRes?.success) continue;
+      const ext = foto.nombre_guardado.split('.').pop().toLowerCase();
+      const blob = new Blob([bytesRes.data], { type: mimeMap[ext] || 'image/jpeg' });
+      photos.push({ src: URL.createObjectURL(blob), fotoId: foto.id });
+    }
+    return photos.length > 0 ? photos : null;
+  };
+
+  const reloadModalPhotos = async (articuloId, articuloName) => {
+    // Revoke old URLs
+    if (photoModal?.photos) {
+      photoModal.photos.forEach((p) => URL.revokeObjectURL(p.src));
+    }
+    const photos = await loadAllPhotos(articuloId);
+    if (photos) {
+      setPhotoModal({ photos, alt: articuloName, articuloId });
+    } else {
+      setPhotoModal(null);
+    }
+  };
+
   const handleFotoFileChange = async (e) => {
     const file = e.target.files?.[0];
     const articuloId = fotoTargetRef.current;
@@ -1988,40 +2023,43 @@ function TabProductos({ state, dispatch, api, onAsignar }) {
     });
     if (res?.success) {
       await refreshFotoFlag(articuloId);
+      // If the modal is open for this article, reload all photos into it
+      if (photoModal && photoModal.articuloId === articuloId) {
+        await reloadModalPhotos(articuloId, photoModal.alt);
+      }
     }
   };
 
   const handleViewFoto = async (articuloId, articuloName) => {
-    const listRes = await api.getArticuloFotos(articuloId);
-    if (!listRes?.success || listRes.data.length === 0) return;
-    const foto = listRes.data[0];
-    const bytesRes = await api.getArticuloFotoBytes(foto.ruta_relativa);
-    if (!bytesRes?.success) return;
-    const ext = foto.nombre_guardado.split('.').pop().toLowerCase();
-    const mimeMap = {
-      jpg: 'image/jpeg',
-      jpeg: 'image/jpeg',
-      png: 'image/png',
-      webp: 'image/webp',
-      bmp: 'image/bmp',
-    };
-    const blob = new Blob([bytesRes.data], { type: mimeMap[ext] || 'image/jpeg' });
-    const url = URL.createObjectURL(blob);
-    setPhotoModal({ src: url, alt: articuloName, fotoId: foto.id, articuloId });
+    const photos = await loadAllPhotos(articuloId);
+    if (!photos) return;
+    setPhotoModal({ photos, alt: articuloName, articuloId });
   };
 
   const closePhotoModal = () => {
-    if (photoModal?.src) URL.revokeObjectURL(photoModal.src);
+    if (photoModal?.photos) {
+      photoModal.photos.forEach((p) => URL.revokeObjectURL(p.src));
+    }
     setPhotoModal(null);
   };
 
-  const handleDeleteFoto = async () => {
+  const handleDeleteFoto = async (fotoId) => {
     if (!photoModal) return;
-    const res = await api.deleteArticuloFoto(photoModal.fotoId);
+    const res = await api.deleteArticuloFoto(fotoId);
     if (res?.success) {
       await refreshFotoFlag(photoModal.articuloId);
-      closePhotoModal();
+      const remaining = photoModal.photos.filter((p) => p.fotoId !== fotoId);
+      if (remaining.length === 0) {
+        closePhotoModal();
+      } else {
+        setPhotoModal((prev) => ({ ...prev, photos: remaining }));
+      }
     }
+  };
+
+  const handleAddFotoFromModal = () => {
+    if (!photoModal) return;
+    handleUploadFoto(photoModal.articuloId);
   };
 
   const handleFotoIconClick = (articuloId, articuloName) => {
@@ -2218,52 +2256,36 @@ function TabProductos({ state, dispatch, api, onAsignar }) {
                             {articulos.map((art) => (
                               <li
                                 key={art.id}
-                                className="group flex items-start gap-2 text-xs rounded px-2 py-1.5 bg-neutral-50 hover:bg-neutral-100 transition-colors"
+                                className="group flex items-center gap-2 text-xs rounded px-2 py-1.5 bg-neutral-50 hover:bg-neutral-100 transition-colors"
                               >
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <GuardadoFotoIcon
-                                      hasFoto={!!articuloFotoFlags[art.id]}
-                                      onClick={() => handleFotoIconClick(art.id, art.nombre)}
-                                    />
-                                    <span className="font-medium text-neutral-800">
-                                      {art.nombre}
+                                <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
+                                  <GuardadoFotoIcon
+                                    hasFoto={!!articuloFotoFlags[art.id]}
+                                    onClick={() => handleFotoIconClick(art.id, art.nombre)}
+                                  />
+                                  <span className="font-medium text-neutral-800">{art.nombre}</span>
+                                  {art.ref && (
+                                    <span className="text-neutral-500 bg-neutral-200 px-1 py-0.5 rounded text-xs">
+                                      {art.ref}
                                     </span>
-                                    {art.ref && (
-                                      <span className="text-neutral-500 bg-neutral-200 px-1 py-0.5 rounded text-xs">
-                                        {art.ref}
-                                      </span>
-                                    )}
-                                  </div>
+                                  )}
+                                  {art.notas && (
+                                    <span className="text-neutral-400 italic">{art.notas}</span>
+                                  )}
                                   {art.lugar_id ? (
-                                    <div className="flex items-center gap-1 mt-0.5 text-neutral-500">
+                                    <span className="flex items-center gap-0.5 text-neutral-500">
                                       <span>📍</span>
-                                      <span className="truncate">
+                                      <span>
                                         {art.compartimento_nombre
                                           ? `${art.lugar_nombre} – ${art.compartimento_nombre}`
                                           : art.lugar_nombre}
                                       </span>
-                                    </div>
+                                    </span>
                                   ) : (
-                                    <div className="text-neutral-400 italic mt-0.5">
-                                      Sin ubicación
-                                    </div>
-                                  )}
-                                  {art.notas && (
-                                    <div className="text-neutral-400 italic mt-0.5">
-                                      {art.notas}
-                                    </div>
+                                    <span className="text-neutral-400 italic">Sin ubicación</span>
                                   )}
                                 </div>
                                 <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 pt-0.5">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleUploadFoto(art.id)}
-                                    className="px-1.5 py-0.5 border border-neutral-200 rounded hover:bg-white transition-colors text-neutral-600"
-                                    title="Subir foto"
-                                  >
-                                    📷
-                                  </button>
                                   <button
                                     type="button"
                                     onClick={() =>
@@ -2371,10 +2393,11 @@ function TabProductos({ state, dispatch, api, onAsignar }) {
       {/* Photo lightbox */}
       {photoModal && (
         <PhotoModal
-          src={photoModal.src}
+          photos={photoModal.photos}
           alt={photoModal.alt}
           onClose={closePhotoModal}
           onDelete={handleDeleteFoto}
+          onAdd={handleAddFotoFromModal}
         />
       )}
     </div>
